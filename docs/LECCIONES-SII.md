@@ -295,13 +295,22 @@ Res. Ex. SII N° 74 de 2020. Las boletas (39/41) **no comparten nada** con factu
 ⚠️ **La tabla de arriba es la infraestructura de PRODUCCIÓN de boletas.** El **SET de
 certificación** NO va por ese REST — ver la lección siguiente.
 
-⚠️ **El envío de boletas (rahue/pangal) VALIDA el User-Agent (`401 engañoso`).** Verificado en
-vivo (2026-07): con **Chrome real → 401**, **Mozilla genérico → 401**, y el **UA de-facto de
-LibreDTE** (`Mozilla/5.0 (compatible; PROG 1.0; +https://www.libredte.cl)`) → **EPR aceptado**. O
-sea el SII tiene un allowlist de User-Agents (de proveedores registrados). El portal de folios NO
-es picky. Por eso el UA es **configurable** (`SII_USER_AGENT`, `core/config.py`) — el default del
-repo es neutro; en producción hay que setear uno que el SII acepte. Un `401 No autorizado` en el
-envío con token válido = casi siempre el User-Agent.
+⚠️ **El envío de boletas (rahue/pangal) y DTEUpload EXIGEN el token `PROG 1.0` en el User-Agent
+(`401 engañoso`).** La "magia" NO es LibreDTE — es el string **`PROG 1.0`** (identificador de
+"programa" de la implementación de referencia del SII, documentado por el SII como
+`Mozilla/4.0 (compatible; PROG 1.0; Windows NT)`). Verificado en vivo (2026-07), reenviando el
+MISMO sobre variando solo el UA:
+- `Mozilla/5.0 (Windows...) Chrome/120...` → **401**
+- `Mozilla/5.0` → **401**
+- `Mozilla/5.0 (compatible; DTE-Chile/1.0)` (sin PROG 1.0) → **401**
+- `Mozilla/5.0 (compatible; PROG 1.0; +https://www.libredte.cl)` → **EPR aceptado**
+- `Mozilla/5.0 (compatible; PROG 1.0; +https://github.com/SebastianMoyano/dte-chile)` (PROG 1.0,
+  SIN libredte) → **EPR aceptado** ✅
+
+O sea: cualquier UA **con `PROG 1.0`** pasa; el resto del string (la URL) es libre. LibreDTE solo
+copió la convención del SII (su código lo pone sin ningún comentario que lo explique). El portal
+de folios NO es picky. El UA es configurable por `SII_USER_AGENT` (`core/config.py`); el default
+del repo ya trae `PROG 1.0`. Un `401 No autorizado` con token válido = casi siempre falta `PROG 1.0`.
 
 - Tope de **500 boletas por sobre** — ⚠️ **NO lo dice el XSD**: `EnvioBOLETA_v11.xsd:89` declara
   `maxOccurs="unbounded"` para `DTE` (el `maxOccurs="1000"` del esquema es de **`Detalle`**, las
