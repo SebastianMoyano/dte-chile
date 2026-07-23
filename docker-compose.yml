@@ -1,0 +1,51 @@
+# ============================================
+# DTE Chile API - Docker Compose
+# ============================================
+# Uso:
+#   docker-compose up -d          # Iniciar en background
+#   docker-compose up             # Iniciar en foreground
+#   docker-compose down           # Detener
+#   docker-compose logs -f        # Ver logs
+#   docker-compose restart        # Reiniciar
+
+version: "3.8"
+
+services:
+  dte-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dte-chile-api
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8000}:8000"
+    volumes:
+      # Persistir base de datos
+      - dte-data:/app/storage
+      # Persistir logs
+      - dte-logs:/app/logs
+      # Montar .env desde el host
+      - ./.env:/app/.env:ro
+    environment:
+      - TZ=America/Santiago
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/health').raise_for_status()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - dte-network
+
+volumes:
+  dte-data:
+    driver: local
+    name: dte-chile-data
+  dte-logs:
+    driver: local
+    name: dte-chile-logs
+
+networks:
+  dte-network:
+    driver: bridge
+    name: dte-chile-network

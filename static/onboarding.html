@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Onboarding · DTE</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧾</text></svg>">
+<style>
+:root{
+  --bg:#f4f6fb;--surface:#ffffff;--raise:0 1px 2px rgba(16,29,61,.06),0 8px 24px -12px rgba(16,29,61,.14);
+  --line:#e4e9f2;--line-strong:#d3dbe8;--txt:#141b2e;--txt-mut:#5b667c;--txt-faint:#8a94a8;
+  --accent:#1859c9;--accent-soft:#eaf0fe;--accent-ink:#0f3f9e;
+  --ok:#0a8f56;--ok-soft:#e4f6ec;--warn:#b8730a;--warn-soft:#fdf1dd;--bad:#d33150;--bad-soft:#fde8ec;
+  --radius:14px;--radius-sm:9px;
+  --mono:ui-monospace,"SF Mono","Cascadia Code","Roboto Mono",monospace;
+  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+}
+:root[data-theme="dark"]{
+  --bg:#0b1020;--surface:#141a2e;--raise:0 1px 2px rgba(0,0,0,.3),0 12px 30px -14px rgba(0,0,0,.6);
+  --line:#26304a;--line-strong:#33405f;--txt:#e8ecf6;--txt-mut:#9aa6bf;--txt-faint:#6b7690;
+  --accent:#5b8cf5;--accent-soft:#18233f;--accent-ink:#bcd0fb;
+  --ok:#3ecf8e;--ok-soft:#123227;--warn:#e0a238;--warn-soft:#2f2510;--bad:#f26d8b;--bad-soft:#33141d;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0b1020;--surface:#141a2e;--raise:0 1px 2px rgba(0,0,0,.3),0 12px 30px -14px rgba(0,0,0,.6);
+  --line:#26304a;--line-strong:#33405f;--txt:#e8ecf6;--txt-mut:#9aa6bf;--txt-faint:#6b7690;
+  --accent:#5b8cf5;--accent-soft:#18233f;--accent-ink:#bcd0fb;
+  --ok:#3ecf8e;--ok-soft:#123227;--warn:#e0a238;--warn-soft:#2f2510;--bad:#f26d8b;--bad-soft:#33141d;
+}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);font-family:var(--sans);line-height:1.5;
+  -webkit-font-smoothing:antialiased}
+.wrap{max-width:760px;margin:0 auto;padding:28px 20px 80px}
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+h1{font-size:1.35rem;margin:0;letter-spacing:-.01em}
+.sub{color:var(--txt-mut);font-size:.9rem}
+button{font-family:inherit;font-size:.92rem;cursor:pointer;border-radius:var(--radius-sm);
+  border:1px solid var(--line-strong);background:var(--surface);color:var(--txt);padding:9px 15px;
+  transition:.12s}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+button.primary:hover{background:var(--accent-ink)}
+button.ghost{border-color:transparent;background:transparent;color:var(--txt-mut);padding:6px 8px}
+.navlink{font-size:.85rem;color:var(--txt-mut);text-decoration:none;padding:7px 12px;
+  border-radius:var(--radius-sm);border:1px solid var(--line-strong);white-space:nowrap;transition:.12s}
+.navlink:hover{border-color:var(--accent);color:var(--accent)}
+button:disabled{opacity:.5;cursor:not-allowed}
+input{font-family:inherit;font-size:.95rem;width:100%;padding:11px 13px;border-radius:var(--radius-sm);
+  border:1px solid var(--line-strong);background:var(--surface);color:var(--txt)}
+input:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:var(--accent)}
+label{display:block;font-size:.8rem;color:var(--txt-mut);margin:0 0 5px 2px;font-weight:600}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--raise);padding:22px;margin-bottom:16px}
+.field{margin-bottom:14px}
+/* stepper */
+.steps{display:flex;gap:8px;margin-bottom:22px}
+.steps .st{flex:1;text-align:center;font-size:.78rem;font-weight:600;color:var(--txt-faint);
+  padding:9px 4px 11px;border-top:3px solid var(--line);letter-spacing:.02em}
+.steps .st.on{color:var(--accent);border-top-color:var(--accent)}
+.steps .st.done{color:var(--ok);border-top-color:var(--ok)}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.spread{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:.72rem;font-weight:700;
+  padding:3px 9px;border-radius:999px;letter-spacing:.02em}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.mut{background:var(--accent-soft);color:var(--accent-ink)}
+/* etiquetas largas (estado, modo de acción): rectángulo redondeado que envuelve bien,
+   en vez de un óvalo deforme cuando el texto ocupa varias líneas */
+.pill.wide{border-radius:var(--radius-sm);white-space:normal;text-align:center;line-height:1.3}
+/* en pantallas chicas, el header del diagnóstico apila título y estado */
+@media (max-width:460px){.diag-head{flex-direction:column;align-items:flex-start;gap:9px}}
+/* header más compacto en celulares muy angostos: sin subtítulo, título más chico */
+@media (max-width:400px){header h1{font-size:1.12rem}header .sub{display:none}}
+.item{display:flex;gap:12px;padding:13px 0;border-bottom:1px solid var(--line)}
+.item:last-child{border-bottom:0}
+.item .ic{font-size:1.05rem;flex:0 0 auto;width:22px;text-align:center}
+.item .bd{flex:1;min-width:0}
+.item .t{font-weight:600;font-size:.94rem}
+.item .d{color:var(--txt-mut);font-size:.85rem;margin-top:2px}
+.selrow{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border:1px solid var(--line);
+  border-radius:var(--radius-sm);margin-bottom:8px;cursor:pointer;transition:.12s;background:var(--surface)}
+.selrow:hover{border-color:var(--accent);background:var(--accent-soft)}
+.selrow.sel{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.rut{font-family:var(--mono);font-size:.82rem;color:var(--txt-mut)}
+.muted{color:var(--txt-mut);font-size:.88rem}
+.drop{border:2px dashed var(--line-strong);border-radius:var(--radius-sm);padding:20px;text-align:center;
+  color:var(--txt-mut);font-size:.88rem;cursor:pointer;transition:.12s}
+.drop:hover{border-color:var(--accent);color:var(--accent)}
+.err{background:var(--bad-soft);color:var(--bad);padding:10px 13px;border-radius:var(--radius-sm);
+  font-size:.86rem;margin-bottom:12px}
+.hero-note{background:var(--accent-soft);color:var(--accent-ink);border-radius:var(--radius-sm);
+  padding:11px 14px;font-size:.85rem;margin-bottom:16px}
+/* modal */
+.modal-bg{position:fixed;inset:0;background:rgba(10,16,32,.55);display:flex;align-items:center;
+  justify-content:center;padding:20px;z-index:50}
+.modal{background:var(--surface);border-radius:var(--radius);box-shadow:var(--raise);max-width:460px;
+  width:100%;padding:24px}
+.modal h3{margin:0 0 8px}
+.spin{width:18px;height:18px;border:2px solid var(--line-strong);border-top-color:var(--accent);
+  border-radius:50%;display:inline-block;animation:sp 0.7s linear infinite;vertical-align:-3px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.toggle{cursor:pointer;font-size:1.1rem;background:none;border:0;color:var(--txt-mut)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div><h1>Empieza a facturar</h1><div class="sub">Asistente de puesta en marcha con el SII</div></div>
+    <div class="row">
+      <a class="navlink" href="/certificados" title="Panel de gestión avanzada">Panel</a>
+      <button class="toggle" id="themeBtn" title="Tema">◐</button>
+      <button class="ghost" id="logoutBtn" style="display:none" onclick="logout()">Salir</button>
+    </div>
+  </header>
+  <div id="app"></div>
+</div>
+
+<script>
+const API="/api/v1";
+const tok=()=>localStorage.getItem("dte_token");
+const hdr=()=>({Authorization:"Bearer "+tok()});
+const app=document.getElementById("app");
+const esc=s=>(s??"").toString().replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// tema
+function applyTheme(t){document.documentElement.setAttribute("data-theme",t);localStorage.setItem("dte_theme",t);}
+applyTheme(localStorage.getItem("dte_theme")||(matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light"));
+document.getElementById("themeBtn").onclick=()=>applyTheme(
+  document.documentElement.getAttribute("data-theme")==="dark"?"light":"dark");
+
+// estado del wizard
+const S={certs:[],certId:null,certRut:null,empresas:null,rut:null,razon:null,diag:null,err:""};
+
+function stepper(n){
+  const labels=["Certificado","Empresa","Diagnóstico"];
+  return `<div class="steps">${labels.map((l,i)=>{
+    const cls=i+1<n?"done":i+1===n?"on":"";
+    return `<div class="st ${cls}">${i+1<n?"✓ ":""}${l}</div>`;}).join("")}</div>`;
+}
+const errBox=()=>S.err?`<div class="err">${esc(S.err)}</div>`:"";
+
+async function api(path,opts={}){
+  const r=await fetch(API+path,{...opts,headers:{...hdr(),...(opts.headers||{})}});
+  if(r.status===401){logout();throw new Error("Sesión expirada");}
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(j?.error?.mensaje||("Error "+r.status));
+  return j;
+}
+
+function render(){
+  document.getElementById("logoutBtn").style.display=tok()?"":"none";
+  if(!tok())return renderLogin();
+  if(!S.certId)return renderCert();
+  if(!S.rut)return renderEmpresa();
+  return renderDiag();
+}
+
+// ---- paso 0: login ----
+function renderLogin(){
+  app.innerHTML=`<div class="card" style="max-width:400px;margin:6vh auto 0">
+    <h1 style="font-size:1.15rem;margin-bottom:4px">Inicia sesión</h1>
+    <div class="muted" style="margin-bottom:16px">Este es tu programa: tus datos, tu certificado, solo tuyos.</div>
+    ${errBox()}
+    <div class="field"><label>Usuario</label><input id="u" value="admin"></div>
+    <div class="field"><label>Contraseña</label><input id="p" type="password" placeholder="••••••••"></div>
+    <button class="primary" style="width:100%" onclick="login()">Entrar</button></div>`;
+}
+async function login(){
+  S.err="";
+  try{
+    const r=await fetch(API+"/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({username:u.value,password:p.value})});
+    if(!r.ok)throw new Error("Credenciales inválidas");
+    localStorage.setItem("dte_token",(await r.json()).access_token);render();
+  }catch(e){S.err=e.message;render();}
+}
+function logout(){localStorage.removeItem("dte_token");Object.assign(S,{certs:[],certId:null,rut:null,empresas:null,diag:null});render();}
+
+// ---- paso 1: certificado ----
+async function renderCert(){
+  app.innerHTML=stepper(1)+`<div class="card"><div class="spin"></div> Cargando certificados…</div>`;
+  try{S.certs=await api("/keystore/certificados");}catch(e){S.certs=[];}
+  const list=S.certs.map(c=>`<div class="selrow" onclick="pickCert(${c.id},'${esc(c.rut)}')">
+    <div style="flex:1"><div style="font-weight:600">${esc(c.nombre||"Certificado")}</div>
+    <div class="rut">${esc(c.rut)}${c.vencimiento?" · vence "+esc(c.vencimiento.slice(0,10)):""}</div></div>
+    <span class="pill mut">Usar →</span></div>`).join("");
+  app.innerHTML=stepper(1)+`
+    <div class="hero-note">Sube el certificado digital (.pfx/.p12) del representante legal. Se guarda
+      <b>cifrado en tu equipo</b> — nunca se lo entregas a nadie.</div>
+    <details class="card" style="padding:14px 18px">
+      <summary style="cursor:pointer;font-weight:600">¿Qué necesito del SII antes de empezar?</summary>
+      <ol style="color:var(--txt-mut);font-size:.88rem;margin:10px 0 0;padding-left:20px;line-height:1.7">
+        <li>Inicio de actividades vigente y ser de Primera Categoría.</li>
+        <li>Certificado digital de una CA autorizada (E-CertChile, etc.) — el que subes aquí.</li>
+        <li>Estar inscrito como facturador electrónico.</li>
+        <li>Certificar tu software (el "set de pruebas" — el sistema lo automatiza).</li>
+        <li>Registrar tu software en el SII (el "switch" — con tu autorización).</li>
+      </ol>
+      <div class="muted" style="margin-top:10px">💡 Ojo: la familia <b>Factura</b> incluye afecta (33)
+        y exenta (34) juntas. Para software propio la certificación agrega el 33, aunque solo
+        emitas exenta — no te obliga a emitir afectas. El diagnóstico te dirá qué te falta.</div>
+    </details>
+    ${errBox()}
+    <div class="card">
+      <div class="spread" style="margin-bottom:14px"><b>Tus certificados</b>
+        <span class="muted">${S.certs.length} cargado(s)</span></div>
+      ${list||'<div class="muted">Aún no hay certificados. Sube uno abajo.</div>'}
+    </div>
+    <div class="card">
+      <b>Subir un certificado</b>
+      <div class="field" style="margin-top:12px"><label>Archivo .pfx / .p12</label>
+        <div class="drop" id="drop" onclick="f.click()">Haz clic para elegir el archivo
+          <div id="fname" class="muted" style="margin-top:6px"></div></div>
+        <input id="f" type="file" accept=".pfx,.p12" style="display:none" onchange="fname.textContent=f.files[0]?.name||''"></div>
+      <div class="field"><label>Contraseña del certificado</label><input id="cpw" type="password" placeholder="••••••••"></div>
+      <div class="field"><label>Nombre (opcional)</label><input id="cnm" placeholder="Ej: Firma Juan Pérez"></div>
+      <button class="primary" onclick="upCert()">Subir certificado</button>
+    </div>`;
+}
+function pickCert(id,rut){S.certId=id;S.certRut=rut;S.empresas=null;S.rut=null;render();}
+async function upCert(){
+  S.err="";
+  if(!f.files[0]){S.err="Elige un archivo.";return render();}
+  const fd=new FormData();fd.append("archivo",f.files[0]);fd.append("password",cpw.value);
+  if(cnm.value)fd.append("nombre",cnm.value);
+  try{await fetch(API+"/keystore/certificados",{method:"POST",headers:hdr(),body:fd})
+      .then(async r=>{if(!r.ok)throw new Error((await r.json())?.error?.mensaje||"No se pudo subir");});
+    renderCert();
+  }catch(e){S.err=e.message;render();}
+}
+
+// ---- paso 2: empresa ----
+async function renderEmpresa(){
+  app.innerHTML=stepper(2)+`<div class="card"><div class="spin"></div> Descubriendo tus empresas en el SII…</div>`;
+  try{if(S.empresas===null)S.empresas=await api(`/keystore/certificados/${S.certId}/empresas`);}
+  catch(e){S.empresas=[];S.err=e.message;}
+  const rows=(S.empresas||[]).map(e=>`<div class="selrow" onclick="pickEmpresa('${esc(e.rut)}','${esc(e.razon_social||"")}')">
+    <div style="flex:1"><div style="font-weight:600">${esc(e.razon_social||"(sin razón social)")}</div>
+    <div class="rut">${esc(e.rut)}</div></div><span class="pill mut">Elegir →</span></div>`).join("");
+  app.innerHTML=stepper(2)+errBox()+`
+    <div class="card">
+      <div class="spread" style="margin-bottom:6px"><b>¿Qué empresa quieres poner en marcha?</b>
+        <button class="ghost" onclick="S.certId=null;render()">← cambiar cert</button></div>
+      <div class="muted" style="margin-bottom:14px">Detectadas automáticamente desde tu certificado.</div>
+      ${rows||'<div class="muted">No se detectaron empresas para este certificado. ¿Es el certificado correcto?</div>'}
+      <div class="field" style="margin-top:16px"><label>… o ingresa un RUT manualmente</label>
+        <div class="row"><input id="mrut" placeholder="76111111-6" style="flex:1">
+        <button onclick="pickEmpresa(mrut.value,'')">Usar</button></div></div>
+    </div>`;
+}
+function pickEmpresa(rut,razon){if(!rut)return;S.rut=rut.trim();S.razon=razon;S.diag=null;render();}
+
+// ---- paso 3: diagnóstico ----
+const CHEQ={ok:["pill ok","✅"],falta:["pill bad","❌"],atencion:["pill warn","⚠️"],desconocido:["pill mut","❓"]};
+const MODO={auto:["🤖","Automático","mut"],consentimiento:["🔐","Requiere tu autorización","warn"],
+  humano:["👤","Gestión con el SII","mut"]};
+async function renderDiag(){
+  app.innerHTML=stepper(3)+`<div class="card"><div class="spin"></div> Investigando el estado de la empresa en el SII…</div>`;
+  try{if(!S.diag)S.diag=await api(`/onboarding/diagnostico?cert_id=${S.certId}&rut=${encodeURIComponent(S.rut)}`);}
+  catch(e){app.innerHTML=stepper(3)+`<div class="err">${esc(e.message)}</div>
+    <button onclick="S.rut=null;render()">← Volver</button>`;return;}
+  const d=S.diag;
+  const cheq=d.chequeos.map(c=>{const[cls,ic]=CHEQ[c.estado]||CHEQ.desconocido;
+    return `<div class="item"><div class="ic">${ic}</div><div class="bd">
+      <div class="t">${esc(c.titulo)}</div><div class="d">${esc(c.detalle)}</div></div></div>`;}).join("");
+  const plan=d.acciones.map((a,i)=>{const[ic,lbl,pc]=MODO[a.modo]||MODO.auto;
+    const done=a.hecho?`<span class="pill ok">✓ hecho</span>`:"";
+    const urg=a.urgente?`<span class="pill bad">urgente</span>`:"";
+    const btn=(a.modo==="consentimiento"&&!a.hecho)
+      ? `<button class="primary" onclick='consentir(${i})'>Autorizar y hacer</button>`
+      : (a.modo==="auto"&&!a.hecho?`<button onclick='ejecutarAuto(${i})'>Ejecutar</button>`:"");
+    return `<div class="item"><div class="ic">${ic}</div><div class="bd">
+      <div class="spread"><div class="t">${esc(a.titulo)}</div><div class="row">${urg}${done}
+        <span class="pill wide ${pc}">${lbl}</span></div></div>
+      <div class="d">${esc(a.detalle)}</div>${btn?`<div style="margin-top:9px">${btn}</div>`:""}</div></div>`;}).join("");
+  const estCls=d.listo_para_emitir?"ok":(d.estado==="certificado"?"warn":"warn");
+  const notas=(d.notas||[]).map(n=>`<div class="hero-note">💡 ${esc(n)}</div>`).join("");
+  app.innerHTML=stepper(3)+`
+    <div class="card">
+      <div class="spread diag-head"><div><div class="muted rut">${esc(d.rut)}</div>
+        <h1 style="font-size:1.2rem;margin:2px 0 0">${esc(d.razon_social)}</h1></div>
+        <span class="pill wide ${estCls}">${esc(d.etiqueta)}</span></div>
+      <div style="margin-top:10px">${esc(d.resumen)}</div>
+      <div class="row" style="margin-top:14px">
+        <button class="ghost" onclick="S.rut=null;S.diag=null;render()">← otra empresa</button>
+        <button class="ghost" onclick="S.diag=null;render()">↻ actualizar</button></div>
+    </div>
+    ${notas}
+    <div class="card"><b>Qué encontramos</b><div style="margin-top:8px">${cheq}</div></div>
+    <div class="card"><div class="spread" style="margin-bottom:6px"><b>Tu plan para emitir</b></div>
+      <div class="muted" style="margin-bottom:8px">🤖 lo hace el sistema · 🔐 pide tu autorización · 👤 gestión con el SII</div>
+      ${plan}</div>`;
+}
+
+// consentimiento (acciones que ESCRIBEN en el SII)
+function consentir(i){
+  const a=S.diag.acciones[i];
+  const bg=document.createElement("div");bg.className="modal-bg";
+  bg.innerHTML=`<div class="modal">
+    <h3>🔐 ${esc(a.titulo)}</h3>
+    <p class="muted">Voy a hacer esto <b>en el SII a nombre de ${esc(S.diag.razon_social)}</b>,
+      usando tu certificado:</p>
+    <p>${esc(a.detalle)}</p>
+    <p class="muted">Nada se envía hasta que autorices. Tu certificado no sale de tu equipo.</p>
+    <div class="row" style="justify-content:flex-end;margin-top:16px">
+      <button class="ghost" onclick="this.closest('.modal-bg').remove()">Cancelar</button>
+      <button class="primary" onclick="autorizado(this)">Sí, autorizo</button></div></div>`;
+  bg.onclick=e=>{if(e.target===bg)bg.remove();};
+  document.body.appendChild(bg);
+}
+function autorizado(btn){
+  const m=btn.closest(".modal");
+  m.innerHTML=`<h3>Autorización registrada ✅</h3>
+    <p class="muted">La ejecución automática de esta acción se conecta en la próxima versión
+      (estamos verificando el formulario del SII). Por ahora queda registrado tu consentimiento.</p>
+    <div class="row" style="justify-content:flex-end"><button class="primary"
+      onclick="this.closest('.modal-bg').remove()">Entendido</button></div>`;
+}
+function ejecutarAuto(i){
+  const a=S.diag.acciones[i];
+  alert("«"+a.titulo+"» — esta acción automática (set de pruebas / emisión) se conecta al wizard en el próximo paso.");
+}
+
+render();
+</script>
+</body>
+</html>

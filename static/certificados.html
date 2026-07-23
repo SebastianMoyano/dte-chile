@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Certificados y Negocios · DTE</title>
+<style>
+  :root{
+    --bg:#f4f6fb; --surface:#ffffff; --surface-2:#f7f9fd; --raise:0 1px 2px rgba(16,29,61,.06),0 8px 24px -12px rgba(16,29,61,.14);
+    --line:#e4e9f2; --line-strong:#d3dbe8;
+    --txt:#141b2e; --txt-mut:#5b667c; --txt-faint:#8a94a8;
+    --accent:#1859c9; --accent-soft:#eaf0fe; --accent-ink:#0f3f9e;
+    --ok:#0a8f56; --ok-soft:#e4f6ec; --warn:#b8730a; --warn-soft:#fdf1dd; --bad:#d33150; --bad-soft:#fde8ec;
+    --radius:14px; --radius-sm:9px;
+    --mono:ui-monospace,"SF Mono","Cascadia Code","Roboto Mono",monospace;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#0b1020; --surface:#141a2e; --surface-2:#1a2138; --raise:0 1px 2px rgba(0,0,0,.3),0 12px 30px -14px rgba(0,0,0,.6);
+      --line:#26304a; --line-strong:#33405f;
+      --txt:#e8ecf6; --txt-mut:#9aa6bf; --txt-faint:#6b7690;
+      --accent:#5b8cf5; --accent-soft:#182545; --accent-ink:#a9c4ff;
+      --ok:#3ddc93; --ok-soft:#123024; --warn:#f5b445; --warn-soft:#33260f; --bad:#ff6b86; --bad-soft:#331420;
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#f4f6fb; --surface:#ffffff; --surface-2:#f7f9fd; --raise:0 1px 2px rgba(16,29,61,.06),0 8px 24px -12px rgba(16,29,61,.14);
+    --line:#e4e9f2; --line-strong:#d3dbe8; --txt:#141b2e; --txt-mut:#5b667c; --txt-faint:#8a94a8;
+    --accent:#1859c9; --accent-soft:#eaf0fe; --accent-ink:#0f3f9e;
+    --ok:#0a8f56; --ok-soft:#e4f6ec; --warn:#b8730a; --warn-soft:#fdf1dd; --bad:#d33150; --bad-soft:#fde8ec;
+  }
+  :root[data-theme="dark"]{
+    --bg:#0b1020; --surface:#141a2e; --surface-2:#1a2138; --raise:0 1px 2px rgba(0,0,0,.3),0 12px 30px -14px rgba(0,0,0,.6);
+    --line:#26304a; --line-strong:#33405f; --txt:#e8ecf6; --txt-mut:#9aa6bf; --txt-faint:#6b7690;
+    --accent:#5b8cf5; --accent-soft:#182545; --accent-ink:#a9c4ff;
+    --ok:#3ddc93; --ok-soft:#123024; --warn:#f5b445; --warn-soft:#33260f; --bad:#ff6b86; --bad-soft:#331420;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;background:var(--bg);color:var(--txt);font-family:var(--sans);font-size:15px;line-height:1.55;
+       -webkit-font-smoothing:antialiased;}
+  .mono{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em;}
+  a{color:var(--accent);}
+
+  /* ---- app shell ---- */
+  header{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--bg) 82%,transparent);
+         backdrop-filter:blur(10px);border-bottom:1px solid var(--line);}
+  .bar{max-width:1000px;margin:0 auto;padding:.85rem 1.5rem;display:flex;align-items:center;gap:.75rem;}
+  .brand{display:flex;align-items:center;gap:.6rem;font-weight:650;letter-spacing:-.02em;}
+  .brand .mark{width:30px;height:30px;border-radius:8px;background:var(--accent);color:#fff;display:grid;place-items:center;flex:0 0 auto;}
+  .brand small{display:block;font-weight:450;font-size:.72rem;color:var(--txt-mut);letter-spacing:0;}
+  .spacer{flex:1;}
+  .iconbtn{width:34px;height:34px;border-radius:9px;border:1px solid var(--line);background:var(--surface);
+           color:var(--txt-mut);display:grid;place-items:center;cursor:pointer;}
+  .iconbtn:hover{color:var(--txt);border-color:var(--line-strong);}
+  .who{font-size:.83rem;color:var(--txt-mut);}
+  .navlink{font-size:.85rem;text-decoration:none;padding:7px 12px;border-radius:9px;white-space:nowrap;
+    border:1px solid var(--accent);color:var(--accent);background:var(--accent-soft);transition:.12s;}
+  .navlink:hover{background:var(--accent);color:#fff;}
+
+  main{max-width:1000px;margin:0 auto;padding:2rem 1.5rem 5rem;}
+
+  /* ---- typography ---- */
+  h1{font-size:1.55rem;letter-spacing:-.02em;margin:0 0 .2rem;text-wrap:balance;}
+  h2{font-size:1.05rem;letter-spacing:-.01em;margin:0;}
+  .lead{color:var(--txt-mut);margin:0;max-width:60ch;}
+  .eyebrow{font-size:.72rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--accent);}
+  .sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:1rem;margin:2.5rem 0 1rem;}
+  .sec-head:first-of-type{margin-top:1.75rem;}
+  .count{font-size:.8rem;color:var(--txt-faint);font-variant-numeric:tabular-nums;}
+
+  /* ---- cards ---- */
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--raise);}
+  .pad{padding:1.15rem 1.25rem;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1rem;}
+
+  label{display:block;font-size:.78rem;font-weight:550;color:var(--txt-mut);margin:0 0 .35rem;}
+  input,select{width:100%;padding:.62rem .7rem;background:var(--surface-2);border:1px solid var(--line-strong);
+        border-radius:var(--radius-sm);color:var(--txt);font-size:.92rem;font-family:inherit;transition:border-color .15s,box-shadow .15s;}
+  input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+  input::placeholder{color:var(--txt-faint);}
+
+  button{font-family:inherit;font-size:.88rem;font-weight:600;border-radius:var(--radius-sm);cursor:pointer;
+         border:1px solid transparent;padding:.6rem 1rem;transition:filter .15s,background .15s,border-color .15s;display:inline-flex;
+         align-items:center;gap:.45rem;}
+  .btn-primary{background:var(--accent);color:#fff;}
+  .btn-primary:hover{filter:brightness(1.07);}
+  .btn-primary:disabled{opacity:.5;cursor:not-allowed;}
+  .btn-soft{background:var(--accent-soft);color:var(--accent-ink);border-color:transparent;}
+  .btn-soft:hover{filter:brightness(.97);}
+  .btn-ghost{background:transparent;color:var(--txt-mut);border-color:var(--line-strong);}
+  .btn-ghost:hover{color:var(--txt);border-color:var(--line-strong);background:var(--surface-2);}
+  .btn-sm{padding:.4rem .7rem;font-size:.8rem;}
+  .link-danger{background:none;border:none;color:var(--txt-faint);font-size:.8rem;padding:.35rem .5rem;}
+  .link-danger:hover{color:var(--bad);}
+
+  /* ---- pills / chips ---- */
+  .pill{display:inline-flex;align-items:center;gap:.3rem;font-size:.72rem;font-weight:600;padding:.2rem .55rem;border-radius:999px;}
+  .pill.ok{background:var(--ok-soft);color:var(--ok);} .pill.warn{background:var(--warn-soft);color:var(--warn);}
+  .pill.bad{background:var(--bad-soft);color:var(--bad);}
+  .pill .dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+  .chip{display:inline-block;font-size:.72rem;padding:.15rem .45rem;border-radius:6px;background:var(--surface-2);
+        border:1px solid var(--line);color:var(--txt-mut);font-family:var(--mono);}
+
+  /* ---- certificate card ---- */
+  .cert{display:flex;flex-direction:column;gap:0;overflow:hidden;}
+  .cert-top{display:flex;gap:.85rem;align-items:flex-start;padding:1.15rem 1.25rem;}
+  .cert-ico{width:40px;height:40px;border-radius:10px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;flex:0 0 auto;}
+  .cert-main{flex:1;min-width:0;}
+  .cert-name{font-weight:600;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .cert-rut{font-size:.82rem;color:var(--txt-mut);margin-top:.05rem;}
+  .cert-meta{display:flex;align-items:center;gap:.5rem;margin-top:.55rem;flex-wrap:wrap;}
+  .cert-actions{display:flex;gap:.5rem;align-items:center;padding:.85rem 1.25rem;border-top:1px solid var(--line);background:var(--surface-2);}
+  .cert-actions .spacer{flex:1;}
+
+  .discovered{border-top:1px solid var(--line);padding:.35rem .5rem .5rem;background:var(--surface-2);}
+  .disc-row{display:flex;align-items:center;gap:.6rem;padding:.55rem .75rem;border-radius:9px;}
+  .disc-row:hover{background:var(--surface);}
+  .disc-row .info{flex:1;min-width:0;}
+  .disc-row .rs{font-size:.88rem;font-weight:550;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .disc-row .rut{font-size:.76rem;color:var(--txt-mut);}
+
+  /* ---- business card ---- */
+  .biz{padding:1.1rem 1.2rem;display:flex;flex-direction:column;gap:.55rem;}
+  .biz-rs{font-weight:600;letter-spacing:-.01em;}
+  .biz-line{display:flex;align-items:center;justify-content:space-between;gap:.5rem;}
+  .biz-op{font-size:.78rem;color:var(--txt-mut);display:flex;align-items:center;gap:.35rem;}
+  .pill.mut{background:var(--surface-2);color:var(--txt-faint);}
+  .panel{margin-top:.9rem;border-top:1px solid var(--line);padding-top:.35rem;}
+  .doc-row{display:flex;align-items:center;justify-content:space-between;padding:.42rem 0;font-size:.85rem;}
+  .doc-row+.doc-row{border-top:1px solid var(--line);}
+  .doc-row .nm{color:var(--txt);}
+  .doc-row.off .nm{color:var(--txt-faint);}
+  .estado-badge{display:inline-flex;align-items:center;gap:.4rem;padding:.35rem .7rem;border-radius:8px;font-size:.82rem;font-weight:600;margin:.2rem 0 .8rem;}
+  .estado-badge.ok{background:var(--ok-soft);color:var(--ok);} .estado-badge.warn{background:var(--warn-soft);color:var(--warn);}
+  .estado-badge.mut{background:var(--surface-2);color:var(--txt-mut);}
+  .estado-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.1rem;}
+  @media(max-width:520px){.estado-grid{grid-template-columns:1fr;}}
+  /* en móvil, la fila de acciones del negocio apila el cert arriba y los botones abajo
+     (con wrap), en vez de comprimir 4 botones + label en una sola línea */
+  @media(max-width:460px){.biz-actions{flex-direction:column;align-items:stretch;gap:.55rem;}}
+  /* header más despejado en celular: sin el texto "Sesión activa" (el icono de logout ya
+     lo indica) y sin el subtítulo de la marca en pantallas muy angostas */
+  @media(max-width:440px){.who{display:none;}}
+  @media(max-width:400px){.brand small{display:none;}}
+  .estado-col .ct{font-size:.72rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--txt-faint);margin-bottom:.45rem;}
+  .estado-col .kv{font-size:.85rem;margin-bottom:.4rem;}
+  .type-chip{display:inline-flex;align-items:baseline;gap:.3rem;font-size:.74rem;padding:.15rem .5rem;border-radius:6px;background:var(--surface-2);border:1px solid var(--line);margin:.15rem .25rem .15rem 0;}
+  .type-chip .d{color:var(--txt-faint);font-family:var(--mono);font-size:.68rem;}
+  .pasos{margin-top:1.1rem;border-top:1px solid var(--line);padding-top:.9rem;}
+  .paso{display:flex;gap:.7rem;padding:.55rem 0;align-items:flex-start;}
+  .paso+.paso{border-top:1px solid var(--line);}
+  .paso-n{flex:0 0 auto;width:22px;height:22px;border-radius:50%;background:var(--surface-2);color:var(--txt-mut);
+          display:grid;place-items:center;font-size:.74rem;font-weight:700;border:1px solid var(--line);font-variant-numeric:tabular-nums;}
+  .paso.urg .paso-n{background:var(--warn-soft);color:var(--warn);border-color:transparent;}
+  .paso.done .paso-n{background:var(--ok-soft);color:var(--ok);border-color:transparent;}
+  .paso-t{font-size:.86rem;font-weight:600;}
+  .paso.urg .paso-t{color:var(--warn);}
+  .paso-d{font-size:.8rem;color:var(--txt-mut);margin-top:.1rem;}
+  .f29-bar{display:flex;gap:.7rem;align-items:flex-end;flex-wrap:wrap;margin:.5rem 0 .9rem;}
+  .f29-bar label{display:flex;flex-direction:column;gap:.25rem;font-size:.73rem;color:var(--txt-mut);}
+  .f29-bar input{padding:.42rem .55rem;font-size:.86rem;background:var(--surface-2);border:1px solid var(--line-strong);
+        border-radius:8px;color:var(--txt);font-family:inherit;}
+  .f29-bar input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+  .f29-bar input[type=month]{min-width:145px;} .f29-bar input[type=number]{width:120px;}
+  .f29-bar button{margin:0;}
+
+  /* ---- states ---- */
+  .empty{text-align:center;padding:3rem 1.5rem;border:1.5px dashed var(--line-strong);border-radius:var(--radius);color:var(--txt-mut);}
+  .empty .big{width:52px;height:52px;border-radius:14px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;margin:0 auto 1rem;}
+  .empty h3{margin:0 0 .3rem;color:var(--txt);font-size:1.05rem;}
+  .empty p{margin:0 auto;max-width:40ch;font-size:.9rem;}
+  .muted{color:var(--txt-faint);font-size:.85rem;}
+  .hidden{display:none!important;}
+  .spin{width:15px;height:15px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;
+        display:inline-block;animation:spin .6s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  @media (prefers-reduced-motion:reduce){.spin{animation:none;} html{scroll-behavior:auto;}}
+
+  /* ---- login ---- */
+  .login-wrap{min-height:70vh;display:grid;place-items:center;}
+  .login{width:100%;max-width:370px;}
+  .login .mark{width:44px;height:44px;border-radius:12px;background:var(--accent);color:#fff;display:grid;place-items:center;margin-bottom:1.1rem;}
+
+  /* ---- upload dropzone ---- */
+  .drop{border:1.5px dashed var(--line-strong);border-radius:var(--radius);padding:1.1rem;display:flex;gap:1rem;align-items:center;
+        flex-wrap:wrap;transition:border-color .15s,background .15s;}
+  .drop.drag{border-color:var(--accent);background:var(--accent-soft);}
+  .drop .file{flex:1;min-width:220px;}
+  .filename{font-size:.85rem;color:var(--txt-mut);}
+
+  /* ---- toast ---- */
+  #toast{position:fixed;bottom:1.25rem;left:50%;transform:translateX(-50%) translateY(1.5rem);opacity:0;
+         background:var(--txt);color:var(--bg);padding:.7rem 1.1rem;border-radius:10px;font-size:.86rem;font-weight:500;
+         box-shadow:var(--raise);transition:.25s;z-index:50;pointer-events:none;max-width:90vw;}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  #toast.bad{background:var(--bad);color:#fff;}
+  .fields{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;}
+  @media(max-width:560px){.fields{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div class="brand">
+      <span class="mark" aria-hidden="true">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 2l7 3v6c0 4.4-3 8.3-7 9-4-.7-7-4.6-7-9V5l7-3z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+      <span>Certificados y Negocios<small>Firma electrónica · SII</small></span>
+    </div>
+    <span class="spacer"></span>
+    <a class="navlink" href="/onboarding" title="Asistente de puesta en marcha">Asistente</a>
+    <span id="who" class="who hidden"></span>
+    <button class="iconbtn" id="themeBtn" title="Cambiar tema" onclick="toggleTheme()" aria-label="Cambiar tema"></button>
+    <button class="iconbtn hidden" id="logoutBtn" title="Cerrar sesión" onclick="logout()" aria-label="Cerrar sesión">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 12H4m0 0l3.5-3.5M4 12l3.5 3.5M14 4h4a2 2 0 012 2v12a2 2 0 01-2 2h-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </div>
+</header>
+
+<main>
+  <!-- LOGIN -->
+  <section id="login" class="login-wrap">
+    <div class="card pad login">
+      <div class="mark" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2l7 3v6c0 4.4-3 8.3-7 9-4-.7-7-4.6-7-9V5l7-3z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <h1 style="font-size:1.3rem">Inicia sesión</h1>
+      <p class="lead" style="font-size:.9rem;margin-bottom:1.1rem">Gestiona tus certificados y los negocios que operas con el SII.</p>
+      <label for="user">Usuario</label>
+      <input id="user" autocomplete="username" placeholder="admin">
+      <div style="height:.7rem"></div>
+      <label for="pass">Contraseña</label>
+      <input id="pass" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')login()">
+      <div style="height:1rem"></div>
+      <button class="btn-primary" style="width:100%;justify-content:center" onclick="login()" id="loginBtn">Ingresar</button>
+    </div>
+  </section>
+
+  <!-- APP -->
+  <div id="app" class="hidden">
+
+    <!-- intro -->
+    <p class="eyebrow">Paso 1</p>
+    <div class="sec-head" style="margin-top:.3rem">
+      <div>
+        <h1>Tus certificados</h1>
+        <p class="lead">Sube tu certificado digital (.p12/.pfx). Con él descubrimos automáticamente todas las empresas que operas.</p>
+      </div>
+    </div>
+
+    <!-- upload -->
+    <div class="card pad" style="margin-bottom:1.5rem">
+      <div class="drop" id="drop">
+        <div class="file">
+          <label>Certificado (.p12 / .pfx)</label>
+          <input id="p12" type="file" accept=".p12,.pfx" onchange="onFile()" style="display:none">
+          <div style="display:flex;align-items:center;gap:.6rem">
+            <button type="button" class="btn-ghost btn-sm" onclick="document.getElementById('p12').click()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 16V4m0 0L8 8m4-4l4 4M5 20h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Elegir archivo</button>
+            <span class="filename" id="fname">o arrástralo aquí</span>
+          </div>
+        </div>
+        <div style="width:190px;flex:1;min-width:170px">
+          <label for="cpass">Contraseña del certificado</label>
+          <input id="cpass" type="password" placeholder="••••••••">
+        </div>
+        <div style="align-self:flex-end">
+          <button class="btn-primary" id="upBtn" onclick="subir()">Subir y cifrar</button>
+        </div>
+      </div>
+      <p class="muted" style="margin:.7rem 0 0;display:flex;align-items:center;gap:.35rem">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8 11V8a4 4 0 018 0v3" stroke="currentColor" stroke-width="1.8"/></svg>
+        El archivo y la clave se guardan cifrados; nunca en texto plano.</p>
+    </div>
+
+    <div id="certs"></div>
+
+    <!-- negocios -->
+    <p class="eyebrow" style="margin-top:2.5rem">Paso 2</p>
+    <div class="sec-head" style="margin-top:.3rem">
+      <div>
+        <h1>Tus negocios</h1>
+        <p class="lead">Las empresas que agregues aparecen aquí, cada una operada por su certificado.</p>
+      </div>
+      <span class="count" id="negCount"></span>
+    </div>
+    <div id="negs"></div>
+
+    <!-- manual add -->
+    <details class="card pad" style="margin-top:1.25rem">
+      <summary style="cursor:pointer;font-weight:600;font-size:.9rem">¿No aparece un negocio? Agrégalo por RUT</summary>
+      <div class="fields" style="margin-top:1rem">
+        <div>
+          <label for="nrut">RUT del negocio</label>
+          <input id="nrut" placeholder="76111111-6" onblur="previsualizar()" class="mono">
+        </div>
+        <div>
+          <label for="ncert">Certificado que lo opera</label>
+          <select id="ncert"></select>
+        </div>
+      </div>
+      <div id="preview" style="margin-top:.8rem"></div>
+      <button class="btn-primary btn-sm" id="btnAdd" onclick="agregarManual()" disabled style="margin-top:.8rem">Agregar negocio</button>
+    </details>
+  </div>
+</main>
+
+<div id="toast"></div>
+
+<script>
+const API="/api/v1";
+const tok=()=>localStorage.getItem("dte_token");
+const hdr=()=>({Authorization:"Bearer "+tok()});
+let certsCache=[], negsCache=[], preview=null;
+
+/* theme */
+function applyTheme(t){document.documentElement.setAttribute("data-theme",t);localStorage.setItem("dte_theme",t);
+  document.getElementById("themeBtn").innerHTML = t==="dark"
+    ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="1.8"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>'
+    : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 14.5A8 8 0 019.5 4a7 7 0 108.5 10.5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>';}
+function toggleTheme(){const cur=document.documentElement.getAttribute("data-theme")|| (matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light");applyTheme(cur==="dark"?"light":"dark");}
+applyTheme(localStorage.getItem("dte_theme")|| (matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light"));
+
+/* toast */
+let toastT;
+function toast(msg,bad){const e=document.getElementById("toast");e.textContent=msg;e.className="show"+(bad?" bad":"");
+  clearTimeout(toastT);toastT=setTimeout(()=>e.className="",2600);}
+
+/* auth */
+async function login(){
+  const b=document.getElementById("loginBtn");b.innerHTML='<span class="spin"></span> Ingresando…';
+  try{
+    const r=await fetch(`${API}/auth/login`,{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({username:document.getElementById("user").value.trim(),password:document.getElementById("pass").value})});
+    if(!r.ok){toast("Usuario o contraseña incorrectos",true);b.textContent="Ingresar";return;}
+    localStorage.setItem("dte_token",(await r.json()).access_token);render();
+  }catch(e){toast("Error de conexión",true);b.textContent="Ingresar";}
+}
+function logout(){localStorage.removeItem("dte_token");render();}
+function render(){
+  const on=!!tok();
+  document.getElementById("login").classList.toggle("hidden",on);
+  document.getElementById("app").classList.toggle("hidden",!on);
+  document.getElementById("logoutBtn").classList.toggle("hidden",!on);
+  document.getElementById("who").classList.toggle("hidden",!on);
+  if(on){document.getElementById("who").textContent="Sesión activa";cargarCerts();cargarNegs();}
+}
+
+/* helpers */
+function estadoVenc(v){const d=(v||"").slice(0,10);if(!d)return{cls:"",txt:"—"};
+  const dias=Math.round((new Date(d)-new Date())/864e5);
+  if(dias<0)return{cls:"bad",txt:"Vencido"};if(dias<45)return{cls:"warn",txt:`Vence en ${dias}d`};return{cls:"ok",txt:"Vigente"};}
+function iniciales(s){
+  const pal=(s||"?").split(/\s+/).map(w=>w.replace(/[^0-9A-Za-zÀ-ÿ]/g,"")).filter(Boolean);
+  return (pal.slice(0,2).map(w=>w[0]).join("").toUpperCase())||"?";
+}
+
+/* CERTIFICADOS */
+async function cargarCerts(){
+  const cont=document.getElementById("certs");
+  const r=await fetch(`${API}/keystore/certificados`,{headers:hdr()});
+  if(r.status===401)return logout();
+  certsCache=await r.json();
+  poblarSelect();
+  if(!certsCache.length){
+    cont.innerHTML=`<div class="empty"><div class="big"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v6c0 4.4-3 8.3-7 9-4-.7-7-4.6-7-9V6l7-3z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></div>
+      <h3>Aún no tienes certificados</h3><p>Sube tu primer certificado arriba para empezar a operar tus empresas.</p></div>`;
+    return;
+  }
+  cont.className="grid";
+  cont.innerHTML=certsCache.map(c=>{
+    const st=estadoVenc(c.vencimiento);
+    return `<div class="card cert" id="cert-${c.id}">
+      <div class="cert-top">
+        <div class="cert-ico" aria-hidden="true">${iniciales(c.nombre||c.rut)}</div>
+        <div class="cert-main">
+          <div class="cert-name">${c.nombre||"Certificado"}</div>
+          <div class="cert-rut mono">${c.rut}</div>
+          <div class="cert-meta">
+            <span class="pill ${st.cls}"><span class="dot"></span>${st.txt}</span>
+            <span class="muted mono">vence ${(c.vencimiento||"").slice(0,10)}</span>
+          </div>
+        </div>
+      </div>
+      <div class="cert-actions">
+        <button class="btn-soft btn-sm" onclick="descubrir(${c.id},this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/><path d="M21 21l-4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          Descubrir empresas</button>
+        <span class="spacer"></span>
+        <button class="link-danger" onclick="borrarCert(${c.id})">Eliminar</button>
+      </div>
+      <div class="discovered hidden" id="disc-${c.id}"></div>
+    </div>`;
+  }).join("");
+}
+
+async function descubrir(certId,btn){
+  const box=document.getElementById(`disc-${certId}`);
+  if(!box.classList.contains("hidden")){box.classList.add("hidden");return;}
+  const original=btn.innerHTML;btn.innerHTML='<span class="spin"></span> Consultando SII…';btn.disabled=true;
+  try{
+    const r=await fetch(`${API}/keystore/certificados/${certId}/empresas`,{headers:hdr()});
+    if(!r.ok)throw 0;
+    const emps=await r.json();
+    const yaRuts=new Set(negsCache.map(n=>n.rut));
+    box.innerHTML = emps.length
+      ? `<div style="padding:.4rem .75rem;font-size:.74rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--txt-faint)">Empresas asociadas · ${emps.length}</div>`
+        + emps.map(e=>{
+          const ya=yaRuts.has(e.rut);
+          return `<div class="disc-row"><div class="info"><div class="rs">${e.razon_social}</div><div class="rut mono">${e.rut}</div></div>
+            ${ya?`<span class="pill ok"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Agregado</span>`
+                :`<button class="btn-primary btn-sm" onclick="agregar('${e.rut}',${certId},this)">Agregar</button>`}</div>`;
+        }).join("")
+      : `<div style="padding:.9rem .75rem" class="muted">Este certificado no tiene empresas asociadas en el SII.</div>`;
+    box.classList.remove("hidden");
+  }catch(e){toast("No se pudo consultar el SII",true);}
+  btn.innerHTML=original;btn.disabled=false;
+}
+
+async function borrarCert(id){
+  if(!confirm("¿Eliminar este certificado? Los negocios que opera dejarán de tener firma asociada."))return;
+  const r=await fetch(`${API}/keystore/certificados/${id}`,{method:"DELETE",headers:hdr()});
+  if(r.ok){toast("Certificado eliminado");cargarCerts();}else toast("No se pudo eliminar",true);
+}
+
+/* NEGOCIOS */
+async function agregar(rut,certId,btn){
+  if(btn){btn.innerHTML='<span class="spin"></span>';btn.disabled=true;}
+  const fd=new FormData();fd.append("rut",rut);fd.append("cert_id",certId);
+  const r=await fetch(`${API}/keystore/negocios`,{method:"POST",headers:hdr(),body:fd});
+  if(r.ok){toast("Negocio agregado");await cargarNegs();
+    // refrescar la lista de descubiertas de ese cert
+    const box=document.getElementById(`disc-${certId}`);if(box&&!box.classList.contains("hidden")){box.classList.add("hidden");descubrir(certId,document.querySelector(`#cert-${certId} .btn-soft`));}
+  }else{const d=await r.json().catch(()=>({}));toast(d.detail||"No se pudo agregar",true);if(btn){btn.textContent="Agregar";btn.disabled=false;}}
+}
+
+async function cargarNegs(){
+  const cont=document.getElementById("negs");
+  const r=await fetch(`${API}/keystore/negocios`,{headers:hdr()});
+  if(r.status===401)return logout();
+  negsCache=await r.json();
+  document.getElementById("negCount").textContent=negsCache.length?`${negsCache.length} negocio${negsCache.length>1?"s":""}`:"";
+  if(!negsCache.length){
+    cont.className="";
+    cont.innerHTML=`<div class="empty"><div class="big"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 20V9l8-5 8 5v11" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9 20v-6h6v6" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></div>
+      <h3>Todavía no agregas negocios</h3><p>Usa “Descubrir empresas” en un certificado, o agrégalos por RUT más abajo.</p></div>`;
+    return;
+  }
+  cont.className="grid";
+  cont.innerHTML=negsCache.map(n=>{
+    const cert=certsCache.find(c=>c.id===n.cert_id);
+    return `<div class="card biz">
+      <div class="biz-line"><span class="biz-rs">${n.razon_social||n.rut}</span></div>
+      <div class="cert-rut mono">${n.rut}</div>
+      <div style="margin:.5rem 0 .1rem">${estadoBadge(n)}</div>
+      <div class="biz-line biz-actions" style="margin-top:.2rem">
+        <span class="biz-op"><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 2l7 3v6c0 4.4-3 8.3-7 9-4-.7-7-4.6-7-9V5l7-3z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+          ${cert?(cert.nombre||cert.rut):"sin certificado"}</span>
+        <span style="display:flex;gap:.4rem;align-items:center;flex-wrap:wrap">
+          <button class="btn-ghost btn-sm" onclick="verEstado(${n.id},this)">Ver estado</button>
+          <button class="btn-ghost btn-sm" onclick="verTimbraje(${n.id},this)">Folios</button>
+          <button class="btn-ghost btn-sm" onclick="verF29(${n.id},this)">F29</button>
+          <button class="link-danger" onclick="borrarNeg(${n.id})">Quitar</button>
+        </span>
+      </div>
+      <div class="panel hidden" id="panel-${n.id}"></div>
+    </div>`;
+  }).join("");
+  // Refresca en segundo plano el estado de los negocios sin caché (o con cert asociado).
+  negsCache.filter(n=>!n.estado && n.cert_id).forEach(n=>refrescarBadge(n.id));
+}
+
+const _EST={emitiendo:['ok','Software propio activo'],certificado:['warn','Certificado · falta activar'],
+            certificando:['warn','En certificación'],sin_propio:['mut','Sin software propio']};
+function estadoBadge(n){
+  if(!n.cert_id) return `<span class="pill mut">Sin certificado asociado</span>`;
+  if(!n.estado) return `<span id="mb-${n.id}" class="pill mut"><span class="spin" style="width:10px;height:10px"></span> Verificando en el SII…</span>`;
+  const [cls,txt]=_EST[n.estado]||['mut',n.estado_etiqueta||'—'];
+  return `<span id="mb-${n.id}" class="pill ${cls}"><span class="dot"></span>${txt}</span>`;
+}
+async function refrescarBadge(negId){
+  try{
+    const r=await fetch(`${API}/keystore/negocios/${negId}/estado`,{headers:hdr()});
+    if(!r.ok)return;
+    const d=await r.json();
+    const [cls,txt]=_EST[d.estado]||['mut',d.etiqueta];
+    const el=document.getElementById(`mb-${negId}`);
+    if(el){el.className=`pill ${cls}`;el.innerHTML=`<span class="dot"></span>${txt}`;}
+  }catch(e){}
+}
+
+async function borrarNeg(id){
+  if(!confirm("¿Quitar este negocio?"))return;
+  const r=await fetch(`${API}/keystore/negocios/${id}`,{method:"DELETE",headers:hdr()});
+  if(r.ok){toast("Negocio quitado");cargarNegs();}
+}
+
+async function _panel(negId,btn,vista,url,render){
+  const box=document.getElementById(`panel-${negId}`);
+  if(box.dataset.view===vista && !box.classList.contains("hidden")){box.classList.add("hidden");box.dataset.view="";return;}
+  const orig=btn.textContent;btn.innerHTML='<span class="spin"></span>';btn.disabled=true;
+  try{
+    const r=await fetch(url,{headers:hdr()});
+    if(!r.ok)throw 0;
+    box.innerHTML=render(await r.json());
+    box.dataset.view=vista;box.classList.remove("hidden");
+  }catch(e){toast("No se pudo consultar el SII",true);}
+  btn.textContent=orig;btn.disabled=false;
+}
+
+function verTimbraje(negId,btn){
+  _panel(negId,btn,"folios",`${API}/keystore/negocios/${negId}/timbraje`, d=>
+    `<div style="font-size:.72rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--txt-faint);padding:.3rem 0 .1rem">Timbraje por documento</div>`
+    + d.documentos.map(x=>{
+      let pill = !x.autorizado ? `<span class="pill mut">No autorizado</span>`
+        : x.bloqueado ? `<span class="pill warn"><span class="dot"></span>Bloqueado</span>`
+        : `<span class="pill ok"><span class="dot"></span>Habilitado</span>`;
+      return `<div class="doc-row ${x.autorizado?'':'off'}"><span class="nm">${x.nombre} <span class="muted mono">· ${x.tipo}</span></span>${pill}</div>`;
+    }).join(""));
+}
+
+const fmtCLP=n=>'$'+(n||0).toLocaleString('es-CL');
+const _f29={};  // negId -> última propuesta (para exportar)
+
+function verF29(negId,btn){
+  const box=document.getElementById(`panel-${negId}`);
+  if(box.dataset.view==='f29' && !box.classList.contains("hidden")){box.classList.add("hidden");box.dataset.view="";return;}
+  const d=new Date(); d.setMonth(d.getMonth()-1);
+  const defMonth=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  box.innerHTML=`<div class="ct">Propuesta F29 · IVA mensual</div>
+    <div class="f29-bar">
+      <label>Período<input type="month" id="f29-per-${negId}" value="${defMonth}" max="${defMonth}" onchange="cargarF29(${negId})"></label>
+      <label>PPM<input type="number" id="f29-ppm-${negId}" value="0" min="0" class="mono"></label>
+      <label>Remanente anterior<input type="number" id="f29-rem-${negId}" value="0" min="0" class="mono"></label>
+      <button class="btn-soft btn-sm" onclick="cargarF29(${negId})">Calcular</button>
+      <button class="btn-ghost btn-sm" id="f29-exp-${negId}" onclick="exportarF29(${negId})" disabled>Exportar JSON</button>
+    </div>
+    <div id="f29-res-${negId}" class="f29-res"></div>`;
+  box.dataset.view='f29';box.classList.remove("hidden");
+  cargarF29(negId);
+}
+
+async function cargarF29(negId){
+  const res=document.getElementById(`f29-res-${negId}`);
+  const per=(document.getElementById(`f29-per-${negId}`).value||'').replace('-','');
+  if(per.length!==6){res.innerHTML='<span class="muted">Período inválido.</span>';return;}
+  const ppm=parseInt(document.getElementById(`f29-ppm-${negId}`).value||'0',10)||0;
+  const rem=parseInt(document.getElementById(`f29-rem-${negId}`).value||'0',10)||0;
+  res.innerHTML='<span class="muted"><span class="spin"></span> Bajando RCV del SII…</span>';
+  document.getElementById(`f29-exp-${negId}`).disabled=true;
+  try{
+    const r=await fetch(`${API}/keystore/negocios/${negId}/f29?periodo=${per}&ppm=${ppm}&remanente_anterior=${rem}`,{headers:hdr()});
+    if(!r.ok)throw 0;
+    const f=await r.json(); _f29[negId]=f;
+    if(f.sin_datos){
+      res.innerHTML=`<div class="muted" style="padding:.4rem 0">Sin movimientos en el Registro de Compras y Ventas para ${f.periodo}.</div>`;
+    }else{
+      const resu = f.iva_determinado<0
+        ? `Remanente ${fmtCLP(f.remanente_siguiente)} para el próximo período`
+        : `IVA a pagar ${fmtCLP(f.iva_determinado)}`;
+      res.innerHTML=`<div class="muted" style="margin:.1rem 0 .4rem">${f.documentos.ventas} ventas · ${f.documentos.compras} compras</div>`
+        + f.casilleros.map(c=>`<div class="doc-row"><span class="nm">${c.glosa} <span class="muted mono">·${c.codigo}</span></span><span class="mono">${fmtCLP(c.valor)}</span></div>`).join("")
+        + `<div class="doc-row" style="border-top:2px solid var(--line-strong);font-weight:700"><span class="nm">Total a pagar <span class="muted mono">·091</span></span><span class="mono">${fmtCLP(f.total_a_pagar)}</span></div>
+           <div class="muted" style="padding:.5rem 0 0;font-size:.78rem">${resu}. Propuesta de solo lectura; no declara nada al SII.</div>`;
+    }
+    document.getElementById(`f29-exp-${negId}`).disabled=false;
+  }catch(e){res.innerHTML='<span class="pill bad">No se pudo generar el F29</span>';}
+}
+
+function exportarF29(negId){
+  const f=_f29[negId]; if(!f)return;
+  const blob=new Blob([JSON.stringify(f,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download=`F29_${(f.rut||'').replace(/[^0-9kK-]/g,'')}_${f.periodo}.json`;
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
+}
+
+function verEstado(negId,btn){
+  _panel(negId,btn,"estado",`${API}/keystore/negocios/${negId}/estado`, d=>{
+    const cls = d.estado==='emitiendo'?'ok':(d.estado==='sin_propio'?'mut':'warn');
+    const p=d.produccion, cert=d.certificacion;
+    const chips = p.autorizado_a_emitir.map(t=>`<span class="type-chip">${t.nombre.split(' ').slice(0,2).join(' ')} <span class="d">${t.tipo}·${t.desde}</span></span>`).join('');
+    return `<div class="estado-badge ${cls}"><span class="dot"></span>${d.etiqueta}</div>
+      <div class="estado-grid">
+        <div class="estado-col">
+          <div class="ct">Producción</div>
+          <div class="kv">Emite hoy con <b>${p.software_actual}</b> ${p.usa_software_propio?'<span class="pill ok">software propio</span>':'<span class="pill mut">sistema del SII</span>'}</div>
+          <div class="kv muted">Autorizado a emitir en producción:</div>
+          <div>${chips||'<span class="muted">—</span>'}</div>
+        </div>
+        <div class="estado-col">
+          <div class="ct">Software propio</div>
+          <div class="kv"><b>${cert.software}</b></div>
+          <div class="kv">${cert.finalizada?'<span class="pill ok"><span class="dot"></span>Certificado</span>':'<span class="pill warn"><span class="dot"></span>En certificación · falta terminar</span>'}</div>
+          ${cert.fecha?`<div class="muted mono" style="font-size:.75rem">${cert.fecha}</div>`:''}
+        </div>
+      </div>
+      ${(d.pasos&&d.pasos.length)?`<div class="pasos"><div class="ct">Próximos pasos</div>`
+        + d.pasos.map((p,i)=>`<div class="paso ${p.urgente?'urg':''} ${p.hecho?'done':''}">
+            <span class="paso-n">${p.hecho?'✓':i+1}</span>
+            <div><div class="paso-t">${p.titulo}</div><div class="paso-d">${p.detalle}</div></div></div>`).join("")
+        + `</div>`:''}`;
+  });
+}
+
+/* upload */
+function onFile(){const f=document.getElementById("p12").files[0];const e=document.getElementById("fname");
+  e.textContent=f?f.name:"o arrástralo aquí";e.style.color=f?"var(--ok)":"";}
+const drop=document.getElementById("drop");
+["dragover","dragenter"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("drag");}));
+["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove("drag");}));
+drop.addEventListener("drop",e=>{const f=e.dataTransfer.files[0];if(f){document.getElementById("p12").files=e.dataTransfer.files;onFile();}});
+
+async function subir(){
+  const file=document.getElementById("p12").files[0], pass=document.getElementById("cpass").value;
+  if(!file||!pass){toast("Selecciona el archivo y la contraseña",true);return;}
+  const b=document.getElementById("upBtn");b.innerHTML='<span class="spin"></span> Cifrando…';b.disabled=true;
+  const fd=new FormData();fd.append("archivo",file);fd.append("password",pass);
+  fd.append("nombre",file.name.replace(/\.(p12|pfx)$/i,""));
+  try{
+    const r=await fetch(`${API}/keystore/certificados`,{method:"POST",headers:hdr(),body:fd});
+    const d=await r.json();
+    if(!r.ok){toast(d.detail||"No se pudo subir",true);}
+    else{toast(`Certificado de ${d.rut} guardado`);document.getElementById("p12").value="";document.getElementById("cpass").value="";onFile();cargarCerts();}
+  }catch(e){toast("Error de conexión",true);}
+  b.textContent="Subir y cifrar";b.disabled=false;
+}
+
+/* manual add */
+function poblarSelect(){const s=document.getElementById("ncert");
+  s.innerHTML=certsCache.map(c=>`<option value="${c.id}">${c.nombre||c.rut} · ${c.rut}</option>`).join("")||'<option value="">(sube un certificado)</option>';}
+async function previsualizar(){
+  const rut=document.getElementById("nrut").value.trim(),pv=document.getElementById("preview"),btn=document.getElementById("btnAdd");
+  preview=null;btn.disabled=true;if(!rut){pv.innerHTML="";return;}
+  pv.innerHTML='<span class="muted"><span class="spin"></span> Buscando en el SII…</span>';
+  try{
+    const r=await fetch(`${API}/keystore/empresa?rut=${encodeURIComponent(rut)}`,{headers:hdr()});
+    if(!r.ok){pv.innerHTML='<span class="pill bad" style="font-size:.78rem">RUT no autorizado a emitir DTE</span>';return;}
+    const d=await r.json();preview=d;
+    pv.innerHTML=`<div style="font-weight:600">${d.razon_social}</div><div style="margin-top:.35rem;display:flex;gap:.3rem;flex-wrap:wrap">
+      ${d.tipos.map(t=>`<span class="chip">${t.codigo}</span>`).join("")}</div>`;
+    btn.disabled=false;
+  }catch(e){pv.innerHTML='<span class="muted">Error consultando el SII</span>';}
+}
+async function agregarManual(){if(!preview)return;await agregar(preview.rut,document.getElementById("ncert").value);
+  document.getElementById("nrut").value="";document.getElementById("preview").innerHTML="";document.getElementById("btnAdd").disabled=true;}
+
+render();
+</script>
+</body>
+</html>
