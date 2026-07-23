@@ -314,8 +314,9 @@ class ClienteSII:
         # con la página HTML genérica "HA OCURRIDO UN ERROR EN EL UPLOAD" (no da
         # TrackID). Se replica el header de LibreDTE. Ref: LibreDTE
         # SendXmlDocumentJob::uploadXml.
+        from core.config import settings
         headers = {
-            "User-Agent": "Mozilla/5.0 (compatible; DTE-Chile/1.0)",
+            "User-Agent": settings.sii_user_agent,
             "Cookie": f"TOKEN={token}",
         }
 
