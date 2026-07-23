@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>API Keys — DTE Chile</title>
+<style>
+  :root { --bg:#f4f5f7; --card:#fff; --fg:#1a1c1f; --mut:#5c636e; --acc:#1f6feb; --bd:#dfe3e8; --ok:#1a7f37; --no:#b3261e; }
+  :root[data-theme="dark"], html[data-theme="dark"] { --bg:#0f1216; --card:#181c22; --fg:#e8eaed; --mut:#9aa3ad; --acc:#4c8dff; --bd:#2a2f37; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#0f1216; --card:#181c22; --fg:#e8eaed; --mut:#9aa3ad; --acc:#4c8dff; --bd:#2a2f37; } }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
+  .wrap { max-width:760px; margin:0 auto; padding:32px 20px; }
+  h1 { font-size:1.4rem; margin:0 0 4px; } .sub { color:var(--mut); margin:0 0 24px; font-size:.92rem; }
+  .card { background:var(--card); border:1px solid var(--bd); border-radius:12px; padding:20px; margin-bottom:18px; }
+  label { display:block; font-weight:600; font-size:.82rem; margin:12px 0 5px; }
+  input { width:100%; padding:10px 12px; border:1px solid var(--bd); border-radius:8px; background:transparent; color:var(--fg); font-size:1rem; }
+  button { margin-top:14px; padding:10px 16px; border:0; border-radius:8px; background:var(--acc); color:#fff; font-size:.95rem; font-weight:600; cursor:pointer; }
+  button.sec { background:transparent; color:var(--acc); border:1px solid var(--acc); }
+  button.danger { background:transparent; color:var(--no); border:1px solid var(--no); margin:0; padding:6px 12px; font-size:.82rem; }
+  table { width:100%; border-collapse:collapse; margin-top:8px; font-size:.9rem; }
+  th,td { padding:9px 6px; border-bottom:1px solid var(--bd); text-align:left; }
+  th { color:var(--mut); font-size:.78rem; text-transform:uppercase; letter-spacing:.03em; }
+  code { background:var(--bg); border:1px solid var(--bd); border-radius:6px; padding:2px 6px; font-size:.86rem; }
+  .key { background:#0d3320; border:1px solid var(--ok); border-radius:8px; padding:12px; margin-top:12px; word-break:break-all; }
+  .key code { background:transparent; border:0; color:#7ee2a8; font-size:.95rem; }
+  .mut { color:var(--mut); font-size:.85rem; } .no { color:var(--no); }
+  .row { display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; }
+  .row > div { flex:1; min-width:180px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>API Keys</h1>
+  <p class="sub">Llaves para integraciones y agentes. Se envían como <code>Authorization: Bearer dte_...</code> y valen en toda la API. La clave se muestra <strong>una sola vez</strong>.</p>
+
+  <div id="login" class="card" style="display:none">
+    <label>Usuario</label><input id="u" autocomplete="username">
+    <label>Contraseña</label><input id="p" type="password" autocomplete="current-password">
+    <button onclick="login()">Entrar</button>
+    <p id="loginErr" class="no" style="display:none"></p>
+  </div>
+
+  <div id="app" style="display:none">
+    <div class="card">
+      <div class="row">
+        <div><label>Nombre de la key (ej. "agente-ventas", "n8n")</label><input id="nombre" placeholder="mi-integración"></div>
+        <button onclick="crear()">Crear API key</button>
+      </div>
+      <div id="nueva"></div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong>Keys existentes</strong>
+        <button class="sec" onclick="logout()" style="margin:0">Salir</button>
+      </div>
+      <table><thead><tr><th>Nombre</th><th>Prefijo</th><th>Estado</th><th>Último uso</th><th></th></tr></thead>
+      <tbody id="lista"></tbody></table>
+      <p id="vacio" class="mut" style="display:none">Aún no hay keys.</p>
+    </div>
+  </div>
+</div>
+<script>
+const API="/api/v1";
+const tok=()=>localStorage.getItem("dte_token");
+const hdr=()=>({Authorization:"Bearer "+tok()});
+function esc(s){return (s==null?"":String(s)).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+
+function render(){ document.getElementById("login").style.display = tok()?"none":"block";
+  document.getElementById("app").style.display = tok()?"block":"none"; if(tok()) listar(); }
+
+async function login(){
+  const err=document.getElementById("loginErr"); err.style.display="none";
+  const r=await fetch(`${API}/auth/login`,{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({username:document.getElementById("u").value,password:document.getElementById("p").value})});
+  if(!r.ok){ err.textContent="Credenciales inválidas."; err.style.display="block"; return; }
+  localStorage.setItem("dte_token",(await r.json()).access_token); render();
+}
+function logout(){ localStorage.removeItem("dte_token"); document.getElementById("nueva").innerHTML=""; render(); }
+
+async function listar(){
+  const r=await fetch(`${API}/apikeys`,{headers:hdr()});
+  if(r.status===401){ logout(); return; }
+  const keys=await r.json(); const tb=document.getElementById("lista"); tb.innerHTML="";
+  document.getElementById("vacio").style.display = keys.length?"none":"block";
+  for(const k of keys){
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td>${esc(k.nombre)}</td><td><code>${esc(k.prefijo)}…</code></td>
+      <td>${k.activo?'<span style="color:var(--ok)">activa</span>':'<span class="no">revocada</span>'}</td>
+      <td class="mut">${esc(k.ultimo_uso?k.ultimo_uso.slice(0,16).replace("T"," "):"—")}</td>
+      <td style="text-align:right">${k.activo?`<button class="danger" onclick="revocar(${k.id})">Revocar</button>`:""}</td>`;
+    tb.appendChild(tr);
+  }
+}
+async function crear(){
+  const nombre=document.getElementById("nombre").value.trim(); if(!nombre) return;
+  const r=await fetch(`${API}/apikeys`,{method:"POST",headers:{...hdr(),"Content-Type":"application/json"},
+    body:JSON.stringify({nombre})});
+  if(!r.ok){ alert("No se pudo crear la key."); return; }
+  const d=await r.json();
+  document.getElementById("nueva").innerHTML=
+    `<div class="key"><div class="mut">${esc(d.aviso)}</div><code>${esc(d.api_key)}</code></div>`;
+  document.getElementById("nombre").value=""; listar();
+}
+async function revocar(id){
+  if(!confirm("¿Revocar esta key? Las integraciones que la usen dejarán de funcionar.")) return;
+  await fetch(`${API}/apikeys/${id}`,{method:"DELETE",headers:hdr()}); listar();
+}
+render();
+</script>
+</body>
+</html>

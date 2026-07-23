@@ -1,0 +1,43 @@
+# === SECRETOS — nada de esto puede entrar NUNCA al repo (ver L6 de docs/CONSTITUCION.md) ===
+# Certificados digitales y llaves privadas
+*.p12
+*.pfx
+*.pem
+*.key
+# Configuración con secretos (JWT_SECRET_KEY, DTE_MASTER_KEY en claro)
+.env
+.env.bak-*
+*.bak-*
+# CAF: contienen la llave privada con la que se timbra (<RSASK>)
+storage/cafs/
+storage/cafs_vencidos/
+storage/cafs_mock_backup/
+*FoliosSII*.xml
+
+# === Datos del contribuyente ===
+*.db
+*.db-wal
+*.db-shm
+# Todo storage/ es data generada en runtime (boletas/sobres firmados, sets, capturas con PII).
+# La app crea las carpetas sola al arrancar; nada de aquí debe versionarse.
+storage/
+logs/
+# Capturas de pantalla / imágenes sueltas (pueden traer RUT/nombre reales)
+*.png
+
+# === Notas internas de trabajo (PII real + estado histórico; no van al repo público) ===
+task.md
+CHECKPOINT.md
+
+# === Herramientas y basura ===
+.venv/
+__pycache__/
+*.py[cod]
+.DS_Store
+.playwright-cli/
+.playwright-mcp/
+*.dmg
+*.mp3
+
+# Nota: `.env.example` SÍ se versiona (es la plantilla sin secretos reales).
+!.env.example
