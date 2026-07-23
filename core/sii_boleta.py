@@ -73,7 +73,8 @@ ESTADOS_REPARO = ("RLV", "RPR")
 # El servlet de envío del SII EXIGE un User-Agent de navegador. Sin él responde
 # **401 "NO ESTA AUTENTICADO"** aunque el token sea válido — un mensaje que miente y manda
 # a depurar el certificado. Es el mismo capricho ya documentado para DTEUpload en core/sii.py.
-_USER_AGENT = "Mozilla/5.0 (compatible; DTE-Chile/1.0)"
+from core.config import settings
+_USER_AGENT = settings.sii_user_agent  # el SII valida el UA en el envío; ver SII_USER_AGENT en config
 
 # Tope de boletas por sobre. ⚠️ NO está en el XSD: `EnvioBOLETA_v11.xsd:89` declara
 # `maxOccurs="unbounded"` para DTE (el `maxOccurs="1000"` del esquema es de `Detalle`, las

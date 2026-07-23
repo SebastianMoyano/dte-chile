@@ -71,7 +71,8 @@ def _rcv_namespace(metodo: str) -> str:
 
 
 # El servlet exige User-Agent tipo navegador, igual que DTEUpload (ver core/sii.py).
-RCV_USER_AGENT = "Mozilla/5.0 (compatible; DTE-Chile/1.0)"
+from core.config import settings
+RCV_USER_AGENT = settings.sii_user_agent
 
 # Tipos de operación del RCV.
 COMPRA = "COMPRA"

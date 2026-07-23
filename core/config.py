@@ -47,6 +47,15 @@ class Settings(BaseSettings):
     sii_fecha_resolucion_cert: str = Field(default="2026-07-08", description="Fecha resolución en certificación")
     sii_numero_resolucion_cert: int = Field(default=0, description="Número resolución en certificación (siempre 0)")
 
+    # User-Agent de las requests al SII. ⚠️ El **envío de boletas** (rahue/pangal) y **DTEUpload**
+    # VALIDAN el User-Agent: empíricamente rechazan Chrome y Mozilla genérico con un `401`
+    # engañoso, y aceptan el UA de-facto de proveedores registrados. Si tus envíos dan 401,
+    # setea `SII_USER_AGENT` a un valor que el SII acepte (el de LibreDTE es el más difundido:
+    # `Mozilla/5.0 (compatible; PROG 1.0; +https://www.libredte.cl)`). El portal de folios NO es
+    # picky. Ver docs/LECCIONES-SII.md.
+    sii_user_agent: str = Field(default="Mozilla/5.0 (compatible; DTE-Chile/1.0)",
+                                description="User-Agent para requests al SII (el SII lo valida en los envíos)")
+
     # ---- Lectura de correos del SII (skill `correos-sii`) ----
     # El detalle de un rechazo de FACTURA llega SOLO por correo: el SOAP (QueryEstUp) da
     # únicamente conteos, sin el código de error. Este token abre el endpoint propio del
