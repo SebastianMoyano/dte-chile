@@ -48,13 +48,14 @@ class Settings(BaseSettings):
     sii_numero_resolucion_cert: int = Field(default=0, description="Número resolución en certificación (siempre 0)")
 
     # User-Agent de las requests al SII. ⚠️ El **envío de boletas** (rahue/pangal) y **DTEUpload**
-    # VALIDAN el User-Agent: empíricamente rechazan Chrome y Mozilla genérico con un `401`
-    # engañoso, y aceptan el UA de-facto de proveedores registrados. Si tus envíos dan 401,
-    # setea `SII_USER_AGENT` a un valor que el SII acepte (el de LibreDTE es el más difundido:
-    # `Mozilla/5.0 (compatible; PROG 1.0; +https://www.libredte.cl)`). El portal de folios NO es
-    # picky. Ver docs/LECCIONES-SII.md.
-    sii_user_agent: str = Field(default="Mozilla/5.0 (compatible; DTE-Chile/1.0)",
-                                description="User-Agent para requests al SII (el SII lo valida en los envíos)")
+    # exigen que el UA contenga el token **`PROG 1.0`** (identificador de "programa" de la impl.
+    # de referencia del SII, documentado como `Mozilla/4.0 (compatible; PROG 1.0; Windows NT)`).
+    # Verificado en vivo: un UA CON `PROG 1.0` funciona; Chrome, Mozilla genérico y cualquier UA
+    # SIN `PROG 1.0` dan un `401` engañoso. El resto del string (la URL) es libre. El portal de
+    # folios NO es picky. Configurable por `SII_USER_AGENT`. Ver docs/LECCIONES-SII.md.
+    sii_user_agent: str = Field(
+        default="Mozilla/5.0 (compatible; PROG 1.0; +https://github.com/SebastianMoyano/dte-chile)",
+        description="User-Agent para requests al SII (DEBE contener 'PROG 1.0'; el SII lo valida)")
 
     # ---- Lectura de correos del SII (skill `correos-sii`) ----
     # El detalle de un rechazo de FACTURA llega SOLO por correo: el SOAP (QueryEstUp) da
