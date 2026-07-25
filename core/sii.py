@@ -353,6 +353,16 @@ class ClienteSII:
         if estado != "0":
             raise ValueError(f"El SII rechazó el envío. Estado: {estado}. Respuesta: {respuesta_xml}")
 
+        # Persistir estado+TrackID en los DTE del sobre (best-effort: el envío YA fue
+        # exitoso; un problema de BD no debe convertirlo en error).
+        try:
+            from core.models import marcar_enviados_por_xml
+            marcar_enviados_por_xml(xml_envio_bytes, track_id, ambiente=self.ambiente.value)
+        except Exception:
+            import logging
+            logging.getLogger("dte.sii").warning(
+                "Envío OK (TrackID %s) pero no se pudo actualizar la BD", track_id)
+
         return track_id, f"Envío exitoso. TrackID: {track_id}"
 
     def consultar_estado_track(self, track_id: int, rut_empresa: str, dv_empresa: str) -> dict:

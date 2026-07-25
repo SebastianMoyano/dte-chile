@@ -72,7 +72,8 @@ boletas. Corroborado por proveedor certificado (blog SuperFactura): durante la c
   factura/NC/ND/guía con el motor.
 - ⚠️ **GOTCHA:** anular boletas con **nota de crédito desde el motor propio** te convierte en
   facturador de mercado → perderías MiPyme. Para anular boletas, emitir la NC **manualmente en
-  el portal MiPyme**. (Fuente: SuperFactura.)
+  el portal MiPyme**. (Fuente: SuperFactura.) **Guía de usuario paso a paso, con los códigos de
+  referencia y los mensajes de error del SII explicados: [`ANULAR-BOLETA.md`](ANULAR-BOLETA.md).**
 
 (El intento de "Bajar Set" con SOFTWARE DEMO SPA devolvió *"Debe estar habilitado en ambiente de
 certificación y pruebas para iniciar el proceso"* — el guard de `core/postulacion.py` lo atrapó:

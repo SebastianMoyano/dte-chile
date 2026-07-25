@@ -262,6 +262,13 @@ async def pagina_apikeys():
     return FileResponse(str(_STATIC_DIR / "apikeys.html"))
 
 
+@app.get("/documentos", tags=["Frontend"], include_in_schema=False,
+         summary="Últimos documentos emitidos")
+async def pagina_documentos():
+    """Sirve la vista de documentos emitidos (folio, estado, TrackID)."""
+    return FileResponse(str(_STATIC_DIR / "documentos.html"))
+
+
 # ---- Rutas raíz ----
 @app.get("/", tags=["Health"], summary="Health check")
 async def root():

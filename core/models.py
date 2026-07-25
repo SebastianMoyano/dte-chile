@@ -55,6 +55,47 @@ def crear_dte(
         return cursor.lastrowid
 
 
+def marcar_enviados_por_xml(xml_envio, track_id, ambiente: Optional[str] = None,
+                            estado: str = "enviado") -> int:
+    """Marca como enviados (con su TrackID) los DTE de un sobre recién enviado al SII.
+
+    Los clientes de envío (`core/sii.py`, `core/sii_boleta.py`) reciben solo el XML del
+    sobre, no los `dte_id` — así que aquí se extraen los `(TipoDTE, Folio)` de cada
+    documento y el `RutEmisor` de la carátula, y se actualizan las filas que calcen.
+    Sin esto, el DTE queda `generado` y sin TrackID en la BD aunque el SII lo haya
+    aceptado (pasó con una boleta real de producción: hubo que ir al SII a mirar).
+
+    No pisa estados posteriores (`aceptado`/`rechazado`) ni un track ya grabado; los
+    sobres sin documentos (p. ej. un RVD/ConsumoFolios) simplemente no calzan → 0 filas.
+
+    Returns:
+        Número de filas actualizadas (0 si el sobre no corresponde a DTEs en esta BD).
+    """
+    import re as _re
+    texto = xml_envio.decode("ISO-8859-1", "replace") if isinstance(xml_envio, bytes) else str(xml_envio)
+    m = _re.search(r"<RutEmisor>([^<]+)</RutEmisor>", texto)
+    if not m:
+        return 0
+    rut_emisor = m.group(1).strip()
+    pares = _re.findall(r"<TipoDTE>(\d+)</TipoDTE>\s*<Folio>(\d+)</Folio>", texto)
+    if not pares:
+        return 0
+    ahora = datetime.now().isoformat()
+    filas = 0
+    with get_db() as conn:
+        for tipo, folio in set(pares):
+            sql = ("UPDATE dtes SET "
+                   "estado = CASE WHEN estado='generado' THEN ? ELSE estado END, "
+                   "track_id = COALESCE(track_id, ?), actualizado_en=? "
+                   "WHERE rut_emisor=? AND tipo_dte=? AND folio=?")
+            args = [estado, str(track_id), ahora, rut_emisor, int(tipo), int(folio)]
+            if ambiente:
+                sql += " AND ambiente=?"
+                args.append(ambiente)
+            filas += conn.execute(sql, args).rowcount
+    return filas
+
+
 def actualizar_estado_dte(dte_id: int, estado: str, track_id: Optional[int] = None) -> bool:
     """Actualiza el estado de un DTE."""
     ahora = datetime.now().isoformat()

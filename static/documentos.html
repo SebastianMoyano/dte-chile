@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Documentos — DTE Chile</title>
+<style>
+  :root { --bg:#f4f5f7; --card:#fff; --fg:#1a1c1f; --mut:#5c636e; --acc:#1f6feb; --bd:#dfe3e8; --ok:#1a7f37; --no:#b3261e; --warn:#9a6700; }
+  :root[data-theme="dark"], html[data-theme="dark"] { --bg:#0f1216; --card:#181c22; --fg:#e8eaed; --mut:#9aa3ad; --acc:#4c8dff; --bd:#2a2f37; --ok:#3fb950; --no:#f85149; --warn:#d29922; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#0f1216; --card:#181c22; --fg:#e8eaed; --mut:#9aa3ad; --acc:#4c8dff; --bd:#2a2f37; --ok:#3fb950; --no:#f85149; --warn:#d29922; } }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
+  .wrap { max-width:900px; margin:0 auto; padding:32px 20px; }
+  h1 { font-size:1.4rem; margin:0 0 4px; } .sub { color:var(--mut); margin:0 0 24px; font-size:.92rem; }
+  .card { background:var(--card); border:1px solid var(--bd); border-radius:12px; padding:20px; margin-bottom:18px; }
+  label { display:block; font-weight:600; font-size:.82rem; margin:12px 0 5px; }
+  input,select { width:100%; padding:10px 12px; border:1px solid var(--bd); border-radius:8px; background:transparent; color:var(--fg); font-size:1rem; }
+  button { margin-top:14px; padding:10px 16px; border:0; border-radius:8px; background:var(--acc); color:#fff; font-size:.95rem; font-weight:600; cursor:pointer; }
+  button.sec { background:transparent; color:var(--acc); border:1px solid var(--acc); }
+  table { width:100%; border-collapse:collapse; margin-top:8px; font-size:.9rem; }
+  th,td { padding:9px 6px; border-bottom:1px solid var(--bd); text-align:left; white-space:nowrap; }
+  th { color:var(--mut); font-size:.78rem; text-transform:uppercase; letter-spacing:.03em; }
+  td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .tablewrap { overflow-x:auto; }
+  code { background:var(--bg); border:1px solid var(--bd); border-radius:6px; padding:2px 6px; font-size:.86rem; }
+  .mut { color:var(--mut); font-size:.85rem; } .no { color:var(--no); }
+  .pill { display:inline-block; padding:2px 10px; border-radius:99px; font-size:.78rem; font-weight:600; }
+  .p-ok { background:color-mix(in srgb, var(--ok) 15%, transparent); color:var(--ok); }
+  .p-warn { background:color-mix(in srgb, var(--warn) 15%, transparent); color:var(--warn); }
+  .p-no { background:color-mix(in srgb, var(--no) 15%, transparent); color:var(--no); }
+  .p-mut { background:color-mix(in srgb, var(--mut) 15%, transparent); color:var(--mut); }
+  .row { display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; }
+  .row > div { flex:1; min-width:140px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Documentos emitidos</h1>
+  <p class="sub">Las últimas boletas y facturas del motor: folio, monto, estado y TrackID. El estado
+  <strong>generado</strong> significa "aún no enviado al SII"; <strong>enviado</strong>, "en manos del SII";
+  <strong>aceptado</strong>/<strong>rechazado</strong>, el veredicto.</p>
+
+  <div id="login" class="card" style="display:none">
+    <label>Usuario</label><input id="u" autocomplete="username">
+    <label>Contraseña</label><input id="p" type="password" autocomplete="current-password">
+    <button onclick="login()">Entrar</button>
+    <p id="loginErr" class="no" style="display:none"></p>
+  </div>
+
+  <div id="app" style="display:none">
+    <div class="card">
+      <div class="row">
+        <div><label>Tipo</label>
+          <select id="fTipo"><option value="">Todos</option>
+            <option value="39">Boleta (39)</option><option value="41">Boleta exenta (41)</option>
+            <option value="33">Factura (33)</option><option value="34">Factura exenta (34)</option>
+            <option value="61">Nota de crédito (61)</option><option value="56">Nota de débito (56)</option>
+            <option value="52">Guía (52)</option></select></div>
+        <div><label>Estado</label>
+          <select id="fEstado"><option value="">Todos</option>
+            <option>generado</option><option>enviado</option><option>aceptado</option><option>rechazado</option></select></div>
+        <div><label>Cuántos</label>
+          <select id="fLimite"><option>25</option><option>50</option><option>100</option><option>200</option></select></div>
+        <button onclick="listar()">Actualizar</button>
+        <button class="sec" onclick="logout()">Salir</button>
+      </div>
+      <div class="tablewrap">
+        <table><thead><tr><th>Tipo</th><th>Folio</th><th>Fecha</th><th>Receptor</th>
+          <th style="text-align:right">Total</th><th>Estado</th><th>TrackID</th><th>Ambiente</th></tr></thead>
+        <tbody id="lista"></tbody></table>
+      </div>
+      <p id="vacio" class="mut" style="display:none">No hay documentos con esos filtros.</p>
+    </div>
+  </div>
+</div>
+<script>
+const API="/api/v1";
+const NOMBRES={33:"Factura",34:"Fact. exenta",39:"Boleta",41:"Bol. exenta",52:"Guía",56:"N. débito",61:"N. crédito"};
+const PILL={generado:"p-mut",enviado:"p-warn",aceptado:"p-ok",rechazado:"p-no"};
+const tok=()=>localStorage.getItem("dte_token");
+const hdr=()=>({Authorization:"Bearer "+tok()});
+function esc(s){return (s==null?"":String(s)).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+const clp=n=>"$"+Number(n||0).toLocaleString("es-CL");
+
+function render(){ document.getElementById("login").style.display = tok()?"none":"block";
+  document.getElementById("app").style.display = tok()?"block":"none"; if(tok()) listar(); }
+
+async function login(){
+  const err=document.getElementById("loginErr"); err.style.display="none";
+  const r=await fetch(`${API}/auth/login`,{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({username:document.getElementById("u").value,password:document.getElementById("p").value})});
+  if(!r.ok){ err.textContent="Credenciales inválidas."; err.style.display="block"; return; }
+  localStorage.setItem("dte_token",(await r.json()).access_token); render();
+}
+function logout(){ localStorage.removeItem("dte_token"); render(); }
+
+async function listar(){
+  const q=new URLSearchParams({limite:document.getElementById("fLimite").value});
+  const t=document.getElementById("fTipo").value; if(t) q.set("tipo_dte",t);
+  const e=document.getElementById("fEstado").value; if(e) q.set("estado",e);
+  const r=await fetch(`${API}/dte/documentos?`+q,{headers:hdr()});
+  if(r.status===401){ logout(); return; }
+  const {documentos}=await r.json(); const tb=document.getElementById("lista"); tb.innerHTML="";
+  document.getElementById("vacio").style.display = documentos.length?"none":"block";
+  for(const d of documentos){
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td>${esc(NOMBRES[d.tipo_dte]||d.tipo_dte)}</td><td class="num">${d.folio}</td>
+      <td class="mut">${esc(d.fecha_emision||"")}</td><td>${esc(d.razon_social_receptor||d.rut_receptor||"—")}</td>
+      <td class="num">${clp(d.monto_total)}</td>
+      <td><span class="pill ${PILL[d.estado]||"p-mut"}">${esc(d.estado)}</span></td>
+      <td>${d.track_id?`<code>${esc(d.track_id)}</code>`:'<span class="mut">—</span>'}</td>
+      <td class="mut">${esc(d.ambiente||"")}</td>`;
+    tb.appendChild(tr);
+  }
+}
+render();
+</script>
+</body>
+</html>

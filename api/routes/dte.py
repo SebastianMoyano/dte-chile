@@ -29,7 +29,7 @@ from core.pdf_gen import generar_pdf_dte
 from core.preview import previsualizar_dte as _previsualizar_dte
 from core.sii import AmbienteSII, ClienteSII
 from core import keystore
-from core.models import obtener_caf_activo
+from core.models import listar_dtes, obtener_caf_activo
 
 router = APIRouter(prefix="/api/v1/dte", tags=["DTE - Documentos Tributarios"])
 
@@ -103,6 +103,26 @@ def _parse_dte_input(dte_json: str) -> DTEInput:
 
 
 # ---- Endpoints ----
+
+@router.get("/documentos", summary="Últimos documentos emitidos (folio, estado, TrackID)")
+async def listar_documentos(
+    limite: int = 25,
+    tipo_dte: Optional[int] = None,
+    estado: Optional[str] = None,
+    rut_emisor: Optional[str] = None,
+) -> dict:
+    """Lista los documentos emitidos, del más reciente al más antiguo.
+
+    Es la vista "¿qué fue de mi última boleta?": folio, montos, estado
+    (generado/enviado/aceptado/rechazado) y TrackID, sin tener que mirar la BD.
+    El XML no se incluye (para eso está `/consulta/xml` o la BD).
+    """
+    docs = listar_dtes(rut_emisor=rut_emisor, tipo_dte=tipo_dte, estado=estado,
+                       limite=max(1, min(limite, 200)))
+    for d in docs:
+        d.pop("xml_firmado", None)
+    return {"total": len(docs), "documentos": docs}
+
 
 @router.post("/generar", response_model=GenerarDTEResponse,
              summary="Generar un DTE (XML estructurado y firmado)")

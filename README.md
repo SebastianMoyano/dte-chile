@@ -4,10 +4,19 @@ Motor **self-hosted** en **Python + FastAPI** para emitir Documentos Tributarios
 (DTE) y **boletas electrónicas** ante el **SII de Chile**. Firma, timbra, envía al SII por el
 canal correcto, **repone folios solo**, y expone un buscador público de consulta.
 
+**En simple**: si tienes una empresa en Chile, este programa emite tus boletas y facturas
+directo con el SII, desde tu propio servidor, sin pagar un proveedor de facturación. Tú pones
+tu certificado digital; él hace el resto.
+
 > Pensado para **un dueño que opera varias empresas propias** (self-hosted), no como SaaS
 > multi-tenant.
 
-### 👉 ¿Primera vez? Empieza por la **[Guía de inicio rápido](docs/INICIO-RAPIDO.md)** — de cero a tu primer documento en ~20 min.
+## ¿Por dónde empiezo?
+
+| Si tú eres… | Empieza por |
+|---|---|
+| 🆕 **Nuevo en facturación electrónica** (o la jerga te suena a chino) | La **[Guía de inicio rápido](docs/INICIO-RAPIDO.md)** — de cero a tu primer documento en ~20 min. Ten a mano el **[Glosario](docs/GLOSARIO.md)**: cada término (folio, CAF, timbre…) en dos líneas. |
+| 🧑‍💻 **Desarrollador/a o usuario avanzado** | `docker-compose up -d`, Swagger en `/docs`, la guía de integración **[PLATAFORMA.md](docs/PLATAFORMA.md)**, y el **servidor MCP** si integras una IA. |
 
 ## Qué hace
 
@@ -19,11 +28,31 @@ canal correcto, **repone folios solo**, y expone un buscador público de consult
 - **Buscador público de consulta** (`/consulta`) — el "Link de Consulta" que exige el SII, con descarga de PDF y XML.
 - **PDF con timbre PDF417** (carta y 80 mm térmico para boletas).
 - **Auth por JWT o API key**, y un **servidor MCP** para operar todo desde una IA/agente.
+- **Registra estado y TrackID** de cada envío — lo que dice tu base de datos es lo que dice el SII.
+
+## Interfaces incluidas (sin escribir código)
+
+| Página | Para qué |
+|---|---|
+| `/onboarding` | Asistente: diagnostica tu empresa en el SII y te dice qué falta (y qué hace solo) |
+| `/documentos` | Tus últimas boletas/facturas: folio, monto, **estado** y TrackID |
+| `/certificados` | Cargar y administrar certificados digitales (cifrados en BD) |
+| `/apikeys` | Crear/revocar llaves de API para integraciones |
+| `/consulta` | **Público**: el buscador donde tus clientes verifican una boleta |
+| `/docs` | Swagger interactivo de toda la API |
 
 ## Estado
 
 **Listo para producción.** Pipeline de emisión verificado contra el SII vivo (facturas y
 boletas aceptadas), certificación de boletas completada end-to-end, y desplegable por Docker.
+
+## Requisitos
+
+- Un **certificado digital** de persona natural (`.p12`/`.pfx`) — el mismo con que entras al SII.
+- Una empresa con **inicio de actividades** en primera categoría.
+- **Docker** (recomendado) o Python 3.12+.
+- Para emitir con software propio el SII exige **certificarse** una vez (el motor te guía):
+  ver [`docs/CERTIFICACION.md`](docs/CERTIFICACION.md).
 
 ## Instalación
 
@@ -59,6 +88,7 @@ Para una **IA**, levanta el MCP: `MCP_AUTH_TOKEN=<clave> python mcp_server.py ht
 |---|---|---|---|
 | `POST` | `/api/v1/dte/emitir` | **Emitir** DTE/boleta orquestado (folio→firma→envío→BD) | Sí |
 | `POST` | `/api/v1/dte/previsualizar` | Pre-vuelo (firma + PDF sin enviar) | Sí |
+| `GET` | `/api/v1/dte/documentos` | Últimos documentos (folio, estado, TrackID) | Sí |
 | `POST` | `/api/v1/estado/track` | Estado de un envío por TrackID | Sí |
 | `GET` | `/api/v1/monitoreo/folios?rut=` | Salud de folios | Sí |
 | `GET` | `/api/v1/db/dtes` | Listar DTE emitidos | Sí |
@@ -96,9 +126,29 @@ Los certificados `.p12/.pfx` se cifran en la BD (nunca en disco), y el `.env`/`.
 | 52 | Guía de Despacho |
 | 56 · 61 | Nota de Débito · Crédito |
 
+## Preguntas típicas
+
+- **¿El voucher de la tarjeta ya cuenta como boleta?** Puede — depende de tu "modelo de
+  emisión" declarado, y **si no declaras nada el SII asume que sí** (lo contrario de cómo opera
+  este motor). Qué declarar y cómo: [`docs/MODELO-EMISION.md`](docs/MODELO-EMISION.md).
+- **¿Cómo anulo una boleta ya emitida?** No se "borra": se anula con una **Nota de Crédito**
+  en el portal del SII. Paso a paso, con los errores típicos explicados:
+  [`docs/ANULAR-BOLETA.md`](docs/ANULAR-BOLETA.md).
+- **El SII me rebota con "debe ingresar con la persona autorizada"…** Casi siempre es que
+  entraste con la identidad equivocada (empresa vs persona vs representante legal). El mapa de
+  qué exige cada trámite: [`docs/IDENTIDADES-SII.md`](docs/IDENTIDADES-SII.md).
+- **¿Qué es un folio / CAF / TED / TrackID?** → [`docs/GLOSARIO.md`](docs/GLOSARIO.md).
+
 ## Documentación
 
+**Guías de uso (para cualquiera):**
 - [`docs/INICIO-RAPIDO.md`](docs/INICIO-RAPIDO.md) — **empieza aquí**: de cero a emitir, paso a paso.
+- [`docs/GLOSARIO.md`](docs/GLOSARIO.md) — el vocabulario tributario en dos líneas por término.
+- [`docs/IDENTIDADES-SII.md`](docs/IDENTIDADES-SII.md) — con qué RUT/clave entrar a cada trámite del SII.
+- [`docs/MODELO-EMISION.md`](docs/MODELO-EMISION.md) — voucher vs boleta, pagos con tarjeta, y cómo declarar.
+- [`docs/ANULAR-BOLETA.md`](docs/ANULAR-BOLETA.md) — anular una boleta (Nota de Crédito) sin perderse.
+
+**Documentación técnica:**
 - [`docs/PLATAFORMA.md`](docs/PLATAFORMA.md) — guía de arranque e integración (para humano o IA).
 - [`docs/CONSTITUCION.md`](docs/CONSTITUCION.md) — reglas inviolables del motor (firma, resolución, secretos).
 - [`docs/LECCIONES-SII.md`](docs/LECCIONES-SII.md) — errores del SII y cómo se resolvieron (conocimiento caro).

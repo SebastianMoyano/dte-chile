@@ -22,6 +22,10 @@ Código y comentarios **en español**.
 | Trabajar en scripts, tests o CAFs | [`mapa/scripts-y-tests.md`](mapa/scripts-y-tests.md) |
 | Trabajar en boletas | [`LECCIONES-SII.md`](LECCIONES-SII.md#boletas-infraestructura-aparte) + `core/boleta.py`, `core/sii_boleta.py` |
 | Entender la **certificación** (postular, proveedor, boleta vs factura) | [`CERTIFICACION.md`](CERTIFICACION.md) |
+| Entender un **término** (CAF, TED, folio, RVD, voucher…) | [`GLOSARIO.md`](GLOSARIO.md) |
+| Saber **con qué RUT/clave entrar a cada trámite del SII** (el rebote clásico) | [`IDENTIDADES-SII.md`](IDENTIDADES-SII.md) |
+| **Anular una boleta** (NC de anulación, portal MIPYME, trámites SII) | [`ANULAR-BOLETA.md`](ANULAR-BOLETA.md) |
+| **Modelo de emisión** (voucher vs boleta, tarjetas, código 48, convivir con un POS) | [`MODELO-EMISION.md`](MODELO-EMISION.md) |
 
 ## El flujo, en una línea
 

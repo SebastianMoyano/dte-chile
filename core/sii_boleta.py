@@ -292,6 +292,15 @@ class ClienteBoletaSII:
                 "El SII aceptó el envío pero no devolvió TrackID.",
                 detalle={"respuesta": cuerpo},
             )
+
+        # Persistir estado+TrackID en las boletas del sobre (best-effort: el envío YA
+        # fue exitoso; un problema de BD no debe convertirlo en error).
+        try:
+            from core.models import marcar_enviados_por_xml
+            marcar_enviados_por_xml(xml_envio_bytes, track_id, ambiente=self.ambiente.value)
+        except Exception:
+            logger.warning("Envío OK (TrackID %s) pero no se pudo actualizar la BD", track_id)
+
         return track_id, f"Envío de boletas recibido. TrackID: {track_id}"
 
     def consultar_estado(self, track_id: str, rut_empresa: str, dv_empresa: str) -> dict:

@@ -155,6 +155,20 @@ def diagnosticar(portal: PortalSII, rut: str, nombre_sistema: str = "tu software
             f"Cambiar el software de facturación de «{sw_actual}» a {nombre_sistema} "
             "(Actualización de datos). Requiere tu autorización.", CONSENTIMIENTO))
 
+    # ---- Modelo de emisión de boletas (aplica también si YA emite) ----
+    # No se puede verificar en modo lectura (la app del SII exige RUT+Clave de la
+    # EMPRESA, no el certificado) → siempre va como paso HUMANO con instrucción precisa.
+    # Sin declarar, el SII asume el Modelo 2 (voucher = boleta): exactamente lo contrario
+    # de cómo opera un software emisor propio → ventas contadas doble.
+    if "39" in codigos or "41" in codigos:
+        acciones.append(Accion(
+            "Declarar el modelo de emisión de boletas (si cobras con tarjeta)",
+            "Hazlo UNA vez por empresa, con RUT y Clave de la EMPRESA (no la persona) en "
+            "www4.sii.cl/actatributointernetui: marca «Siempre emito Boleta… aún cuando "
+            "reciba un pago electrónico» (Modelo 1). Ojo: sin declarar, el SII asume que "
+            "el voucher de la tarjeta ES tu boleta (Modelo 2) y tus ventas quedarían "
+            "contadas doble. Guía paso a paso: docs/MODELO-EMISION.md.", HUMANO))
+
     resumen = f"{razon}: {etiqueta.lower()}."
     if folios_bloqueados:
         resumen += " Hay folios bloqueados que destrabar."
