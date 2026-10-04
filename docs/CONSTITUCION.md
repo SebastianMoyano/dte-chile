@@ -152,7 +152,7 @@ así nadie la abrió.
 
 ## L14 — El repo es público: ningún dato de terceros entra en él
 
-El código se publica bajo AGPL-3.0 en GitHub. Lo que se commitea lo lee cualquiera.
+El código se publica bajo licencia MIT en GitHub. Lo que se commitea lo lee cualquiera.
 
 - En docs, tests, ejemplos y docstrings, **empresas y personas van siempre con RUT ficticios
   válidos** (p.ej. `77.777.777-7`, `76.111.111-6`, `12.345.678-5`) y nombres de demostración.

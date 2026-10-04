@@ -156,10 +156,21 @@ Los certificados `.p12/.pfx` se cifran en la BD (nunca en disco), y el `.env`/`.
 
 ## Licencia
 
-**Copyright © 2026 Extralatte.** Distribuido bajo la **GNU Affero General Public License v3.0
-(AGPL-3.0)** — ver [`LICENSE`](LICENSE). En resumen: puedes usarlo, modificarlo y ofrecerlo como
-servicio, pero **si lo ofreces por red (SaaS) debes publicar tus modificaciones** bajo la misma
-licencia.
+**Copyright © 2026 Extralatte.** Distribuido bajo la **licencia MIT** — ver [`LICENSE`](LICENSE).
+
+En palabras simples: **es gratis.** Puedes usarlo, modificarlo, integrarlo en tu producto y
+cobrar por él, sin pedir permiso y sin obligación de publicar tus cambios. La única condición es
+conservar el aviso de licencia dentro del código. Si lo usas y lo dices, mejor; si arreglas algo,
+un *pull request* ayuda a todos los que facturan en Chile.
+
+**Sin garantía y sin responsabilidad.** Este motor emite documentos tributarios reales ante el
+SII. Se entrega tal cual, sin garantía de ningún tipo: **quien lo opera es responsable de lo que
+emite, declara o envía al SII**, de verificar los resultados y de cumplir sus obligaciones
+tributarias. Los autores no responden por folios perdidos, documentos rechazados, multas ni
+cualquier otro daño derivado de su uso.
+
+> Las versiones publicadas antes de octubre de 2026 se distribuyeron bajo AGPL-3.0; desde esta
+> versión la licencia es MIT.
 
 ## Créditos y atribución
 
