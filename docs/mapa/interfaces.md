@@ -31,8 +31,9 @@ Al apagar: `await programador.detener()`.
 
 ## Endpoints — dónde mirar
 
-11 routers bajo `/api/v1`: `auth`, `certificado`, `caf`, `dte`, `status`, `db`, `keystore`,
-`onboarding`, `monitoreo`, `apikeys`, `consulta`.
+12 routers bajo `/api/v1`: `auth`, `certificado`, `caf`, `dte`, `status`, `db`, `keystore`,
+`onboarding`, `monitoreo`, `apikeys`, `consulta`, `mipyme` (canal gratuito del SII: diagnóstico,
+importación de emitidos a `dtes` con PDF, sincronizar).
 
 `certificado`, `caf`, `dte` y `status` están protegidos **a nivel de router** en `main.py`
 (`dependencies=[Depends(requerir_autenticacion)]`); el resto (`db/*`, `keystore/*`,

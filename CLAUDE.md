@@ -74,7 +74,7 @@ Ver [`docs/LECCIONES-SII.md`](docs/LECCIONES-SII.md).
 - `pdf_gen.py` — ReportLab PDF with the PDF417 TED stamp; `NOMBRES_DTE` maps type→label.
 - `rut.py` — Chilean RUT validator (módulo 11). `auth.py` — JWT; passwords use `sha256_crypt` (deliberately not bcrypt — a passlib/bcrypt version incompatibility).
 
-**`api/routes/` — FastAPI routers**, one per domain (`apikeys`, `auth`, `caf`, `certificado`, `consulta`, `db`, `dte`, `keystore`, `monitoreo`, `onboarding`, `status` — 11 total), all mounted under `/api/v1` in `main.py`. `certificado`, `caf`, `dte` y `status` están protegidos a nivel de router (`dependencies=[Depends(requerir_autenticacion)]` en `main.py`); `requerir_autenticacion` (`core/auth.py`) acepta **JWT o API key** (`core/apikeys.py`, UI en `/apikeys`).
+**`api/routes/` — FastAPI routers**, one per domain (`apikeys`, `auth`, `caf`, `certificado`, `consulta`, `db`, `dte`, `keystore`, `mipyme`, `monitoreo`, `onboarding`, `status` — 12 total), all mounted under `/api/v1` in `main.py`. `certificado`, `caf`, `dte` y `status` están protegidos a nivel de router (`dependencies=[Depends(requerir_autenticacion)]` en `main.py`); `requerir_autenticacion` (`core/auth.py`) acepta **JWT o API key** (`core/apikeys.py`, UI en `/apikeys`).
 
 **`core/config.py`** — single `settings` singleton (pydantic-settings, reads `.env`). Import it, don't read env vars directly.
 

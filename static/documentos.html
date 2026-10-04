@@ -35,10 +35,10 @@
 </head>
 <body>
 <div class="wrap">
+  <p style="margin:0 0 6px;font-size:.85rem"><a href="/certificados">Panel</a> · <a href="/onboarding">Asistente</a> · <a href="/apikeys">API keys</a></p>
   <h1>Documentos emitidos</h1>
-  <p class="sub">Las últimas boletas y facturas del motor: folio, monto, estado y TrackID. El estado
-  <strong>generado</strong> significa "aún no enviado al SII"; <strong>enviado</strong>, "en manos del SII";
-  <strong>aceptado</strong>/<strong>rechazado</strong>, el veredicto.</p>
+  <p class="sub">Boletas y facturas de todas tus empresas, tanto las del motor como las del gratuito del SII. Filtra por empresa para no mezclarlas y descarga el PDF o el XML desde la última columna.
+  Estados: <strong>generado</strong> = aún no enviado al SII; <strong>enviado</strong> = en manos del SII; <strong>aceptado</strong>/<strong>rechazado</strong> = el veredicto; <strong>emitido · gratuito SII</strong> = lo emitió el portal del SII (el número de la columna TrackID es su código interno, DHDR).</p>
 
   <div id="login" class="card" style="display:none">
     <label>Usuario</label><input id="u" autocomplete="username">
@@ -58,25 +58,28 @@
             <option value="52">Guía (52)</option></select></div>
         <div><label>Estado</label>
           <select id="fEstado"><option value="">Todos</option>
-            <option>generado</option><option>enviado</option><option>aceptado</option><option>rechazado</option></select></div>
+            <option>generado</option><option>enviado</option><option>aceptado</option><option>rechazado</option><option value="emitido_mipyme">emitido (gratuito SII)</option></select></div>
+        <div><label>Empresa</label>
+          <select id="fEmisor" onchange="listar()"><option value="">Todas</option></select></div>
         <div><label>Cuántos</label>
           <select id="fLimite"><option>25</option><option>50</option><option>100</option><option>200</option></select></div>
         <button onclick="listar()">Actualizar</button>
         <button class="sec" onclick="logout()">Salir</button>
       </div>
       <div class="tablewrap">
-        <table><thead><tr><th>Tipo</th><th>Folio</th><th>Fecha</th><th>Receptor</th>
-          <th style="text-align:right">Total</th><th>Estado</th><th>TrackID</th><th>Ambiente</th></tr></thead>
+        <table><thead><tr><th>Emisor</th><th>Tipo</th><th>Folio</th><th>Fecha</th><th>Receptor</th>
+          <th style="text-align:right">Total</th><th>Estado</th><th>TrackID / DHDR</th><th>Ambiente</th><th>Descargar</th></tr></thead>
         <tbody id="lista"></tbody></table>
       </div>
       <p id="vacio" class="mut" style="display:none">No hay documentos con esos filtros.</p>
+      <p id="cuenta" class="mut" style="font-size:.8rem"></p>
     </div>
   </div>
 </div>
 <script>
 const API="/api/v1";
 const NOMBRES={33:"Factura",34:"Fact. exenta",39:"Boleta",41:"Bol. exenta",52:"Guía",56:"N. débito",61:"N. crédito"};
-const PILL={generado:"p-mut",enviado:"p-warn",aceptado:"p-ok",rechazado:"p-no"};
+const PILL={generado:"p-mut",enviado:"p-warn",aceptado:"p-ok",rechazado:"p-no",emitido_mipyme:"p-ok"};
 const tok=()=>localStorage.getItem("dte_token");
 const hdr=()=>({Authorization:"Bearer "+tok()});
 function esc(s){return (s==null?"":String(s)).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
@@ -98,20 +101,51 @@ async function listar(){
   const q=new URLSearchParams({limite:document.getElementById("fLimite").value});
   const t=document.getElementById("fTipo").value; if(t) q.set("tipo_dte",t);
   const e=document.getElementById("fEstado").value; if(e) q.set("estado",e);
+  await cargarEmisores();
+  const em=document.getElementById("fEmisor").value; if(em) q.set("rut_emisor",em);
   const r=await fetch(`${API}/dte/documentos?`+q,{headers:hdr()});
   if(r.status===401){ logout(); return; }
   const {documentos}=await r.json(); const tb=document.getElementById("lista"); tb.innerHTML="";
   document.getElementById("vacio").style.display = documentos.length?"none":"block";
+  document.getElementById("cuenta").textContent = documentos.length?`${documentos.length} documento${documentos.length>1?"s":""}`:"";
   for(const d of documentos){
     const tr=document.createElement("tr");
-    tr.innerHTML=`<td>${esc(NOMBRES[d.tipo_dte]||d.tipo_dte)}</td><td class="num">${d.folio}</td>
+    tr.innerHTML=`<td class="mut">${esc(EMISORES[d.rut_emisor]||d.rut_emisor)}</td><td>${esc(NOMBRES[d.tipo_dte]||d.tipo_dte)}</td><td class="num">${d.folio}</td>
       <td class="mut">${esc(d.fecha_emision||"")}</td><td>${esc(d.razon_social_receptor||d.rut_receptor||"—")}</td>
       <td class="num">${clp(d.monto_total)}</td>
-      <td><span class="pill ${PILL[d.estado]||"p-mut"}">${esc(d.estado)}</span></td>
+      <td><span class="pill ${PILL[d.estado]||"p-mut"}">${esc(ESTADOS[d.estado]||d.estado)}</span></td>
       <td>${d.track_id?`<code>${esc(d.track_id)}</code>`:'<span class="mut">—</span>'}</td>
-      <td class="mut">${esc(d.ambiente||"")}</td>`;
+      <td class="mut">${esc(d.ambiente||"")}</td>
+      <td>${d.tiene_pdf?`<button class="sec" style="padding:.2rem .5rem" onclick="bajar(${d.id},'pdf')">PDF</button>`:''}
+          ${d.tiene_xml?`<button class="sec" style="padding:.2rem .5rem" onclick="bajar(${d.id},'xml')">XML</button>`:''}
+          ${(!d.tiene_pdf&&!d.tiene_xml)?'<span class="mut">—</span>':''}</td>`;
     tb.appendChild(tr);
   }
+}
+const ESTADOS={emitido_mipyme:"emitido · gratuito SII"};
+const EMISORES={};   // rut -> nombre corto
+async function cargarEmisores(){
+  const sel=document.getElementById("fEmisor"); if(sel.dataset.ok) return;
+  try{
+    const r=await fetch(`${API}/dte/documentos/emisores`,{headers:hdr()}); if(!r.ok) return;
+    const {emisores}=await r.json();
+    for(const e of emisores){
+      const nombre=e.razon_social?e.razon_social.split(" ").slice(0,3).join(" "):e.rut;
+      EMISORES[e.rut]=nombre;
+      const o=document.createElement("option"); o.value=e.rut; o.textContent=`${nombre} · ${e.rut} (${e.documentos})`; sel.appendChild(o);
+    }
+    sel.dataset.ok="1";
+    const pre=new URLSearchParams(location.search).get("emisor"); if(pre) sel.value=pre;
+  }catch(_){}
+}
+async function bajar(id,que){
+  // Los enlaces no llevan el token: se baja con fetch y se abre como blob.
+  const r=await fetch(`${API}/dte/documentos/${id}/${que}`,{headers:hdr()});
+  if(!r.ok){alert(que==='pdf'?"Este documento no tiene PDF guardado":"Este documento no tiene XML guardado");return;}
+  const url=URL.createObjectURL(await r.blob());
+  if(que==='pdf'){window.open(url,"_blank");}
+  else{const a=document.createElement("a");a.href=url;a.download=`dte_${id}.xml`;document.body.appendChild(a);a.click();a.remove();}
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
 }
 render();
 </script>

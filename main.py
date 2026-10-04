@@ -28,7 +28,7 @@ from core.scheduler import programador
 from core.models import obtener_usuario_por_username, crear_usuario, listar_usuarios
 from core.auth import hash_password, requerir_autenticacion
 
-from api.routes import certificado, caf, dte, status, auth, db, keystore, onboarding, monitoreo, consulta, apikeys
+from api.routes import certificado, caf, dte, status, auth, db, keystore, onboarding, monitoreo, consulta, apikeys, mipyme
 from api.errors import registrar_manejo_errores
 
 
@@ -233,6 +233,7 @@ app.include_router(onboarding.router)
 app.include_router(apikeys.router)
 app.include_router(monitoreo.router)
 app.include_router(consulta.router)
+app.include_router(mipyme.router)   # protegido en el propio router
 
 
 # ---- Frontend (páginas estáticas) ----
@@ -245,28 +246,38 @@ if _STATIC_DIR.is_dir():
          summary="Página de gestión de certificados")
 async def pagina_certificados():
     """Sirve la página para subir/gestionar certificados (usa /api/v1/keystore/*)."""
-    return FileResponse(str(_STATIC_DIR / "certificados.html"))
+    return FileResponse(str(_STATIC_DIR / "certificados.html"), headers={"Cache-Control": "no-cache"})
 
 
 @app.get("/onboarding", tags=["Frontend"], include_in_schema=False,
          summary="Asistente de puesta en marcha (wizard)")
 async def pagina_onboarding():
     """Sirve el wizard de onboarding (cert → empresa → diagnóstico + plan)."""
-    return FileResponse(str(_STATIC_DIR / "onboarding.html"))
+    return FileResponse(str(_STATIC_DIR / "onboarding.html"), headers={"Cache-Control": "no-cache"})
 
 
 @app.get("/apikeys", tags=["Frontend"], include_in_schema=False,
          summary="Gestión de API keys")
 async def pagina_apikeys():
     """Sirve la UI para crear/revocar API keys (integraciones/agentes)."""
-    return FileResponse(str(_STATIC_DIR / "apikeys.html"))
+    return FileResponse(str(_STATIC_DIR / "apikeys.html"), headers={"Cache-Control": "no-cache"})
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    """Icono mínimo (SVG inline) para que el navegador no llene la consola con 404."""
+    from fastapi.responses import Response as _R
+    svg = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#2563eb" '
+           'stroke-width="2" stroke-linejoin="round"><path d="M12 2l7 3v6c0 4.4-3 8.3-7 9-4-.7-7-4.6-7-9V5l7-3z"/>'
+           '<path d="M9 12l2 2 4-4" stroke-linecap="round"/></svg>')
+    return _R(svg, media_type="image/svg+xml", headers={"Cache-Control": "public, max-age=86400"})
 
 
 @app.get("/documentos", tags=["Frontend"], include_in_schema=False,
          summary="Últimos documentos emitidos")
 async def pagina_documentos():
     """Sirve la vista de documentos emitidos (folio, estado, TrackID)."""
-    return FileResponse(str(_STATIC_DIR / "documentos.html"))
+    return FileResponse(str(_STATIC_DIR / "documentos.html"), headers={"Cache-Control": "no-cache"})
 
 
 # ---- Rutas raíz ----

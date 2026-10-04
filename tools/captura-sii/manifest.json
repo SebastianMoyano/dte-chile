@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "Captura SII",
+  "version": "2.0",
+  "description": "Graba, solo entre Grabar y Detener, las peticiones y respuestas a sii.cl de una pestaña (claves tachadas, sin cookies) y las descarga como JSON.",
+  "permissions": ["webRequest", "tabs", "downloads", "storage", "unlimitedStorage"],
+  "host_permissions": ["*://*.sii.cl/*"],
+  "action": { "default_popup": "popup.html", "default_title": "Captura SII" },
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    { "matches": ["*://*.sii.cl/*"], "js": ["hook.js"], "run_at": "document_start", "world": "MAIN", "all_frames": true },
+    { "matches": ["*://*.sii.cl/*"], "js": ["content.js"], "run_at": "document_start", "all_frames": true }
+  ]
+}

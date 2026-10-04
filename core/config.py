@@ -62,6 +62,11 @@ class Settings(BaseSettings):
     # únicamente conteos, sin el código de error. Este token abre el endpoint propio del
     # usuario (Apps Script, solo lectura, últimos 20 correos). Rotarlo = cambiarlo en .env.
     # ⚠️ Es una credencial: nunca loguearlo ni devolverlo por la API.
+    # Nombre con que ESTE motor está (o estará) registrado como software de facturación en el
+    # SII ("Nombre del Software"). Sirve para distinguir, por empresa, si emite con este motor,
+    # con OTRO proveedor (Nubox, Bsale, Haulmer…) o por el gratuito del SII. Varios: separados
+    # por coma. Vacío = no se distingue proveedor (cualquier software propio cuenta como nuestro).
+    nombre_software: str = Field(default="", description="Nombre(s) del software registrado en el SII para este motor, separados por coma")
     sii_mail_token: str = Field(default="", description="Token del endpoint de correos del SII")
 
     # ---- RVD (Registro de Ventas Diario de boletas) ----

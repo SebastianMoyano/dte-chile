@@ -25,3 +25,10 @@ tzdata>=2024.1
 # el resto del motor NO lo necesita. Instalar solo si vas a postular boletas:
 #   .venv/bin/pip install playwright && .venv/bin/python -m playwright install chromium
 # playwright>=1.40
+
+# Canal MIPYME (core/sii_mipyme.py): el portal responde con brotli/zstd si el cliente los anuncia.
+# Sin estas libs el módulo anuncia solo gzip/deflate (funciona, pero se aleja del header de Chrome).
+brotli>=1.1.0
+zstandard>=0.22.0
+# Canal MIPYME: leer el TOTAL registrado desde el PDF del SII (guardarraíl de la NC de anulación).
+pypdf>=4.0.0

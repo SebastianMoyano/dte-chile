@@ -29,7 +29,7 @@ from core.pdf_gen import generar_pdf_dte
 from core.preview import previsualizar_dte as _previsualizar_dte
 from core.sii import AmbienteSII, ClienteSII
 from core import keystore
-from core.models import listar_dtes, obtener_caf_activo
+from core.models import listar_dtes, obtener_caf_activo, obtener_dte
 
 router = APIRouter(prefix="/api/v1/dte", tags=["DTE - Documentos Tributarios"])
 
@@ -117,11 +117,63 @@ async def listar_documentos(
     (generado/enviado/aceptado/rechazado) y TrackID, sin tener que mirar la BD.
     El XML no se incluye (para eso está `/consulta/xml` o la BD).
     """
+    from pathlib import Path
     docs = listar_dtes(rut_emisor=rut_emisor, tipo_dte=tipo_dte, estado=estado,
                        limite=max(1, min(limite, 200)))
     for d in docs:
-        d.pop("xml_firmado", None)
+        d["tiene_xml"] = bool(d.pop("xml_firmado", None))
+        d["tiene_pdf"] = bool(d.get("pdf_path")) and Path(d["pdf_path"]).exists()
+        d["canal"] = "mipyme" if (d.get("estado") or "").endswith("_mipyme") else "motor"
     return {"total": len(docs), "documentos": docs}
+
+
+@router.get("/documentos/emisores", summary="Empresas emisoras presentes en la BD (para filtrar)")
+async def emisores_documentos() -> dict:
+    """RUT emisor distinto con cuántos documentos tiene y su razón social si está registrada
+    como negocio. Sirve para que la vista de documentos no mezcle empresas."""
+    from core.database import obtener_todos
+    filas = obtener_todos(
+        "SELECT rut_emisor, COUNT(*) AS n, MAX(fecha_emision) AS ultimo FROM dtes "
+        "GROUP BY rut_emisor ORDER BY ultimo DESC")
+    nombres = {}
+    try:
+        nombres = {r["rut"]: r["razon_social"] for r in obtener_todos("SELECT rut, razon_social FROM negocios")}
+    except Exception:  # noqa: BLE001 — sin tabla de negocios seguimos con el RUT a secas
+        pass
+    return {"emisores": [{"rut": f["rut_emisor"], "razon_social": nombres.get(f["rut_emisor"]),
+                          "documentos": f["n"], "ultimo": f["ultimo"]} for f in filas]}
+
+
+@router.get("/documentos/{dte_id}/pdf", summary="PDF de un documento (motor o canal MIPYME)")
+async def pdf_documento(dte_id: int) -> Response:
+    """Sirve el PDF guardado en disco (el del motor, o el que bajó el importador MIPYME)."""
+    from pathlib import Path
+    from core.errors import RecursoNoEncontrado
+    d = obtener_dte(dte_id)
+    if not d:
+        raise RecursoNoEncontrado(f"Documento {dte_id} no existe")
+    pp = d.get("pdf_path")
+    if not pp or not Path(pp).exists():
+        raise RecursoNoEncontrado("Este documento no tiene PDF guardado")
+    raiz = Path("storage").resolve()
+    if raiz not in Path(pp).resolve().parents:   # nunca servir algo fuera de storage/
+        raise RecursoNoEncontrado("Ruta de PDF fuera del almacenamiento del motor")
+    return Response(Path(pp).read_bytes(), media_type="application/pdf", headers={
+        "Content-Disposition": f'inline; filename="dte_{d["tipo_dte"]}_{d["folio"]}.pdf"'})
+
+
+@router.get("/documentos/{dte_id}/xml", summary="XML firmado de un documento")
+async def xml_documento(dte_id: int) -> Response:
+    """El XML firmado tal como se guardó (ISO-8859-1). Los importados del historial MIPYME
+    no lo tienen: el portal solo entregó el PDF."""
+    from core.errors import RecursoNoEncontrado
+    d = obtener_dte(dte_id)
+    if not d:
+        raise RecursoNoEncontrado(f"Documento {dte_id} no existe")
+    if not d.get("xml_firmado"):
+        raise RecursoNoEncontrado("Este documento no tiene XML guardado")
+    return Response(d["xml_firmado"].encode("iso-8859-1", "replace"), media_type="application/xml",
+                    headers={"Content-Disposition": f'attachment; filename="dte_{d["tipo_dte"]}_{d["folio"]}.xml"'})
 
 
 @router.post("/generar", response_model=GenerarDTEResponse,

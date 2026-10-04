@@ -34,7 +34,11 @@ CREATE TABLE IF NOT EXISTS negocios (
 # Columnas de caché del estado de habilitación (se computan consultando el SII y se
 # guardan para que la lista de negocios cargue rápido, sin re-consultar cada vez).
 _COLS_ESTADO = [("estado", "TEXT"), ("estado_etiqueta", "TEXT"),
-                ("usa_sw_propio", "INTEGER"), ("estado_ts", "TEXT")]
+                ("usa_sw_propio", "INTEGER"), ("estado_ts", "TEXT"),
+                # Nombre con que ESTE motor registró/postuló el software de la empresa en el SII.
+                # Lo escribe la postulación automática; sirve para reconocer "emite con nosotros"
+                # frente a "emite con otro proveedor" sin que nadie lo configure a mano.
+                ("software_registrado", "TEXT")]
 
 
 def init_negocios() -> None:
@@ -126,3 +130,20 @@ def eliminar_negocio(cuenta_id: int, negocio_id: int) -> bool:
         cur = conn.execute("DELETE FROM negocios WHERE id=? AND cuenta_id=?",
                            (negocio_id, cuenta_id))
         return cur.rowcount > 0
+
+
+def registrar_software(rut: str, nombre: str) -> None:
+    """Recuerda el nombre de software que el motor registró en el SII para `rut` (todas las
+    cuentas que tengan ese negocio). Lo llama la postulación automática; best-effort."""
+    if not (rut and nombre and nombre.strip()):
+        return
+    with database.get_db() as conn:
+        conn.execute("UPDATE negocios SET software_registrado=? WHERE rut=?", (nombre.strip(), rut))
+
+
+def software_registrado(rut: str) -> Optional[str]:
+    """Nombre de software que el motor registró en el SII para `rut`, o None."""
+    with database.get_db() as conn:
+        row = conn.execute("SELECT software_registrado FROM negocios WHERE rut=? "
+                           "AND software_registrado IS NOT NULL LIMIT 1", (rut,)).fetchone()
+    return row[0] if row else None

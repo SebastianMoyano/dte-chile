@@ -56,6 +56,41 @@ class Diagnostico:
         return asdict(self)
 
 
+def es_nuestro_software(nombre: str, registrado: Optional[str] = None) -> Optional[bool]:
+    """¿El software que el SII muestra es este motor?
+
+    Compara primero con `registrado`: el nombre que el motor mismo usó al postular/inscribir
+    a esa empresa (lo guarda `core/postulacion.py` en `negocios.software_registrado`). Si no
+    hay, cae a `NOMBRE_SOFTWARE` de la config. `None` = no hay con qué comparar."""
+    from core.config import settings
+    nuestros = [registrado.strip().lower()] if registrado and registrado.strip() else []
+    nuestros += [n.strip().lower() for n in (settings.nombre_software or "").split(",") if n.strip()]
+    if not nuestros or not nombre:
+        return None
+    n = nombre.lower()
+    return any(x in n or n in x for x in nuestros)
+
+
+def clasificar_software(sw_prod: dict, sw_cert: dict, registrado: Optional[str] = None) -> tuple:
+    """`(estado, etiqueta)` de cómo emite una empresa hoy, según el registro del SII.
+
+    Estados: `emitiendo` (software propio en producción: este motor, o cualquiera si no hay
+    `NOMBRE_SOFTWARE`), `externo` (otro proveedor de facturación en producción), `certificado`,
+    `certificando`, `sin_propio` (emite por el gratuito del SII). Un facturador externo se
+    detecta por el "Nombre del Software" que el SII muestra en producción.
+    """
+    sw = (sw_prod.get("software") or "").strip()
+    if sw_prod.get("propio"):
+        if es_nuestro_software(sw, registrado) is False:
+            return "externo", f"Emite con «{sw}» (otro proveedor)"
+        return "emitiendo", f"Emite en producción con «{sw}»" if sw else "Emitiendo en producción con software propio"
+    if sw_cert.get("propio") and sw_cert.get("certificado"):
+        return "certificado", "Software propio certificado — falta activarlo en producción"
+    if sw_cert.get("propio"):
+        return "certificando", "En certificación del software propio"
+    return "sin_propio", "Emite por el gratuito del SII"
+
+
 def diagnosticar(portal: PortalSII, rut: str, nombre_sistema: str = "tu software propio") -> Diagnostico:
     """Corre la batería de lecturas del SII y arma el diagnóstico + plan.
 
@@ -89,14 +124,18 @@ def diagnosticar(portal: PortalSII, rut: str, nombre_sistema: str = "tu software
             "Por eso proveedores como Haulmer piden 'factura' aunque solo emitas exenta.")
 
     # ---- Estado global (misma lógica que el panel de negocios) ----
-    if sw_prod.get("propio"):
-        estado, etiqueta = "emitiendo", "Emitiendo en producción con software propio"
-    elif sw_cert.get("propio") and sw_cert.get("certificado"):
-        estado, etiqueta = "certificado", "Software propio certificado — falta activarlo en producción"
-    elif sw_cert.get("propio"):
-        estado, etiqueta = "certificando", "En certificación del software propio"
-    else:
-        estado, etiqueta = "sin_propio", "Aún sin software propio registrado"
+    try:
+        from core import negocios as _neg
+        registrado = _neg.software_registrado(rut)
+    except Exception:  # noqa: BLE001 — sin tabla de negocios seguimos con la config
+        registrado = None
+    estado, etiqueta = clasificar_software(sw_prod, sw_cert, registrado)
+    if estado == "externo":
+        notas.append(
+            f"Esta empresa emite hoy con «{sw_actual}», otro proveedor de facturación. Mientras "
+            f"siga así, NO emitas facturas con {nombre_sistema}: los folios del CAF los administra "
+            "ese proveedor y se chocarían. Para migrar hay que cambiar el software registrado en el "
+            "SII y traspasar (o anular) los folios que le queden.")
 
     # ---- Chequeos (solo lectura) ----
     chequeos = [

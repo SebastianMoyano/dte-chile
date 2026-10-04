@@ -94,8 +94,11 @@ def registrar_manejo_errores(app: FastAPI) -> None:
 
     @app.exception_handler(RequestValidationError)
     async def _validacion(request: Request, exc: RequestValidationError):
+        # Sin `input`: el body puede traer credenciales (p.ej. clave_tributaria del canal MIPYME)
+        # y no deben volver en la respuesta ni quedar en logs de proxy/navegador.
+        errores = [{k: v for k, v in e.items() if k != "input"} for e in exc.errors()]
         return _json_error(422, "validacion", "Los datos enviados no son válidos.",
-                           request=request, detalle={"errores": exc.errors()})
+                           request=request, detalle={"errores": errores})
 
     @app.exception_handler(StarletteHTTPException)
     async def _http(request: Request, exc: StarletteHTTPException):

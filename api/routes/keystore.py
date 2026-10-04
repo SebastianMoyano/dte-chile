@@ -179,15 +179,9 @@ async def estado_negocio(
                    for d in (emp.documentos if emp else [])
                    if not d.desautorizado_desde]
 
-    # Estado de migración a software propio.
-    if sw_prod["propio"]:
-        estado, etiqueta = "emitiendo", "Emitiendo con software propio en producción"
-    elif sw_cert["propio"] and sw_cert["certificado"]:
-        estado, etiqueta = "certificado", "Software propio certificado — falta activarlo en producción"
-    elif sw_cert["propio"]:
-        estado, etiqueta = "certificando", "En certificación del software propio"
-    else:
-        estado, etiqueta = "sin_propio", "Aún sin software propio registrado"
+    # Estado de migración a software propio (misma lógica que el asistente).
+    from core.onboarding import clasificar_software
+    estado, etiqueta = clasificar_software(sw_prod, sw_cert, negocios.software_registrado(neg["rut"]))
 
     # Próximos pasos concretos según el punto de la migración.
     sw_a = sw_prod["software"] or "el sistema del SII"
@@ -195,6 +189,23 @@ async def estado_negocio(
     pasos = []
     if estado == "emitiendo":
         pasos = [{"titulo": "Todo listo", "detalle": f"Ya emites en producción con {sw_b}. No hay pasos pendientes.", "hecho": True}]
+    elif estado == "externo":
+        pasos = [
+            {"titulo": "Emite con otro proveedor", "urgente": True,
+             "detalle": f"El SII tiene registrado «{sw_a}» como software de esta empresa. No emitas facturas con este motor mientras siga así: los folios del CAF los administra ese proveedor y se chocarían. La autorización es de la empresa, así que cambiarse NO exige volver a certificar."},
+            {"titulo": "1. Sacar el historial del proveedor",
+             "detalle": "PDF y XML de todo lo emitido y recibido, antes de cortar el contrato: después ese acceso desaparece y no se puede importar desde aquí."},
+            {"titulo": "2. Cerrar los folios que le quedan",
+             "detalle": "Pedirle el último folio usado por tipo y los CAF sin usar (se cargan aquí), o anular esos rangos en el SII con la firma de quien los timbró. Folios sin usar acumulados bloquean el timbraje nuevo."},
+            {"titulo": "3. Fecha de corte",
+             "detalle": "Un cierre de mes: hasta ese día emite el proveedor, desde el siguiente este motor. La numeración sigue igual (es por empresa, no por software)."},
+            {"titulo": "4. Timbrar folios con este motor",
+             "detalle": "Con el certificado cargado, pedir los rangos por tipo desde «Folios»."},
+            {"titulo": "5. Actualizar datos en el SII",
+             "detalle": "Cambiar el nombre del software y, sobre todo, la casilla de intercambio (adonde llegan las facturas de tus proveedores), en «Actualización de datos del contribuyente». Todavía es manual."},
+            {"titulo": "6. Primer documento",
+             "detalle": "Emitir uno real y comprobar el veredicto del SII (aceptado), no solo el estado del envío."},
+        ]
     elif estado == "certificando":
         bloq = [t for t in (33, 61) if sit_cert.get(t, {}).get("bloqueado")]
         if bloq:

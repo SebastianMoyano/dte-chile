@@ -432,6 +432,11 @@ def inscribir_boletas(rut: str, cert_id: int, usuario_rut: str, razon_social: st
                     codigo_sii="postulacion_no_confirmada")
             plan.update(dry_run=False, grabado=True, url_resultado=page.url,
                         resultado=cuerpo[:400])
+            try:  # el motor recuerda con qué nombre se registró (detección de proveedor externo)
+                from core import negocios as _neg
+                _neg.registrar_software(rut, nombre_software)
+            except Exception:  # noqa: BLE001 — es memoria auxiliar, no debe tumbar el trámite
+                pass
             return plan
         finally:
             browser.close()

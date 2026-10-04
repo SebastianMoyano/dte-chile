@@ -64,6 +64,26 @@ RCV_METODOS = {
 RCV_ENDPOINTS = {op: RCV_BASE + metodo for op, metodo in RCV_METODOS.items()}
 RCV_ENDPOINTS["resumen"] = RCV_BASE + "getResumen"
 
+# Contrato REAL capturado del navegador (extensión Captura SII, 2026-10-04, Auxin):
+#   - el detalle "Export" exige `accionRecaptcha` + `tokenRecaptcha`; el cliente web manda el
+#     placeholder "t-o-k-e-n-web" (no hay reCAPTCHA real) y `estadoContab` VACÍO;
+#   - `metaData.conversationId` = cookie CSESSIONID/TOKEN de la sesión; `transactionId` = uuid;
+#   - la respuesta del Export es `{"data": ["cabecera;con;columnas", "fila;..."]}` (CSV con ';'),
+#     NO una lista de dicts. getResumen sí devuelve dicts (rsmn*).
+RCV_TOKEN_RECAPTCHA = "t-o-k-e-n-web"
+RCV_ACCION_RECAPTCHA = {"VENTA": "RCV_DDETV", "COMPRA": "RCV_DDETC"}   # ambas verificadas en vivo 2026-10-04
+# estadoContab del Export: VENTA lo manda vacío; COMPRA exige "REGISTRO" (vacío → codError cdvc17.05.03).
+RCV_ESTADO_EXPORT = {"VENTA": "", "COMPRA": "REGISTRO"}
+
+# Columnas del CSV del Export (ventas, verificado) → campos del DocumentoRCV.
+_COLUMNAS_CSV = {
+    "tipo doc": "tipo_dte", "folio": "folio", "fecha docto": "fecha_doc", "rut cliente": "rut_contraparte",
+    "rut proveedor": "rut_contraparte", "razon social": "razon_social", "monto exento": "monto_exento",
+    "monto neto": "monto_neto", "monto iva": "monto_iva", "monto iva recuperable": "monto_iva",
+    "monto iva no recuperable": "monto_iva_no_rec", "monto iva no rec": "monto_iva_no_rec", "monto iva no rec.": "monto_iva_no_rec",
+    "monto iva uso comun": "monto_iva_uso_comun", "monto total": "monto_total",
+}
+
 
 def _rcv_namespace(metodo: str) -> str:
     """El namespace del metaData debe coincidir con el método invocado."""
@@ -260,6 +280,9 @@ def normalizar_detalle(
         filas = _get(respuesta_json, "data", "detalle", "detalles", default=[])
     if not isinstance(filas, list):
         return []
+    # Forma real del Export (2026-10-04): lista de strings CSV con ';', la primera es la cabecera.
+    if filas and all(isinstance(x, str) for x in filas):
+        filas = _csv_a_dicts(filas)
 
     docs: list[DocumentoRCV] = []
     for f in filas:
@@ -290,6 +313,33 @@ def normalizar_detalle(
             )
         )
     return docs
+
+
+def _csv_a_dicts(lineas: list[str]) -> list[dict]:
+    """Convierte las líneas CSV del Export a dicts con las llaves que entiende `normalizar_detalle`."""
+    if not lineas:
+        return []
+    cab = [c.strip().lower() for c in lineas[0].split(";")]
+    out = []
+    for ln in lineas[1:]:
+        if not ln.strip():
+            continue
+        vals = ln.split(";")
+        fila = {}
+        for i, col in enumerate(cab):
+            campo = _COLUMNAS_CSV.get(col) or next((v for k, v in _COLUMNAS_CSV.items() if col.startswith(k) and len(k) > 9), None)
+            # La primera columna que calza gana: "Monto Neto Activo Fijo" (vacía) no debe pisar "Monto Neto".
+            if campo and i < len(vals) and campo not in fila:
+                fila[campo] = vals[i].strip()
+        if not fila.get("folio"):
+            continue
+        rut = fila.get("rut_contraparte", "")
+        n, _, dv = rut.partition("-")
+        out.append({"tipoDoc": fila.get("tipo_dte"), "folio": fila.get("folio"), "fecha": fila.get("fecha_doc"),
+                    "rut": n, "dv": dv, "rznSoc": fila.get("razon_social", ""), "mntExe": fila.get("monto_exento"),
+                    "mntNeto": fila.get("monto_neto"), "mntIVA": fila.get("monto_iva"), "mntIVANoRec": fila.get("monto_iva_no_rec"),
+                    "mntIVAUsoComun": fila.get("monto_iva_uso_comun"), "mntTotal": fila.get("monto_total")})
+    return out
 
 
 def _normalizar_periodo(periodo: str) -> str:
@@ -327,7 +377,8 @@ class RegistroCompraVenta:
     """
 
     def __init__(self, cliente_sii: Optional[ClienteSII] = None,
-                 token: Optional[str] = None, timeout: float = 60.0):
+                 token: Optional[str] = None, timeout: float = 60.0,
+                 cookies: Optional[dict] = None):
         """Se puede construir con un `ClienteSII` (obtiene el token por semilla→token)
         o directamente con un `token` ya obtenido — p.ej. el de la sesión por
         certificado de `PortalSII` (cookie TOKEN), para unificar la auth con la
@@ -335,8 +386,13 @@ class RegistroCompraVenta:
         self.cliente = cliente_sii
         self._token = token
         self.timeout = timeout
+        # Sesión por clave tributaria (la del navegador / `ClienteMipyme`): cookies .sii.cl.
+        # Es la forma VERIFICADA (2026-10-04); el token por semilla sigue como alternativa.
+        self._cookies = dict(cookies) if cookies else None
 
     def _obtener_token(self) -> str:
+        if self._cookies:
+            return self._cookies.get("TOKEN") or self._cookies.get("CSESSIONID") or ""
         if self._token:
             return self._token
         if self.cliente is None:
@@ -353,24 +409,29 @@ class RegistroCompraVenta:
             "Accept": "*/*",
         }
 
-    def _payload(self, rut_empresa: str, periodo: str, tipo_operacion: str) -> dict:
+    def _payload(self, rut_empresa: str, periodo: str, tipo_operacion: str,
+                 metodo: Optional[str] = None) -> dict:
+        """Body exacto del cliente web (capturado 2026-10-04)."""
         num, dv = separar_rut(rut_empresa)
-        metodo = RCV_METODOS[tipo_operacion]
+        metodo = metodo or RCV_METODOS[tipo_operacion]
+        conv = (self._cookies or {}).get("CSESSIONID") or (self._cookies or {}).get("TOKEN") or self._token or f"{num}-{dv}"
+        data = {
+            "rutEmisor": num,
+            "dvEmisor": dv,
+            "ptributario": _normalizar_periodo(periodo),
+            "estadoContab": "REGISTRO",
+            "operacion": tipo_operacion,  # COMPRA | VENTA
+        }
+        if metodo.endswith("Export"):
+            data.update({"codTipoDoc": 0, "estadoContab": RCV_ESTADO_EXPORT[tipo_operacion],
+                         "accionRecaptcha": RCV_ACCION_RECAPTCHA[tipo_operacion],
+                         "tokenRecaptcha": RCV_TOKEN_RECAPTCHA})
+        else:
+            data["busquedaInicial"] = True
         return {
-            "metaData": {
-                "namespace": _rcv_namespace(metodo),
-                "conversationId": f"{num}-{dv}",
-                "transactionId": "0",
-                "page": None,
-            },
-            "data": {
-                "rutEmisor": num,
-                "dvEmisor": dv,
-                "ptributario": _normalizar_periodo(periodo),
-                "estadoContab": "REGISTRO",
-                "codTipoDoc": 0,           # 0 = todos los tipos de documento
-                "operacion": tipo_operacion,  # COMPRA | VENTA
-            },
+            "metaData": {"namespace": _rcv_namespace(metodo), "conversationId": conv,
+                         "transactionId": str(uuid.uuid4()), "page": None},
+            "data": data,
         }
 
     def descargar_periodo(
@@ -385,17 +446,32 @@ class RegistroCompraVenta:
             periodo: 'YYYYMM' o 'YYYY-MM'.
             tipo_operacion: COMPRA o VENTA.
         """
-        token = self._obtener_token()
-        num, dv = separar_rut(rut_empresa)
-        url = RCV_ENDPOINTS[tipo_operacion]
-        payload = self._payload(rut_empresa, periodo, tipo_operacion)
+        data = self._llamar(RCV_ENDPOINTS[tipo_operacion], self._payload(rut_empresa, periodo, tipo_operacion), rut_empresa)
+        return normalizar_detalle(rut_empresa, tipo_operacion, periodo, data, origen="rcv")
 
+    def _llamar(self, url: str, payload: dict, rut_empresa: str) -> dict:
+        num, dv = separar_rut(rut_empresa)
         with httpx.Client(timeout=self.timeout, verify=True) as client:
-            resp = client.post(url, headers=self._headers(token, num, dv), json=payload)
+            if self._cookies:
+                headers = {"User-Agent": RCV_USER_AGENT, "Content-Type": "application/json",
+                           "Accept": "application/json, text/plain, */*", "Origin": "https://www4.sii.cl",
+                           "Referer": "https://www4.sii.cl/consdcvinternetui/"}
+                resp = client.post(url, headers=headers, cookies=self._cookies, json=payload)
+            else:
+                resp = client.post(url, headers=self._headers(self._obtener_token(), num, dv), json=payload)
             resp.raise_for_status()
             data = resp.json()
+        est = (data.get("respEstado") or {}) if isinstance(data, dict) else {}
+        if est.get("codRespuesta") not in (None, 0):
+            # codRespuesta 3 = período sin registro (visto en vivo en 202610 compras): no es error.
+            return {"data": [], "respEstado": est}
+        return data
 
-        return normalizar_detalle(rut_empresa, tipo_operacion, periodo, data, origen="rcv")
+    def descargar_resumen(self, rut_empresa: str, periodo: str, tipo_operacion: str) -> list[dict]:
+        """Totales por tipo de documento del período (getResumen): `rsmnTipoDocInteger`,
+        `rsmnTotDoc`, `rsmnMntExe/Neto/IVA/Total`. Verificado 2026-10-04."""
+        data = self._llamar(RCV_ENDPOINTS["resumen"], self._payload(rut_empresa, periodo, tipo_operacion, metodo="getResumen"), rut_empresa)
+        return list(data.get("data") or [])
 
     def sincronizar_periodo(
         self, rut_empresa: str, periodo: str

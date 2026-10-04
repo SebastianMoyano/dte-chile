@@ -61,7 +61,8 @@ def _generar_barcode_pdf417(datos_ted: str) -> Optional[Image]:
     """
     try:
         import pdf417gen
-        codes = pdf417gen.encode(datos_ted, security_level=2, columns=12)
+        # La guía de impresión del SII exige PDF417 con nivel de corrección de error 5.
+        codes = pdf417gen.encode(datos_ted, security_level=5, columns=12)
         image_data = pdf417gen.render_image(codes, scale=2, ratio=3)
 
         buf = io.BytesIO()
@@ -321,11 +322,10 @@ def generar_pdf_dte(
     story.append(HRFlowable(width="100%", thickness=0.5, color=colors.lightgrey))
     story.append(Spacer(1, 2 * mm))
 
-    timbre_header = Paragraph(
-        "Timbre Electrónico SII - Resolución N° 80 de 2014",
-        ParagraphStyle("Timbre", parent=styles["Normal"], fontSize=7, textColor=colors.grey, alignment=TA_CENTER),
+    estilo_timbre = ParagraphStyle(
+        "Timbre", parent=styles["Normal"], fontSize=7, textColor=colors.grey, alignment=TA_CENTER,
     )
-    story.append(timbre_header)
+    story.append(Paragraph("Timbre Electrónico SII", estilo_timbre))
 
     # Intentar generar el barcode PDF417
     if ted_xml:
@@ -334,6 +334,15 @@ def generar_pdf_dte(
             barcode_img.hAlign = "CENTER"
             story.append(Spacer(1, 2 * mm))
             story.append(barcode_img)
+
+    # Leyenda bajo el timbre: la resolución es POR EMISOR y por ambiente (L4).
+    from core.resolucion import resolucion_emisor
+    fecha_res, nro_res = resolucion_emisor(dte_input.emisor.rut)
+    story.append(Spacer(1, 2 * mm))
+    story.append(Paragraph(
+        f"Res. {nro_res} de {fecha_res[:4]} — Verifique documento: www.sii.cl",
+        estilo_timbre,
+    ))
 
     story.append(Spacer(1, 3 * mm))
 

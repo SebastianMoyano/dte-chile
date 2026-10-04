@@ -26,6 +26,7 @@ Código y comentarios **en español**.
 | Saber **con qué RUT/clave entrar a cada trámite del SII** (el rebote clásico) | [`IDENTIDADES-SII.md`](IDENTIDADES-SII.md) |
 | **Anular una boleta** (NC de anulación, portal MIPYME, trámites SII) | [`ANULAR-BOLETA.md`](ANULAR-BOLETA.md) |
 | **Modelo de emisión** (voucher vs boleta, tarjetas, código 48, convivir con un POS) | [`MODELO-EMISION.md`](MODELO-EMISION.md) |
+| **Emitir por el gratuito del SII** (empresa en MiPyme, NC de anulación por el portal) | [`MIPYME.md`](MIPYME.md) → `core/sii_mipyme.py` |
 
 ## El flujo, en una línea
 
@@ -42,17 +43,18 @@ Punto de entrada único que rutea por tipo: **`core/orchestrator.py::emitir_docu
 
 | Ruta | Qué hay |
 |---|---|
-| `core/` | **Toda la lógica de negocio.** 34 módulos + `__init__` → [`mapa/core.md`](mapa/core.md) |
+| `core/` | **Toda la lógica de negocio.** 35 módulos + `__init__` → [`mapa/core.md`](mapa/core.md) |
 | `core/xsd/` | Esquemas oficiales del SII (ISO-8859-1 → usa `grep -a`) |
-| `api/routes/` | 11 routers bajo `/api/v1` → [`mapa/interfaces.md`](mapa/interfaces.md) |
+| `api/routes/` | 12 routers bajo `/api/v1` (incl. `mipyme`) → [`mapa/interfaces.md`](mapa/interfaces.md) |
 | `main.py` | Composición: lifespan, gate de seguridad, scheduler del RVD |
 | `mcp_server.py` | 20 herramientas MCP (los certs **no** viajan por el protocolo) |
-| `static/` | 2 páginas: `onboarding.html` (wizard) y `certificados.html` (panel) |
+| `static/` | 4 páginas: `onboarding.html` (wizard), `certificados.html` (panel, incl. Portal SII), `documentos.html` (emitidos, con PDF/XML), `apikeys.html` |
 | Scripts en la raíz | Certificación, CAFs, F29, keystore → [`mapa/scripts-y-tests.md`](mapa/scripts-y-tests.md) |
 | `test_*.py` | **Scripts planos, NO pytest** |
 | `storage/` | Artefactos: `dtes/`, `pdfs/`, `cafs/`, `rvd/`, `resultados_*.json` |
 | `.claude/agents/` | Agentes especializados (abajo) |
 | `.claude/skills/` | `correos-sii`: lee los correos del SII y extrae el código de error |
+| `tools/captura-sii/` | Extensión de Chrome Grabar/Detener para capturar un flujo real del portal del SII (con claves tachadas) + comparador contra lo que manda el módulo |
 
 ## Agentes
 
@@ -75,6 +77,7 @@ uvicorn main:app --reload --port 8000         # API (/docs, /redoc)
 .venv/bin/python test_boleta.py               # boletas + RVD + scheduler + guardarraíles
 .venv/bin/python test_robustez.py             # errores, MCP, reintentos, hardening
 .venv/bin/python test_mvp.py                  # smoke de módulos core
+.venv/bin/python test_mipyme.py               # canal MIPYME en seco (no gasta folios)
 ```
 
 ## Estado del motor (2026-07-22)
@@ -86,9 +89,10 @@ uvicorn main:app --reload --port 8000         # API (/docs, /redoc)
 | Timbraje de folios | ✅ automatizado (T34/T39/T41 libres; **T33 y T61 bloqueados** por anti-acaparamiento) |
 | Emisión de boletas | ✅ **cableada y en producción** (`core/orchestrator_boleta.py` + `core/sii_boleta.py`, folio 1 aceptado con EPR) |
 | RVD diario | ✅ se envía por `DTEUpload`/SOAP (`core/rvd.py::enviar_rvd`); **no es obligatorio en producción** desde 2022-08-01 (Res. Ex. SII 53/2022) |
-| RCV / F29 | ⚠️ lógica lista · falta smoke-test (solo hay datos en producción) |
+| RCV / F29 | ✅ RCV **verificado en vivo** (2026-10-04, Auxin, sesión por clave: ventas y compras cuadran con la propuesta del SII) · F29: API de propuesta mapeada, envío (GWT-RPC) pendiente |
 | Certificación de facturas | 🔴 bloqueada: folios T33/T61 en anti-acaparamiento |
 | Certificación de boletas | ✅ **completa** — SOFTWARE DEMO SPA (78111111-2) autorizada en producción, emite boletas reales |
+| Canal MIPYME (gratuito por httpx) | ✅ lectura e importación verificadas desde el repo (Auxin, 46 docs) · factura verificada solo con el tool externo (T34 folio 59) · 🔴 NC por httpx desde el repo **falló** (2026-10-02, folio perdido; envío reescrito, sin re-correr) · `CADENAS_VERIFICADAS` vacía → emitir exige `--acepto-riesgo-folio` |
 
 ⚠️ `task.md` es un **registro histórico** con partes obsoletas. Cuando discrepe con el código,
 **manda el código**.

@@ -114,6 +114,10 @@ ninguno, y se afirmó en falso que *"ningún DTE fue aceptado jamás"*.
   un script no coinciden, **el script suele ser el que funciona** (está probado contra el SII).
 - **Si el usuario te contradice con evidencia suya, él suele tener razón**: investiga por qué,
   no defiendas tu hipótesis.
+- **Una cadena que gasta recursos no se corre en producción sin estar verificada desde este
+  repo.** Costó un folio (2026-10-02): la NC por el portal MIPYME se lanzó sin leer la
+  implementación que ya funcionaba en otro repo. El gate es `CADENAS_VERIFICADAS` en
+  `core/sii_mipyme.py` (+ `--acepto-riesgo-folio`); ver `LECCIONES-SII.md` → "Folio perdido".
 
 ## L11 — Documentación desactualizada es un bug, y arreglarla incluye el encabezado
 
@@ -145,3 +149,18 @@ así nadie la abrió.
 - Código, comentarios e identificadores **en español** (el dominio es chileno).
 - Reporta lo que pasó: si el SII rechazó, dilo con el código. **No adornes.** Este proyecto
   se quemó dos veces con conclusiones sobreafirmadas.
+
+## L14 — El repo es público: ningún dato de terceros entra en él
+
+El código se publica bajo AGPL-3.0 en GitHub. Lo que se commitea lo lee cualquiera.
+
+- En docs, tests, ejemplos y docstrings, **empresas y personas van siempre con RUT ficticios
+  válidos** (p.ej. `77.777.777-7`, `76.111.111-6`, `12.345.678-5`) y nombres de demostración.
+  Nunca el RUT de un cliente, un proveedor o una persona real, ni correos, ni direcciones.
+- Los casos reales (qué empresa, qué folio, qué monto, quién entró al SII) viven en la **memoria
+  del proyecto** y en `storage/` (PDF, XML, base, evidencias), que están fuera de git y así deben
+  seguir. `storage/` y `.env` están en `.gitignore`: **no se quitan de ahí**.
+- Antes de cada commit: `grep` de RUT y nombres reales sobre lo que va a entrar. Costó una
+  limpieza de 5 archivos (2026-10-04) escritos con datos del cliente de Auxin en los tests.
+- Las capturas de la extensión `tools/captura-sii` tachan claves y omiten cookies, pero traen
+  RUT y razones sociales: se guardan en `storage/`, no en el repo.

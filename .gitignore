@@ -41,3 +41,4 @@ __pycache__/
 
 # Nota: `.env.example` SÍ se versiona (es la plantilla sin secretos reales).
 !.env.example
+storage/mipyme_fallidos/

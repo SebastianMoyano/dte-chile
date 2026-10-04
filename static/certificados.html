@@ -132,6 +132,15 @@
   .doc-row+.doc-row{border-top:1px solid var(--line);}
   .doc-row .nm{color:var(--txt);}
   .doc-row.off .nm{color:var(--txt-faint);}
+  /* Una tarjeta con un panel abierto ocupa toda la fila: el contenido necesita ancho. */
+  .card.biz:has(.panel:not(.hidden)){grid-column:1/-1;}
+  .biz-op{white-space:nowrap;}
+  .panel .intro{font-size:.82rem;max-width:70ch;}
+  .docs-grid{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto auto;gap:.3rem 1rem;font-size:.8rem;align-items:center;margin-top:.4rem;}
+  .docs-grid>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .docs-grid>.h{font-size:.68rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--txt-faint);}
+  .docs-grid>.r{text-align:right;}
+  @media(max-width:560px){.docs-grid{grid-template-columns:auto minmax(0,1fr) auto;} .docs-grid>.oc{display:none;}}
   .estado-badge{display:inline-flex;align-items:center;gap:.4rem;padding:.35rem .7rem;border-radius:8px;font-size:.82rem;font-weight:600;margin:.2rem 0 .8rem;}
   .estado-badge.ok{background:var(--ok-soft);color:var(--ok);} .estado-badge.warn{background:var(--warn-soft);color:var(--warn);}
   .estado-badge.mut{background:var(--surface-2);color:var(--txt-mut);}
@@ -211,6 +220,8 @@
     </div>
     <span class="spacer"></span>
     <a class="navlink" href="/onboarding" title="Asistente de puesta en marcha">Asistente</a>
+    <a class="navlink" href="/documentos" title="Boletas y facturas emitidas, con PDF y XML">Documentos</a>
+    <a class="navlink" href="/apikeys" title="Llaves para integraciones y agentes">API keys</a>
     <span id="who" class="who hidden"></span>
     <button class="iconbtn" id="themeBtn" title="Cambiar tema" onclick="toggleTheme()" aria-label="Cambiar tema"></button>
     <button class="iconbtn hidden" id="logoutBtn" title="Cerrar sesión" onclick="logout()" aria-label="Cerrar sesión">
@@ -312,6 +323,7 @@
 
 <script>
 const API="/api/v1";
+const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const tok=()=>localStorage.getItem("dte_token");
 const hdr=()=>({Authorization:"Bearer "+tok()});
 let certsCache=[], negsCache=[], preview=null;
@@ -463,6 +475,7 @@ async function cargarNegs(){
           <button class="btn-ghost btn-sm" onclick="verEstado(${n.id},this)">Ver estado</button>
           <button class="btn-ghost btn-sm" onclick="verTimbraje(${n.id},this)">Folios</button>
           <button class="btn-ghost btn-sm" onclick="verF29(${n.id},this)">F29</button>
+          <button class="btn-ghost btn-sm" onclick="verPortal(${n.id},this)" title="Sistema de facturación gratuito del SII: comprobar la sesión e importar lo emitido">Portal SII</button>
           <button class="link-danger" onclick="borrarNeg(${n.id})">Quitar</button>
         </span>
       </div>
@@ -473,12 +486,13 @@ async function cargarNegs(){
   negsCache.filter(n=>!n.estado && n.cert_id).forEach(n=>refrescarBadge(n.id));
 }
 
-const _EST={emitiendo:['ok','Software propio activo'],certificado:['warn','Certificado · falta activar'],
-            certificando:['warn','En certificación'],sin_propio:['mut','Sin software propio']};
+// emitiendo y externo usan la etiqueta del servidor (trae el nombre del software).
+const _EST={emitiendo:['ok',null],externo:['warn',null],certificado:['warn','Certificado · falta activar'],
+            certificando:['warn','En certificación'],sin_propio:['mut','Emite por el gratuito del SII']};
 function estadoBadge(n){
   if(!n.cert_id) return `<span class="pill mut">Sin certificado asociado</span>`;
   if(!n.estado) return `<span id="mb-${n.id}" class="pill mut"><span class="spin" style="width:10px;height:10px"></span> Verificando en el SII…</span>`;
-  const [cls,txt]=_EST[n.estado]||['mut',n.estado_etiqueta||'—'];
+  const [cls,t0]=_EST[n.estado]||['mut',null]; const txt=t0||n.estado_etiqueta||'—';
   return `<span id="mb-${n.id}" class="pill ${cls}"><span class="dot"></span>${txt}</span>`;
 }
 async function refrescarBadge(negId){
@@ -486,7 +500,7 @@ async function refrescarBadge(negId){
     const r=await fetch(`${API}/keystore/negocios/${negId}/estado`,{headers:hdr()});
     if(!r.ok)return;
     const d=await r.json();
-    const [cls,txt]=_EST[d.estado]||['mut',d.etiqueta];
+    const [cls,t0]=_EST[d.estado]||['mut',null]; const txt=t0||d.etiqueta;
     const el=document.getElementById(`mb-${negId}`);
     if(el){el.className=`pill ${cls}`;el.innerHTML=`<span class="dot"></span>${txt}`;}
   }catch(e){}
@@ -578,9 +592,64 @@ function exportarF29(negId){
   document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
 }
 
+// ---- Canal MIPYME: entrar al gratuito del SII y leer (sin emitir, sin gastar folio) ----
+function verPortal(negId,btn){
+  const box=document.getElementById(`panel-${negId}`);
+  if(box.dataset.view==='portal' && !box.classList.contains("hidden")){box.classList.add("hidden");box.dataset.view="";return;}
+  const n=negsCache.find(x=>x.id===negId); const cert=certsCache.find(c=>c.id===n.cert_id);
+  box.innerHTML=`<div class="ct">Sistema de facturación gratuito del SII</div>
+    <p class="muted intro" style="margin:.2rem 0 .6rem">Trae a este motor las facturas que esta empresa emitió por el portal del SII, con su PDF, para verlas en <a href="/documentos?emisor=${encodeURIComponent(n.rut)}">Documentos</a>. Se entra con la <b>clave tributaria</b> (la de sii.cl, no la del certificado). Es solo lectura: no emite nada, no gasta folio, y la clave no se guarda. Se puede repetir cuando quieras: solo agrega lo nuevo.</p>
+    <div class="fields">
+      <div><label for="pu-${negId}">RUT de quien entra al SII</label><input id="pu-${negId}" class="mono" value="${esc(cert?cert.rut:"")}" placeholder="12345678-9"></div>
+      <div><label for="pc-${negId}">Clave tributaria</label><input id="pc-${negId}" type="password" autocomplete="off"></div>
+      <div><label for="pk-${negId}">Clave del certificado <span class="muted">(opcional: trae también el XML)</span></label><input id="pk-${negId}" type="password" autocomplete="off"></div>
+    </div>
+    <div style="display:flex;gap:.7rem;flex-wrap:wrap;margin-top:.6rem;align-items:center">
+      <button class="btn-primary btn-sm" onclick="sincronizarPortal(${negId},this)">Sincronizar con el SII</button>
+      <label class="muted" style="font-size:.75rem;display:inline-flex;align-items:center;gap:.35rem" title="Vacío = todo el historial">solo desde <input type="date" id="pd-${negId}" style="font-size:.75rem;width:auto;margin:0"></label>
+    </div>
+    <div id="pr-${negId}" style="margin-top:.6rem"></div>`;
+  box.dataset.view='portal';box.classList.remove("hidden");
+}
+async function sincronizarPortal(negId,btn){
+  const n=negsCache.find(x=>x.id===negId);
+  const rut_usuario=document.getElementById(`pu-${negId}`).value.trim();
+  const clave=document.getElementById(`pc-${negId}`).value;
+  const desde=document.getElementById(`pd-${negId}`).value||"";
+  const claveCert=document.getElementById(`pk-${negId}`).value||"";
+  const out=document.getElementById(`pr-${negId}`);
+  if(!rut_usuario||!clave){toast("Faltan el RUT o la clave",true);return;}
+  const orig=btn.textContent;btn.innerHTML='<span class="spin"></span>';btn.disabled=true;
+  out.innerHTML='<div class="muted">Entrando al SII, leyendo el historial y bajando los PDF nuevos… puede tardar (un documento por segundo).</div>';
+  try{
+    const r=await fetch(`${API}/mipyme/sincronizar`,{method:"POST",headers:{...hdr(),"Content-Type":"application/json"},
+      body:JSON.stringify({rut_usuario,rut_empresa:n.rut,clave_tributaria:clave,clave_certificado:claveCert,con_xml:!!claveCert,desde,hasta:"",con_pdf:true})});
+    document.getElementById(`pc-${negId}`).value=""; document.getElementById(`pk-${negId}`).value="";
+    const d=await r.json();
+    if(!r.ok){const e=d.error||d; const msg=typeof(e.mensaje||e.detail)==="string"?(e.mensaje||e.detail):"El SII no respondió"; out.innerHTML=`<div class="estado-badge warn"><span class="dot"></span>${esc(msg)}</div>`;return;}
+    toast(d.importados?`${d.importados} documentos nuevos importados`:"Sin novedades: ya estaba todo");
+    const em=d.emisor_segun_portal, f=d.form;
+    const TN={33:'Factura',34:'Fact. exenta',52:'Guía',56:'N. débito',61:'N. crédito'};
+    const filas=`<div class="docs-grid"><span class="h">Documento</span><span class="h oc">Fecha</span><span class="h">Receptor</span><span class="h r">Monto</span><span class="h oc">Estado</span>`
+      + d.documentos.map(x=>`<span>${esc(TN[x.tipo]||"T"+x.tipo)} <b class="mono">${esc(x.folio)}</b></span><span class="muted oc">${esc(x.fecha)}</span><span title="${esc(x.receptor||"")}">${esc(x.receptor||"—")}</span><span class="mono r">${fmtCLP(x.monto)}</span><span class="muted oc" title="${esc(x.estado||"")}">${esc((x.estado||"").replace("Documento ",""))}</span>`).join('')
+      + `</div>`;
+    const li=(arr)=>arr.length?arr.map(e=>`<div class="doc-row"><span class="nm">${esc(e.texto||"(sin texto)")}</span><span class="muted mono" style="font-size:.7rem;max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(e.href)}</span></div>`).join(''):'<div class="muted">—</div>';
+    out.innerHTML=`<div class="estado-badge ok"><span class="dot"></span>Sincronizado · ${d.listados} en el SII · ${d.importados} nuevos · ${d.pdf_ok} PDF descargados${d.pdf_falta?` · ${d.pdf_falta} sin PDF`:''}${d.xml_ok?` · ${d.xml_ok} XML`:''}${d.xml_falta?` · ${d.xml_falta} sin XML`:''}${d.sin_tipo?` · ${d.sin_tipo} con tipo no reconocido`:''}</div>
+      <div class="kv muted">Emisor según el SII: <b>${esc(em.razon_social||"—")}</b> · ${esc(em.giro||"")} · ${esc(em.comuna||"")}</div>
+      ${f.campos_nuevos.length?`<div class="kv"><span class="pill warn"><span class="dot"></span>El SII cambió su formulario (${esc(f.campos_nuevos.join(", "))}): avisar antes de emitir por este canal</span></div>`:''}
+      <div class="muted" style="margin:.3rem 0">Ya están en <a href="/documentos?emisor=${encodeURIComponent(n.rut)}">Documentos</a>, filtrados por esta empresa, con su PDF.</div>
+      <details open><summary class="muted" style="cursor:pointer">Documentos en el SII (${d.documentos.length})</summary>${d.documentos.length?filas:'<div class="muted">—</div>'}</details>
+      <details style="margin-top:.5rem"><summary class="muted" style="cursor:pointer;font-size:.78rem">Detalles técnicos (formulario y enlaces del portal)</summary>
+        <div class="muted" style="font-size:.78rem">Formulario: ${f.campos_en_html} campos en el HTML · ${f.campos_del_schema} en el envío</div>
+        ${li(d.enlaces)}
+        <div class="muted mono" style="font-size:.7rem;white-space:pre-wrap">${esc(JSON.stringify(d.menu||{},null,1))}</div></details>`;
+  }catch(e){out.innerHTML=`<div class="estado-badge warn"><span class="dot"></span>No se pudo hablar con el servidor</div>`;}
+  finally{btn.textContent=orig;btn.disabled=false;}
+}
+
 function verEstado(negId,btn){
   _panel(negId,btn,"estado",`${API}/keystore/negocios/${negId}/estado`, d=>{
-    const cls = d.estado==='emitiendo'?'ok':(d.estado==='sin_propio'?'mut':'warn');
+    const cls = d.estado==='emitiendo'?'ok':(d.estado==='sin_propio'?'mut':'warn');  // externo → warn
     const p=d.produccion, cert=d.certificacion;
     const chips = p.autorizado_a_emitir.map(t=>`<span class="type-chip">${t.nombre.split(' ').slice(0,2).join(' ')} <span class="d">${t.tipo}·${t.desde}</span></span>`).join('');
     return `<div class="estado-badge ${cls}"><span class="dot"></span>${d.etiqueta}</div>

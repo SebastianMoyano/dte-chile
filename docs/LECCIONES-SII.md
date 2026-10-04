@@ -24,6 +24,8 @@
 | ¿El RVD/RCOF es obligatorio? | [El RVD ya no es obligatorio](#boletas-infraestructura-aparte) |
 | `Estado=10 Error Interno` al pedir token | [Mensajes engañosos](#mensajes-engañosos-del-sii) |
 | `REF-3-750 DTE referenciado no recibido` | [Folios y CAF](#folios-y-caf) |
+| `HED-2-220`, `REF-2-780`, `Clave no corresponde`, `Request Rejected` (portal MIPYME) | [Portal MIPYME por httpx](#portal-mipyme-facturación-gratuita-por-httpx) |
+| `mipeSendXML` rechazado por el WAF tras firmar / "el folio ya está gastado" | [Folio perdido por una cadena no verificada](#portal-mipyme-facturación-gratuita-por-httpx) |
 
 ---
 
@@ -394,6 +396,132 @@ Implementado en `core/rvd.py::enviar_rvd` (recibe un `ClienteSII`, no un `Client
 **Método para descubrir rutas**: en **pangal**, ruta inexistente → `404`; ruta real sin
 token → `400 "No trae TOKEN"`. ⚠️ **`apicert` NO sirve para esto**: responde `500` a
 cualquier ruta, incluso inventada.
+
+---
+
+## Portal MIPYME (facturación gratuita) por httpx
+
+> Canal **distinto** al motor: el SII pone el folio, el CAF y la **firma central**. Sirve para
+> empresas que están en el gratuito para facturas (el motor no puede timbrarles CAF) y para la
+> **NC de anulación de boletas** que [`ANULAR-BOLETA.md`](ANULAR-BOLETA.md) manda hacer por el
+> portal. **Solo existe en producción**: cada corrida es un documento real y **gasta un folio**.
+> Verificado 2026-09 **con httpx puro, sin navegador, por el tool externo del repo Auxin**: factura
+> exenta (T34) folio 59 sin reparos; la NC 56 (que anuló la factura 57) salió de ese mismo repo.
+> **Desde este repo**: lectura e importación verificadas (46 documentos); la NC por httpx **FALLÓ**
+> el 2026-10-02 (ver "Folio perdido" abajo); ninguna factura emitida aún.
+> Implementado en `core/sii_mipyme.py` (guía: [`MIPYME.md`](MIPYME.md), test en seco: `test_mipyme.py`).
+
+**La cadena** (`www1.sii.cl/cgi-bin/Portal001/`, CGI legacy):
+
+```
+login  POST zeusr.sii.cl/cgi_AUT2000/CAutInicio.cgi   (rut, dv, rutcntr, clave, referencia, 411)
+       → cookies NETSCAPE_LIVEWIRE.*  (~2 h, máx ~10 sesiones concurrentes)
+1. mipeSelEmpresa.cgi         POST RUT_EMP
+2. mipeGenFacEx?IGUAL=ULT_FAC&PTDC_CODIGO=34   → form pre-llenado "igual al último"
+3. mipeGenXMLFirma.cgi        243 params → XML con FOLIO + CAF   ⚠️ AQUÍ se consume el folio
+4. postFirmaDigital.cgi       clave del CERTIFICADO + XML → XML con <Signature>
+5. mipeSendXML.cgi            txtPlainText (sin firma) + txtSignText (CON firma) + form + FOLIO
+6. mipeDisplayPDF.cgi?DHDR_CODIGO=<id>
+NC de anulación: mipeDisplayPreView.cgi?EHDR_CODIGO=<DHDR>&TIPO_NOTA=61 y la misma cadena con
+PTDC_CODIGO=61, TPO_DOC_REF=34, FOLIO_REF, CODIGO_REF=1.
+```
+
+**Dos claves distintas, y no son intercambiables:**
+
+| paso | clave | qué es |
+|---|---|---|
+| login (`CAutInicio`) | clave tributaria | la de entrar a Mi SII |
+| firma central (`postFirmaDigital`) | clave del **certificado** | la del `.p12` que el SII guarda centralmente |
+
+Usar la tributaria al firmar da `Clave no corresponde`. Ambas son **credenciales** (L6): keystore
+cifrado, nunca en logs.
+
+| Lo que dijo | Lo que era |
+|---|---|
+| `Request Rejected` + support ID (WAF F5) | **NO es fingerprinting** (se probó `curl_cffi` con TLS de Chrome: mismo rechazo). Era un **body malformado**: `RUT_EMP=77777777` sin el DV (`77777777-7`, 2 bytes). El F5 ASM es **por reglas** (formato, tamaño, caracteres de cada parámetro), no conductual: con requests bien formados **httpx puro pasa, sin navegador** — verificado para login, empresa, form, historial, PDF y la cadena de factura. ⚠️ Para `mipeSendXML` de una NOTA el WAF rechazó un envío de este repo (2026-10-02) por una causa aún no vista: la regla "es por reglas" sigue en pie, pero cuál regla, no. Sumaban sospecha menor: `Accept-Encoding` sin `br, zstd`, POST sin `Cache-Control: max-age=0`, headers con valor `None`. |
+| `requerimiento no bien recepcionado` en `GenXMLFirma` | Payload incompleto (48 de 243 campos). El SII espera **el form entero**: GET fresco, parsear todos los inputs, sustituir solo lo tuyo. |
+| **`HED-2-220`** (reparo) | Se sustituyeron 2 de los **5** montos (`PRC/SUBT/SUBTOTAL/MNT_NETO/MNT_TOTAL`) → ítem ≠ total. Sustituir los cinco siempre. |
+| **`REF-2-780`** (reparo en la NC) | Heredado del documento referenciado inconsistente. No es recursivo: la NC de un doc limpio sale limpia. |
+| WAF rechaza `mipeSendXML` (~11 KB) | `txtSignText` iba **sin** `<Signature>` (bug de strip). Debe llevar el XML firmado completo. |
+| `%2520` en el body | Doble URL-encoding: XML crudo al dict, sin `quote()` previo. |
+| Folios "perdidos" | Cada prueba que llega a `GenXMLFirma` gasta uno aunque no envíe. Modo dry-run = parar **antes** del paso 3. |
+
+**El método que lo destrabó** (reusable para cualquier CGI del SII — y lo que NO se hizo con
+las 11 variantes de firma del `DTE-3-505`):
+
+1. Capturar con **mitmproxy** una corrida real del navegador: esa es la referencia, byte a byte.
+2. Replicar en httpx **el request más simple** de la cadena.
+3. **Diff byte a byte** contra la referencia: headers, cookies, body. Corregir **solo** las
+   diferencias reales, no adivinar.
+4. Iterar con un paso que **no cueste nada** (el GET del form), nunca con el que gasta folio.
+5. Recién con 200 limpio, ejecutar el paso que consume recursos.
+
+Regla derivada de L12: `Request Rejected` "olía" a antibot y era un bug de 2 bytes. **Verifica la
+causa, no la etiqueta.** En el motor el RUT viaja siempre completo (`12345678-9`); no lo partas en
+dos variables de entorno.
+
+**Folio perdido por correr una cadena no verificada (2026-10-02).** La NC de anulación por httpx
+se lanzó en producción sin haberse corrido nunca desde este repo: `GenXMLFirma` asignó la NC
+folio 57, la firma central funcionó y el **WAF rechazó el envío** (`Request Rejected`, 246 bytes,
+el mismo tamaño que devuelve a cualquier URL inexistente). Folio gastado, sin documento. Se
+descartaron con cuerpos falsos contra `mipeSendXML` (el SII los rechaza sin crear nada, no gastan
+folio): la descripción larga, el `°`, la clave del certificado. La causa quedó sin ver porque no se
+guardó la respuesta. **Lo que faltó fue leer antes la implementación que SÍ emitió la NC 56**
+(repo Auxin, `app/sii/service_http.py`): manda a `mipeSendXML` los campos del `frmSign` que
+devuelve la página de firma, con la cookie `usa_firma_central` y el referer de `mipeGenXMLFirma`,
+no una reconstrucción del schema. Es L10 otra vez. Gates agregados: `CADENAS_VERIFICADAS` (emitir
+un tipo no verificado exige `aceptar_riesgo_folio`), evidencia saneada en `storage/mipyme_fallidos/`
+ante cualquier fallo, y envío de notas con el `frmSign` real.
+
+**Segundo intento (2026-10-02, NC folio 58, también perdido).** Con el envío por `frmSign` el WAF
+ya NO rechazó: la app del SII respondió "Error al contribuyente" (1017 B, alert "Por el momento no
+se puede responder a sus requerimientos", código 02.35.209.45.930.13). El XML firmado era correcto
+(T61 folio 58, MntTotal 3.068.005, FolioRef 57, CodRef 1). El frmSign real de una nota trae 249
+campos, en otro orden que el schema, con `EFXP_RUT_RUT_EMP` y SIN `ES_BORR`/`INDICA`/`esCRED_EC`.
+Lo que falta para resolverlo es la **página de firma** (`mipeGenXMLFirma`) con su JS inline, que
+arma el envío real: desde ahora el módulo la guarda siempre (`respuesta_genxmlfirma.html`) junto a
+la respuesta cruda de `postFirmaDigital`. Un GET a `mipeGenXMLFirma.cgi` sin cuerpo NO recupera el
+documento pendiente ("requerimiento no bien recepcionado"). **No gastar un tercer folio sin ese
+artefacto**: pedirle al usuario el código fuente de esa página al emitir una nota a mano.
+
+**Lo que hace de verdad el navegador al firmar (leído del JS del portal, `pluginsii-1.2.js` y la
+página de firma guardada en abril por una sonda, sin gastar folio):** el botón Firmar de la vista
+previa (`goSignDTE`) manda el form `PreViewDTE` directo a `mipeGenXMLFirma` (sin `mipePreView`,
+sin los botones). La página de firma trae `frmSign` (245 campos, `TMST_SIGN` ya puesto por el
+servidor, action con `?csrt=` inyectado por el script TSbd del F5) y `signXmlCompatible` hace:
+`dato = txtPlainText.replace("&","&amp;")` + comentario `<!-- O <platform> <browser> <ver> central
+VERSION: v20190409 -->` antes de `<Documento`; POST a `postFirmaDigital` (jQuery, UTF-8) con
+`nombre=certId` ("1" para firma central), `rut/dv` de las cookies `NETSCAPE_LIVEWIRE`, `clave`,
+`nodo=dte:DTE`, `nodoId=dte:Documento`, `nameSpace`; la respuesta cruda va a `txtSignText`;
+inserta hidden `nombre/clave/nodo/nodoId/nameSpace` **antes de `txtPlainText`** y hace
+`frmSign.submit()` (TMST_SIGN intacto). El módulo replica esto para notas desde 2026-10-02.
+**No todo lo del repo Auxin funcionó**: los intentos Python de abril acabaron en "Firma no
+reconocida"; el Apps Script (`_external_assets/gas-dashboard/Code.gs`) parsea `postFirmaDigital`
+como JSON `{statusCode,text}` y manda `frmSign` sin tocar `TMST_SIGN`.
+**Firma central VERIFICADA desde este repo (2026-10-04, flujo "Obtener Envío", sin folio).** Capturado
+con la extensión `tools/captura-sii` en un navegador real y replicado por `ClienteMipyme._firma_central`:
+POST `postFirmaDigital.cgi` como XHR (`Content-Type: application/x-www-form-urlencoded; charset=UTF-8`,
+`X-Requested-With: XMLHttpRequest`, `Accept: text/plain, */*; q=0.01`) con `nombre=1`, `dato` = XML con
+`&`→`&amp;` y el comentario `<!-- O MacIntel Chrome 154 central VERSION: v20170209 -->` antes del
+primer `<Documento`, `rut/dv` del usuario, `clave` del certificado, `nodo`/`nodoId`/`nameSpace`. La
+respuesta es el **XML firmado en texto plano** (`text/plain; charset=iso-8859-1`), no JSON. El XML
+que devolvió el módulo fue idéntico al del navegador salvo `TmstFirmaEnv` y la firma. Por tanto, lo
+que sigue sin explicar en la NC 58 NO es la firma: es `mipeSendXML` o una regla de negocio.
+
+**Causa más probable del "Error al contribuyente" de la NC 58 (con la captura real de una NC del
+2026-10-04 en la mano):** el XML que el módulo mandó a firmar NO llevaba el comentario
+`<!-- O … central VERSION: … -->` que el JS del portal antepone a `<Documento` antes de llamar a
+`postFirmaDigital`. En el flujo real, `txtSignText` SÍ lo lleva (y `txtPlainText` no): es la marca
+con la que el backend reconoce una firma centralizada. Todo lo demás coincide con el navegador:
+mismos 243 campos a `GenXMLFirma`, mismo `frmSign` + 5 campos de firma a `mipeSendXML`, `TMST_SIGN`
+igual al `TmstFirma`, sin `csrt`, `mipePreView` es solo el PDF de la vista previa. La regla de
+negocio "57 ya tiene NC" quedó descartada en la práctica: el portal aceptó una NC de corrección
+(código 3) sobre la 57. La anulación (código 1) repetida sigue sin probarse. Se verifica en la
+próxima nota real emitida por el módulo (ahora `preparar_dato_firma` pone el comentario).
+
+⚠️ No verificado: la NC de **boletas** (`mipeSelEmpresaBol.cgi`, con la especificidad descrita en
+`ANULAR-BOLETA.md`) no está ni cableada. La NC de factura por httpx la logró el repo Auxin; desde
+este repo todavía no (ver arriba).
 
 ---
 
