@@ -1,0 +1,366 @@
+{
+ "tramo": 1,
+ "titulo": "Entender",
+ "preguntas": [
+  {
+   "leccion": "1.1",
+   "pregunta": "Un café vale 1.000 neto. ¿Qué dice la boleta?",
+   "opciones": [
+    "IVA 0, total 1.000",
+    "IVA 190, total 1.190",
+    "IVA 190, total 1.000",
+    "IVA 226, total 1.190"
+   ],
+   "correcta": 1,
+   "explicacion": "El IVA es el 19% del neto: 1.000 × 0,19 = 190, y el total es 1.000 + 190 = 1.190. La opción A olvida el IVA; la C suma mal; la D calcula el 19% sobre el total, que es el error más común."
+  },
+  {
+   "leccion": "1.1",
+   "pregunta": "¿Quién paga de verdad los 190 de IVA del café?",
+   "opciones": [
+    "La cafetería, de su ganancia",
+    "El Estado",
+    "La persona que compra el café",
+    "Nadie: es un número informativo"
+   ],
+   "correcta": 2,
+   "explicacion": "El IVA lo paga quien compra. La cafetería solo lo recauda y lo entrega al Estado a fin de mes. No sale de su ganancia ni es informativo."
+  },
+  {
+   "leccion": "1.1",
+   "pregunta": "Un cartel dice 5.950 con IVA incluido. ¿Cuál es el neto?",
+   "opciones": [
+    "5.000",
+    "5.760",
+    "4.819",
+    "5.950"
+   ],
+   "correcta": 0,
+   "explicacion": "Para sacar el neto desde el total se divide por 1,19: 5.950 ÷ 1,19 = 5.000. Restar el 19% del total (opción C) da un número equivocado porque el 19% se calcula sobre el neto, no sobre el total."
+  },
+  {
+   "leccion": "1.1",
+   "pregunta": "¿Para qué le sirve la boleta a la persona que compró?",
+   "opciones": [
+    "Para descontar el IVA en su declaración",
+    "Es su prueba de compra, por ejemplo para reclamar",
+    "Para nada: la boleta es solo para el SII",
+    "Para pagar menos la próxima vez"
+   ],
+   "correcta": 1,
+   "explicacion": "La boleta es la prueba de que la compra ocurrió. Una persona común no descuenta IVA (eso es con factura, lección 1.3). Y la boleta sirve a los tres: comprador, vendedor y SII."
+  },
+  {
+   "leccion": "1.1",
+   "pregunta": "Un negocio te ofrece \"precio sin boleta\". ¿Qué pasa en realidad?",
+   "opciones": [
+    "Te ahorras el IVA legalmente",
+    "El negocio se queda con un impuesto que igual estás pagando y la venta queda sin registro",
+    "El SII te lo descuenta después",
+    "Es lo mismo que una factura exenta"
+   ],
+   "correcta": 1,
+   "explicacion": "Sin boleta, la venta no le llega al SII y el IVA que tú pagaste se lo queda el negocio. No es un descuento legal ni tiene relación con lo exento."
+  },
+  {
+   "leccion": "1.2",
+   "pregunta": "Ana emitió las boletas 1, 2 y 3. ¿Qué folio tiene la siguiente?",
+   "opciones": [
+    "La 4",
+    "La que Ana elija",
+    "La 1 de nuevo, porque es otro día",
+    "La 3, si corrige la anterior"
+   ],
+   "correcta": 0,
+   "explicacion": "Los folios van en orden y no se repiten ni se saltan. No dependen del día ni se eligen. Corregir se hace con otro documento, no reusando el folio."
+  },
+  {
+   "leccion": "1.2",
+   "pregunta": "¿En qué momento una boleta está realmente emitida?",
+   "opciones": [
+    "Cuando se imprime",
+    "Cuando el cliente la recibe",
+    "Cuando el SII la recibe y la valida",
+    "Cuando se guarda el PDF"
+   ],
+   "correcta": 2,
+   "explicacion": "Emitir es crear el documento y enviarlo al SII. Imprimir, entregar o guardar el PDF son representaciones; lo que cuenta es que el SII la haya recibido."
+  },
+  {
+   "leccion": "1.2",
+   "pregunta": "Al final del día la caja tiene 50.000 y las boletas suman 40.000. ¿Qué significa?",
+   "opciones": [
+    "Que hubo ventas sin boleta",
+    "Que el IVA está mal calculado",
+    "Que sobran folios",
+    "Nada: la caja siempre tiene más"
+   ],
+   "correcta": 0,
+   "explicacion": "Si entró más plata que lo que dicen las boletas, hubo ventas que no se emitieron. Eso es un problema con el SII, no un asunto de IVA ni de folios."
+  },
+  {
+   "leccion": "1.2",
+   "pregunta": "Ana vendió 9.520 en total durante el día (neto 8.000). ¿Cuánto es de ella y cuánto es IVA?",
+   "opciones": [
+    "Todo es de ella",
+    "8.000 de ella, 1.520 de IVA",
+    "9.520 de ella, el IVA se paga aparte",
+    "1.520 de ella, 8.000 de IVA"
+   ],
+   "correcta": 1,
+   "explicacion": "El total incluye el IVA. 8.000 es el neto, lo que corresponde al negocio; 1.520 es IVA recaudado que se entrega al Estado. El total del día no es la ganancia."
+  },
+  {
+   "leccion": "1.2",
+   "pregunta": "¿Por qué un folio gastado por error \"no vuelve\"?",
+   "opciones": [
+    "Porque el sistema lo bloquea un mes",
+    "Porque el SII autoriza cada número una sola vez y ya quedó usado",
+    "Porque hay que pagar por él",
+    "Sí vuelve: se puede reusar al día siguiente"
+   ],
+   "correcta": 1,
+   "explicacion": "El SII autoriza rangos de folios y cada número se usa una sola vez. Un documento emitido por error queda, y se corrige con otro documento (lección 1.4)."
+  },
+  {
+   "leccion": "1.3",
+   "pregunta": "CLIENTE DEMO SPA pagó 23.800 por café con factura. ¿Quién puede descontar el IVA?",
+   "opciones": [
+    "Ana, la que vendió",
+    "CLIENTE DEMO SPA, la empresa que compró",
+    "Los dos",
+    "Nadie: el IVA nunca se descuenta"
+   ],
+   "correcta": 1,
+   "explicacion": "La empresa que compra con factura a su nombre descuenta el IVA que pagó (3.800). Ana lo cobró y tiene que entregarlo. Con boleta no hay RUT del comprador y no hay descuento."
+  },
+  {
+   "leccion": "1.3",
+   "pregunta": "¿Cuál es la diferencia que importa entre boleta y factura?",
+   "opciones": [
+    "La factura es más formal y más larga",
+    "La factura lleva el RUT del comprador, que puede descontar el IVA",
+    "La boleta no tiene folio",
+    "La factura no lleva IVA"
+   ],
+   "correcta": 1,
+   "explicacion": "Las dos tienen folio, timbre e IVA. Lo que cambia es que la factura identifica al comprador, y eso le permite descontar el IVA en su propia declaración."
+  },
+  {
+   "leccion": "1.3",
+   "pregunta": "Ana da un taller de pastelería por 30.000. ¿Qué documento emite?",
+   "opciones": [
+    "Boleta o factura exenta: 30.000 neto, 0 de IVA",
+    "Boleta normal con IVA: 35.700",
+    "Ninguno, los talleres no se documentan",
+    "El que ella prefiera"
+   ],
+   "correcta": 0,
+   "explicacion": "La educación no lleva IVA, así que el documento es exento: neto igual al total. No es decisión del vendedor: depende de qué se vende. Igual se emite y se declara."
+  },
+  {
+   "leccion": "1.3",
+   "pregunta": "Te piden factura y no tienes el RUT del cliente. ¿Qué haces?",
+   "opciones": [
+    "Pones cualquier RUT y después lo arreglan",
+    "Pides el RUT antes de emitir",
+    "Emites boleta y le dices que es lo mismo",
+    "Emites la factura sin RUT"
+   ],
+   "correcta": 1,
+   "explicacion": "Una factura con RUT equivocado queda a nombre de otro y hay que anularla completa. Una boleta no le sirve a una empresa para descontar IVA. Se pide el RUT antes."
+  },
+  {
+   "leccion": "1.3",
+   "pregunta": "Los folios de boletas y de facturas…",
+   "opciones": [
+    "Comparten la misma numeración",
+    "Son series separadas, cada una con su propio orden",
+    "Solo las facturas tienen folio",
+    "Se numeran por fecha"
+   ],
+   "correcta": 1,
+   "explicacion": "Cada tipo de documento tiene su propia serie de folios. Las boletas van 1, 2, 3 y las facturas 1, 2, 3 por su lado."
+  },
+  {
+   "leccion": "1.4",
+   "pregunta": "¿Por qué no se puede borrar la boleta 7, que salió con el monto equivocado?",
+   "opciones": [
+    "Porque el sistema está mal diseñado",
+    "Porque el SII ya la recibió: lo emitido queda y se corrige con otro documento",
+    "Sí se puede, dentro de las 24 horas",
+    "Porque hay que pagar una multa primero"
+   ],
+   "correcta": 1,
+   "explicacion": "Un documento recibido por el SII no se borra ni se edita; si se pudiera, los registros no serían confiables. Se corrige con nota de crédito o de débito, sin plazo de 24 horas ni multa."
+  },
+  {
+   "leccion": "1.4",
+   "pregunta": "La boleta 7 dice 5.950 y debía decir 2.380. ¿Qué documento y por cuánto?",
+   "opciones": [
+    "Nota de crédito por 3.570",
+    "Nota de débito por 3.570",
+    "Nota de crédito por 5.950 y nada más",
+    "Una boleta nueva por 2.380 y la 7 se ignora"
+   ],
+   "correcta": 0,
+   "explicacion": "Se cobró de más, así que se resta la diferencia con una nota de crédito: 5.950 − 2.380 = 3.570. La nota de débito suma. Anular por el total también sirve, pero habría que emitir la boleta correcta después. Ignorar la 7 la deja sumando en el SII."
+  },
+  {
+   "leccion": "1.4",
+   "pregunta": "¿Para qué sirve una nota de débito?",
+   "opciones": [
+    "Para anular una boleta",
+    "Para sumar a un documento anterior o dejar sin efecto una nota de crédito",
+    "Para pagar el IVA",
+    "Para registrar una compra"
+   ],
+   "correcta": 1,
+   "explicacion": "La nota de débito suma: corrige un cobro de menos o anula una nota de crédito mal emitida. Anular una boleta se hace con nota de crédito."
+  },
+  {
+   "leccion": "1.4",
+   "pregunta": "¿Qué debe decir siempre una nota de crédito?",
+   "opciones": [
+    "A qué documento corrige y por qué",
+    "Solo el monto",
+    "El nombre del cajero",
+    "Nada especial: es una boleta negativa"
+   ],
+   "correcta": 0,
+   "explicacion": "Lleva la referencia (tipo, folio y fecha del documento original) y el motivo: anula, corrige monto o corrige texto. Sin eso no se sabe qué está corrigiendo."
+  },
+  {
+   "leccion": "1.4",
+   "pregunta": "Ana anuló la boleta 7 con una nota de crédito y emitió la boleta 8 correcta. ¿Cuántos folios se gastaron en total por ese error?",
+   "opciones": [
+    "Uno",
+    "Dos",
+    "Tres: la boleta 7, la nota de crédito y la boleta 8",
+    "Ninguno, porque se anuló"
+   ],
+   "correcta": 2,
+   "explicacion": "Cada documento gasta un folio de su serie: la boleta equivocada, la nota de crédito y la boleta nueva. Por eso se revisa antes de emitir."
+  },
+  {
+   "leccion": "1.5",
+   "pregunta": "Ana cobró 19.000 de IVA en ventas y pagó 10.000 de IVA en compras con factura. ¿Cuánto entrega en el F29?",
+   "opciones": [
+    "19.000",
+    "10.000",
+    "9.000",
+    "29.000"
+   ],
+   "correcta": 2,
+   "explicacion": "Se entrega la diferencia: IVA cobrado menos IVA pagado con factura, 19.000 − 10.000 = 9.000. Entregar todo lo cobrado (A) ignora el crédito; sumar (D) no tiene sentido."
+  },
+  {
+   "leccion": "1.5",
+   "pregunta": "¿Quién arma el Registro de Compras y Ventas?",
+   "opciones": [
+    "Ana, escribiendo cada venta a mano",
+    "El SII, con los documentos que le llegaron",
+    "El banco",
+    "El contador, una vez al año"
+   ],
+   "correcta": 1,
+   "explicacion": "El SII arma el registro solo, con las boletas y facturas que recibió. Ana lo revisa, no lo escribe. Es mensual, no anual."
+  },
+  {
+   "leccion": "1.5",
+   "pregunta": "¿Las compras con boleta descuentan IVA en el F29?",
+   "opciones": [
+    "Sí, igual que las facturas",
+    "No: solo las facturas a nombre de la empresa",
+    "Solo si son más de 10.000",
+    "Solo las de proveedores conocidos"
+   ],
+   "correcta": 1,
+   "explicacion": "Para descontar IVA hace falta una factura con el RUT de la empresa. Una boleta no identifica al comprador y no da crédito fiscal."
+  },
+  {
+   "leccion": "1.5",
+   "pregunta": "Un mes Ana compró una máquina cara y su IVA de compras fue mayor que el de ventas. ¿Qué pasa?",
+   "opciones": [
+    "El SII le devuelve la diferencia en plata",
+    "La diferencia queda a su favor para el mes siguiente (remanente)",
+    "No puede presentar el F29",
+    "Debe pagar igual el IVA de ventas"
+   ],
+   "correcta": 1,
+   "explicacion": "La diferencia a favor se llama remanente y se descuenta en los meses siguientes. No se devuelve en plata y no impide declarar."
+  },
+  {
+   "leccion": "1.5",
+   "pregunta": "¿El F29 declara las ganancias de la empresa?",
+   "opciones": [
+    "Sí, es el impuesto anual",
+    "No: el F29 es el IVA mensual; las ganancias van en otro formulario anual",
+    "Sí, pero solo si hubo ventas",
+    "Depende del tamaño de la empresa"
+   ],
+   "correcta": 1,
+   "explicacion": "El F29 es mensual y es de IVA. Las ganancias se declaran una vez al año en otro formulario (el F22)."
+  },
+  {
+   "leccion": "1.6",
+   "pregunta": "Ana cerró la cafetería en febrero y no vendió nada. ¿Presenta el F29 de febrero?",
+   "opciones": [
+    "No, si no hubo movimiento no hay nada que declarar",
+    "Sí, sin movimiento, con todo en cero",
+    "Solo si el SII se lo pide",
+    "Lo presenta junto con el de marzo"
+   ],
+   "correcta": 1,
+   "explicacion": "Se declara todos los meses aunque sea cero. Para el SII no declarar y no vender se ven igual hasta que llega el formulario. No presentarlo genera multas."
+  },
+  {
+   "leccion": "1.6",
+   "pregunta": "Un proveedor le hace una factura a Ana con su RUT de persona en vez del de EMPRESA DEMO SPA. ¿Qué pasa?",
+   "opciones": [
+    "Nada, es la misma persona",
+    "La empresa no puede descontar ese IVA, porque la factura no está a su nombre",
+    "Ana descuenta el IVA en su declaración personal",
+    "El SII la corrige solo"
+   ],
+   "correcta": 1,
+   "explicacion": "La empresa y su dueña son dos contribuyentes distintos. Una factura al RUT de Ana no es una compra de la empresa. Hay que pedir que la anulen y la reemitan al RUT de la empresa."
+  },
+  {
+   "leccion": "1.6",
+   "pregunta": "¿Cuál es la diferencia entre la clave tributaria y la del certificado digital?",
+   "opciones": [
+    "Son la misma clave",
+    "La tributaria sirve para entrar al SII; la del certificado, para firmar documentos",
+    "La del certificado es para entrar y la tributaria para firmar",
+    "El certificado no tiene clave"
+   ],
+   "correcta": 1,
+   "explicacion": "Son dos cosas distintas: una contraseña para entrar al sitio del SII y un archivo con su propia contraseña para firmar. Se guardan las dos, no se comparte ninguna."
+  },
+  {
+   "leccion": "1.6",
+   "pregunta": "Antes de emitir una factura, ¿qué se revisa?",
+   "opciones": [
+    "Solo el total",
+    "RUT y nombre del cliente, neto, IVA y total, y el tipo de documento",
+    "Nada: si está mal, se borra",
+    "Que el cliente haya pagado"
+   ],
+   "correcta": 1,
+   "explicacion": "Se revisa todo antes porque después no se borra. Un RUT equivocado obliga a anular y reemitir, gastando folios."
+  },
+  {
+   "leccion": "1.6",
+   "pregunta": "¿Cómo entra Ana al SII para hacer trámites de EMPRESA DEMO SPA?",
+   "opciones": [
+    "Con el RUT de la empresa y la clave de la empresa, siempre",
+    "Con su RUT de persona, y después elige actuar como representante de la empresa",
+    "Con cualquiera de los dos, da lo mismo",
+    "No puede: solo un contador puede entrar"
+   ],
+   "correcta": 1,
+   "explicacion": "Ana entra como persona y actúa por la empresa porque es su representante legal. Los dos RUT son contribuyentes distintos, no da lo mismo."
+  }
+ ]
+}

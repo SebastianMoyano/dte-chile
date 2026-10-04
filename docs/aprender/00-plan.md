@@ -96,6 +96,7 @@ lado a lado con el cálculo de la app. Cuando no coinciden, la app explica por q
 ## Qué falta para que esto exista
 
 - Los textos completos de cada lección (este plan es el índice).
+- El quiz del tramo 1 ya existe: [`quiz-tramo-1.md`](quiz-tramo-1.md) y su JSON para la app.
 - Los videos del tramo 1: las **fuentes para NotebookLM** están en [`notebooklm/`](notebooklm/README.md)
   (un archivo por lección, autocontenido). Los prompts de [`videos-tramo-1.md`](videos-tramo-1.md)
   son la alternativa si se generan con un modelo de video en vez de NotebookLM.
