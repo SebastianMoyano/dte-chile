@@ -96,6 +96,8 @@ lado a lado con el cálculo de la app. Cuando no coinciden, la app explica por q
 ## Qué falta para que esto exista
 
 - Los textos completos de cada lección (este plan es el índice).
-- Los videos del tramo 1: ver [`videos-tramo-1.md`](videos-tramo-1.md).
+- Los videos del tramo 1: las **fuentes para NotebookLM** están en [`notebooklm/`](notebooklm/README.md)
+  (un archivo por lección, autocontenido). Los prompts de [`videos-tramo-1.md`](videos-tramo-1.md)
+  son la alternativa si se generan con un modelo de video en vez de NotebookLM.
 - En la app: el modo simulación (motor en seco con la empresa demo), la barra de "en qué mundo
   estás", y la ficha de cada lección enlazada al flujo real.
