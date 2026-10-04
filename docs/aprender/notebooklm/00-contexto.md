@@ -68,6 +68,12 @@ Cómo se saca el neto desde un total: total ÷ 1,19.
 
 ## Reglas para el video
 
+- **Todo es Chile.** La moneda es el peso chileno, se escribe con `$` y separador de miles con
+  punto (1.190). Nunca euros, dólares ni billetes de otros países. El IVA es uno solo, 19%:
+  no existen tasas de 10% o 21%. No mostrar boletas, tickets ni facturas de otros países
+  (nada de CIF, S.L., calles de Madrid, tickets con dos tasas de IVA).
+- Si hace falta ilustrar dinero, usar monedas o billetes genéricos sin denominación, o mejor
+  un número con `$`.
 - No mostrar logos del SII ni de ninguna institución o marca.
 - No mostrar pantallas reales del sitio del SII.
 - Los documentos de ejemplo se dibujan esquemáticamente: folio, fecha, quién vende, quién
