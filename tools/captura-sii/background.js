@@ -1,23 +1,36 @@
-// Captura SII v2 — SIN depurador: nada que Chrome pueda soltar. Observa la red con webRequest,
-// recibe de la página su HTML y las respuestas AJAX, y persiste cada entrada en storage al
-// instante (el service worker puede dormirse; la grabación no). Solo se detiene con el botón.
+// Captura web v3 — SIN depurador: nada que Chrome pueda soltar. Observa la red con webRequest,
+// recibe de la página su HTML, su texto visible y las respuestas AJAX, y persiste cada entrada
+// en storage al instante (el service worker puede dormirse; la grabación no). Solo se detiene
+// con el botón.
+//
+// Dos modos: "sii" (solo sii.cl, permiso fijo) y "todo" (cualquier sitio; pide el permiso
+// <all_urls> al activarlo y registra los scripts de contenido para todas las páginas). El JSON
+// que sale es "lo que vería un agente": cada página con su HTML y su texto, cada llamada con
+// su respuesta, en orden.
 
 const ES_SII = url => { try { return /(^|\.)sii\.cl$/i.test(new URL(url).hostname); } catch { return false; } };
-const RUIDO = /\.(png|jpe?g|gif|svg|ico|woff2?|ttf|css|js)(\?|$)|\/JS\/|qualtrics|google-analytics|googletagmanager|\/TSbd\/|AutTknData/i;
+const RUIDO = /\.(png|jpe?g|gif|svg|ico|webp|avif|woff2?|ttf|otf|css|map)(\?|$)|\/JS\/|qualtrics|google-analytics|googletagmanager|doubleclick|facebook\.net|hotjar|sentry\.io|\/TSbd\/|AutTknData/i;
+const MAX_HTML = 2_000_000, MAX_TEXTO = 300_000, MAX_RESP = 1_000_000;
 
+// Secretos: nombres de campo/parámetro que se tachan en cuerpos, HTML y JSON, y cabeceras que se omiten.
+const NOMBRES_SECRETO = "clave|contrase[nñ]a|password|passwd|pwd|pass|myPass|SII_PASSWORD|SII_CERT_PASS|token|access_token|refresh_token|id_token|secret|api_?key|csrf|xsrf|otp|pin";
+const SECRETO = new RegExp(`^(${NOMBRES_SECRETO})$`, "i");
 function tachar(texto) {
   if (texto == null) return texto;
-  return String(texto)
-    .replace(/((?:^|[&?])(?:clave|password|passwd|pwd|pass|myPass|SII_PASSWORD|SII_CERT_PASS)=)[^&\s]*/gi, "$1***")
-    .replace(/("(?:clave|password|passwd|pwd|pass)"\s*:\s*")[^"]*(")/gi, "$1***$2")
-    .replace(/(name=["'](?:clave|myPass)["'][^>]*value=["'])[^"']*(["'])/gi, "$1***$2")
+  let s = String(texto);
+  if (s.length > MAX_RESP) s = s.slice(0, MAX_RESP) + `\n…(recortado, ${texto.length} caracteres)`;
+  return s
+    .replace(new RegExp(`((?:^|[&?])(?:${NOMBRES_SECRETO})=)[^&\\s]*`, "gi"), "$1***")
+    .replace(new RegExp(`("(?:${NOMBRES_SECRETO})"\\s*:\\s*")[^"]*(")`, "gi"), "$1***$2")
+    .replace(new RegExp(`(name=["'](?:${NOMBRES_SECRETO})["'][^>]*value=["'])[^"']*(["'])`, "gi"), "$1***$2")
+    .replace(/(<input[^>]*type=["']password["'][^>]*value=["'])[^"']*(["'])/gi, "$1***$2")
+    .replace(/(Bearer\s+)[A-Za-z0-9._\-]{8,}/g, "$1***")
     .replace(/(NETSCAPE_LIVEWIRE\.mac=)[^;\s"]*/g, "$1***")
     .replace(/((?:TOKEN|CSESSIONID)=)[^;\s"]*/g, "$1***");
 }
-const SECRETO = /^(clave|password|passwd|pwd|pass|myPass)$/i;
 function cabecerasLimpias(lista) {
   const out = {};
-  for (const h of lista || []) out[h.name] = /^(cookie|set-cookie|authorization)$/i.test(h.name) ? "(omitida)" : (h.value ?? "(binario)");
+  for (const h of lista || []) out[h.name] = /^(cookie|set-cookie|authorization|x-api-key|x-auth-token|x-csrf-token)$/i.test(h.name) ? "(omitida)" : (h.value ?? "(binario)");
   return out;
 }
 function cuerpoDe(requestBody) {
@@ -28,7 +41,7 @@ function cuerpoDe(requestBody) {
     return { forma: "formData", campos: Object.keys(requestBody.formData), texto: partes.join("&") };
   }
   if (requestBody.raw) {
-    const dec = new TextDecoder("iso-8859-1"); let txt = "";
+    const dec = new TextDecoder("utf-8"); let txt = "";
     for (const p of requestBody.raw) if (p.bytes) txt += dec.decode(p.bytes);
     return { forma: "raw", texto: tachar(txt) };
   }
@@ -38,6 +51,7 @@ function cuerpoDe(requestBody) {
 // ---- estado persistente ----
 const E = chrome.storage.local;
 async function estado() { return (await E.get("cap"))?.cap || null; }
+async function modo() { return (await E.get("modo")).modo || "sii"; }
 let cola = Promise.resolve();
 function agregar(entrada) {
   cola = cola.then(async () => {
@@ -49,10 +63,32 @@ function agregar(entrada) {
 }
 const pendientes = new Map();   // requestId → entrada parcial (vive solo mientras el SW está despierto)
 
-// ---- red ----
-const FILTRO = { urls: ["*://*.sii.cl/*"] };
-// Se anota SIN esperar (await) para que onCompleted no llegue antes de que exista la entrada;
-// el filtro de "¿estamos grabando esta pestaña?" se aplica al guardar.
+// ---- modo "todo": permiso y scripts de contenido para cualquier sitio ----
+const SCRIPTS_TODO = [
+  { id: "hook-todo", matches: ["<all_urls>"], js: ["hook.js"], runAt: "document_start", world: "MAIN", allFrames: true },
+  { id: "content-todo", matches: ["<all_urls>"], js: ["content.js"], runAt: "document_start", allFrames: true },
+];
+async function activarTodo() {
+  const ok = await chrome.permissions.request({ origins: ["<all_urls>"] });
+  if (!ok) return { ok: false, error: "no se concedió el permiso para todos los sitios" };
+  try { await chrome.scripting.unregisterContentScripts({ ids: SCRIPTS_TODO.map(s => s.id) }); } catch {}
+  await chrome.scripting.registerContentScripts(SCRIPTS_TODO);
+  await E.set({ modo: "todo" });
+  return { ok: true };
+}
+async function desactivarTodo() {
+  try { await chrome.scripting.unregisterContentScripts({ ids: SCRIPTS_TODO.map(s => s.id) }); } catch {}
+  try { await chrome.permissions.remove({ origins: ["<all_urls>"] }); } catch {}
+  await E.set({ modo: "sii" });
+  return { ok: true };
+}
+// Si el navegador reinició con el modo "todo" ya concedido, los scripts registrados persisten;
+// si no están (p. ej. tras recargar la extensión), se vuelven a registrar.
+chrome.runtime.onStartup?.addListener(async () => { if (await modo() === "todo") { try { await chrome.scripting.registerContentScripts(SCRIPTS_TODO); } catch {} } });
+chrome.runtime.onInstalled.addListener(async () => { if (await modo() === "todo" && await chrome.permissions.contains({ origins: ["<all_urls>"] })) { try { await chrome.scripting.registerContentScripts(SCRIPTS_TODO); } catch {} } });
+
+// ---- red (los eventos solo llegan para los sitios con permiso) ----
+const FILTRO = { urls: ["<all_urls>"] };
 chrome.webRequest.onBeforeRequest.addListener(d => {
   if (d.tabId < 0 || RUIDO.test(d.url)) return;
   pendientes.set(d.requestId, { tipo: "red", tabId: d.tabId, metodo: d.method, url: d.url, marco: d.frameId === 0 ? "top" : "iframe",
@@ -62,6 +98,7 @@ async function cerrar(d, extra) {
   const e = pendientes.get(d.requestId); if (!e) return;
   pendientes.delete(d.requestId);
   const cap = await estado(); if (!cap || e.tabId !== cap.tabId) return;
+  if (cap.modo === "sii" && !ES_SII(e.url)) return;
   delete e.tabId; Object.assign(e, extra); await agregar(e);
 }
 chrome.webRequest.onSendHeaders.addListener(d => {
@@ -71,7 +108,7 @@ chrome.webRequest.onCompleted.addListener(d => cerrar(d, { estado: d.statusCode,
 chrome.webRequest.onBeforeRedirect.addListener(d => cerrar(d, { estado: d.statusCode, redirige_a: d.redirectUrl, cabeceras_respuesta: cabecerasLimpias(d.responseHeaders) }), FILTRO, ["responseHeaders"]);
 chrome.webRequest.onErrorOccurred.addListener(d => cerrar(d, { error: d.error }), FILTRO);
 
-// ---- lo que manda la página (HTML y AJAX) ----
+// ---- lo que manda la página (HTML, texto y AJAX) ----
 chrome.runtime.onMessage.addListener((msg, remitente, responder) => {
   (async () => {
     if (msg.tipo === "pagina" || msg.tipo === "xhr") {
@@ -79,9 +116,12 @@ chrome.runtime.onMessage.addListener((msg, remitente, responder) => {
       if (!cap || tabId !== cap.tabId) return;
       if (msg.tipo === "pagina") {
         if (msg.momento === "domcontentloaded" && msg.marco === "iframe") return;   // con el load basta
-        await agregar({ tipo: "pagina", momento: msg.momento, marco: msg.marco, url: msg.url, titulo: msg.titulo, t: msg.t, html: tachar(msg.html) });
+        if (cap.modo === "sii" && !ES_SII(msg.url)) return;
+        const html = (msg.html || "").length > MAX_HTML ? msg.html.slice(0, MAX_HTML) + "\n…(recortado)" : msg.html;
+        await agregar({ tipo: "pagina", momento: msg.momento, marco: msg.marco, url: msg.url, titulo: msg.titulo, t: msg.t,
+                        texto: (msg.texto || "").slice(0, MAX_TEXTO), html: tachar(html) });
       } else {
-        if (!ES_SII(msg.url) && !msg.url.startsWith("/")) return;
+        if (cap.modo === "sii" && !ES_SII(msg.url) && !msg.url.startsWith("/")) return;
         await agregar({ tipo: "xhr", metodo: msg.metodo, url: msg.url, pagina: msg.pagina, t: msg.t, cuerpo: tachar(msg.cuerpo),
                         estado: msg.estado, respuesta: tachar(msg.respuesta) });
       }
@@ -90,19 +130,25 @@ chrome.runtime.onMessage.addListener((msg, remitente, responder) => {
     if (msg.tipo === "estado") {
       const cap = await estado(); let titulo = null;
       if (cap) { try { const t = await chrome.tabs.get(cap.tabId); titulo = t.title || t.url; } catch {} }
-      responder({ grabando: !!cap, n: cap ? cap.n || 0 : 0, tabId: cap ? cap.tabId : null, titulo, ultimo: (await E.get("ultimo")).ultimo || null });
+      responder({ grabando: !!cap, n: cap ? cap.n || 0 : 0, tabId: cap ? cap.tabId : null, titulo, modo: await modo(),
+                  ultimo: (await E.get("ultimo")).ultimo || null });
     } else if (msg.tipo === "start") {
       if (await estado()) { responder({ error: "ya hay una grabación en curso" }); return; }
-      await E.set({ cap: { tabId: msg.tabId, inicio: new Date().toISOString(), n: 0 } });
-      // Fotografía de la página actual: la grabación suele empezar con la página ya cargada.
+      const m = await modo();
+      if (m === "sii" && !ES_SII(msg.url || "")) { responder({ error: "esta pestaña no es de sii.cl; activa 'cualquier sitio' para grabarla" }); return; }
+      await E.set({ cap: { tabId: msg.tabId, modo: m, inicio: new Date().toISOString(), n: 0, host: hostDe(msg.url) } });
       try { await chrome.tabs.sendMessage(msg.tabId, { tipo: "foto_ahora" }); } catch {}
       responder({ ok: true });
     } else if (msg.tipo === "stop") {
       responder(await detener());
+    } else if (msg.tipo === "modo") {
+      responder(msg.valor === "todo" ? await activarTodo() : await desactivarTodo());
     }
   })();
   return true;
 });
+
+function hostDe(url) { try { return new URL(url).hostname; } catch { return "pestaña"; } }
 
 async function detener() {
   const cap = await estado(); if (!cap) return { ok: false };
@@ -112,11 +158,11 @@ async function detener() {
   const indice = entradas.map(e => e.tipo === "pagina" ? `${String(e.n).padStart(3)} [página ${e.momento}${e.marco === "iframe" ? " iframe" : ""}] ${e.url}`
     : e.tipo === "xhr" ? `${String(e.n).padStart(3)} [ajax] ${e.metodo} ${e.estado} ${e.url}`
     : `${String(e.n).padStart(3)} ${(e.metodo || "").padEnd(4)} ${e.estado ?? e.error ?? "---"} ${e.url}`);
-  const salida = { herramienta: "captura-sii/2.0", inicio: cap.inicio, fin: new Date().toISOString(), pestaña: cap.tabId,
-                   nota: "Solo sii.cl. Claves tachadas (***), cookies omitidas. 'red' = petición vista por la extensión; 'pagina' = HTML resultante; 'xhr' = llamada AJAX con su respuesta.",
+  const salida = { herramienta: "captura-web/3.0", modo: cap.modo, sitio: cap.host, inicio: cap.inicio, fin: new Date().toISOString(), pestaña: cap.tabId,
+                   nota: (cap.modo === "sii" ? "Solo sii.cl. " : "Cualquier sitio. ") + "Claves y tokens tachados (***), cookies y Authorization omitidas. 'red' = petición vista por la extensión; 'pagina' = HTML y texto visible resultantes; 'xhr' = llamada AJAX/fetch con su respuesta.",
                    indice, entradas };
   const json = JSON.stringify(salida, null, 1);
-  const nombre = `sii_captura_${cap.inicio.replace(/[:.]/g, "-")}.json`;
+  const nombre = `captura_${(cap.host || "web").replace(/[^a-z0-9.-]/gi, "_")}_${cap.inicio.replace(/[:.]/g, "-")}.json`;
   const url = "data:application/json;base64," + btoa(unescape(encodeURIComponent(json)));
   await chrome.downloads.download({ url, filename: nombre, saveAs: false });
   await E.remove(["cap", ...Object.keys(todo).filter(k => /^e\d{6}$/.test(k))]);

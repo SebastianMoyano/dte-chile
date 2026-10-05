@@ -1,20 +1,22 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8">
 <style>
-  body{font:13px -apple-system,system-ui,sans-serif;width:260px;margin:0;padding:12px;color:#1b1f24}
+  body{font:13px -apple-system,system-ui,sans-serif;width:270px;margin:0;padding:12px;color:#1b1f24}
   h1{font-size:14px;margin:0 0 8px}
   button{width:100%;padding:9px;border:0;border-radius:8px;font-weight:600;cursor:pointer;margin-top:6px}
   #start{background:#2563eb;color:#fff} #stop{background:#dc2626;color:#fff}
   button:disabled{opacity:.45;cursor:default}
   .st{margin-top:10px;padding:8px;border-radius:8px;background:#f3f4f6;font-size:12px;line-height:1.45}
   .rec{color:#dc2626;font-weight:600}
+  label{display:flex;gap:6px;align-items:center;margin-top:10px;font-size:12px}
   small{color:#6b7280;display:block;margin-top:8px;line-height:1.4}
 </style></head>
 <body>
-<h1>Captura SII</h1>
+<h1>Captura web</h1>
 <button id="start">Grabar esta pestaña</button>
 <button id="stop" disabled>Detener y descargar</button>
 <div class="st" id="st">Sin grabar.</div>
-<small>Solo guarda tráfico de <b>sii.cl</b>. Tacha claves y no guarda cookies. Graba hasta que pulses Detener, aunque cambies de página.</small>
+<label><input type="checkbox" id="todo"> Grabar en <b>cualquier sitio</b> (no solo sii.cl)</label>
+<small>Guarda red, HTML y texto visible de cada página, y AJAX con respuesta. Tacha claves y tokens; no guarda cookies. Graba hasta que pulses Detener, aunque cambies de página.</small>
 <script src="popup.js"></script>
 </body></html>
