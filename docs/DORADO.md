@@ -180,12 +180,24 @@ Tipos 34 y 41: todo exento, IVA 0.
   del sobre (`URI="#SetDoc"`) se calcula parseando el sobre solo para leer: DigestValue = SHA-1
   de la C14N del `<SetDTE>` reparseado (ápice con `xmlns` SiiDte y `xmlns:xsi`); la
   `<Signature>` resultante se inserta como string justo antes de `</EnvioDTE>`.
+- La `<Signature>` del sobre lleva en su ápice **`xmlns:xsi` redeclarado**:
+  `<Signature xmlns="http://www.w3.org/2000/09/xmldsig#" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">`.
+  No es parte de lo firmado (el `SignedInfo` se canonicaliza con xsi en alcance igual): es un
+  artefacto de cómo lxml serializa un subárbol para insertarlo por string. Son 54 bytes que
+  el port en Go no tenía y el corpus detectó en el primer intento.
 - La salida son `<?xml version="1.0" encoding="ISO-8859-1"?>\n` + el string en ISO-8859-1.
 
 ### Orden recomendado para un port
 
 totales → TED → DTE sin firma (comparar quitando `<Signature>`) → digest del Documento →
 firma → sobre. Con `--parcial`, el harness acepta un port que solo produzca `ted.xml`.
+
+## El port en Go (`nucleo/`)
+
+`nucleo/bin/nucleo-dorado` reproduce los 15 casos completos (TED, DTE firmado, sobre) byte a
+byte, sin dependencias de Python. Paquetes: `totales`, `ted`, `xmlgen` (serialización como
+lxml), `c14n` (Canonical XML 1.0 inclusiva con ápice reparseado), `firma` (PKCS#12, XMLDSig,
+sobre). Compilar: `cd nucleo && go build -o bin/nucleo-dorado ./cmd/nucleo-dorado`.
 
 ## Lo que todavía no cubre
 
