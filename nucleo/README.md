@@ -25,5 +25,8 @@ fila que Python.
 | `almacen` | la misma base SQLite del motor: CAF activo, folio atómico (`BEGIN IMMEDIATE`), fila en `dtes` |
 | `emision` | el orquestador: folio → TED → XML → firma → sobre → disco → BD (sin PDF, sin envío) |
 
+**Contra el SII**: el 2026-10-05 un T34 de certificación emitido por `nucleo-emitir` fue
+aceptado (ACEPTADOS=1, TrackID 261542052). Script: `fase3_envio.py`.
+
 Regla (L15): si un byte difiere del corpus, el error está aquí o en Python, y se averigua cuál
 contra el SII antes de tocar lo esperado. Plan y fases en `docs/PLAN-PORT.md`.

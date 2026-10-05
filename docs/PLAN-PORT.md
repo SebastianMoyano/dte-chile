@@ -99,7 +99,13 @@ intento porque estaba escrito en la especificación de bytes antes de programar.
 > clave que lleva el TED): la factura exenta **34/111 aceptada por el SII (TrackID 253113966)**
 > y la boleta 39/1 de producción. Los sobres de julio anteriores a `core/sobre.py` se omiten.
 > Hallazgo del port: **los CAF del SII traen claves RSA de 512 bits** y Go ≥ 1.24 las rechaza;
-> los binarios llevan `//go:debug rsa1024min=0`. Parte B (envío a Maullín): pendiente.
+> los binarios llevan `//go:debug rsa1024min=0`.
+>
+> Parte B (envío) **iniciada y con el primer aceptado**: el 2026-10-05 `fase3_envio.py` emitió
+> con `nucleo-emitir` una factura exenta (T34) de certificación, Python verificó en local que
+> la reproducía byte a byte, la envió con `core/sii.py` y el SII respondió **EPR con
+> ACEPTADOS=1 (TrackID 261542052)**. Falta el set de pruebas completo, que depende de folios
+> T33/T61 de certificación (bloqueo conocido, ver memoria).
 
 - El port emite el **set de pruebas** completo (`dry_run_certificacion.py` como guía) y se
   envía con el cliente SOAP Python existente (el envío no se porta todavía).
