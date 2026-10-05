@@ -53,6 +53,25 @@ Si recargas la extensión en `chrome://extensions` (tras cambios), vuelve a abri
     --evidencia storage/mipyme_fallidos/777777777/T61_F58_20261002T212520
 ```
 
+## Datos personales: RUT, correos y celulares ficticios
+
+Con la casilla **"Reemplazar RUT, correos y celulares por ficticios"** (`pii.js`), cada dato
+personal se sustituye por uno inventado **consistente**: el mismo RUT real da siempre el mismo
+RUT ficticio dentro de la captura (también si aparece con puntos, sin puntos o como parámetro
+`rut…=` sin dígito verificador), lo mismo con cada correo (`persona1234@ejemplo.cl`) y cada
+celular (`+56 9 ….`, se conservan los separadores). Los RUT ficticios son válidos (módulo 11),
+de persona (10-24 millones) o de empresa (76-77 millones) según el real, y no corresponden a
+nadie. Un agente que lea la captura sigue viendo la estructura (este cliente aparece en estas
+tres páginas) sin saber quién es. No se tocan folios, totales, fechas, códigos ni teléfonos fijos.
+
+- Por defecto está **activada en "cualquier sitio"** y **desactivada en sii.cl**: las capturas
+  del SII se comparan campo a campo con lo que manda el módulo y ahí los RUT deben ser los reales.
+- El archivo lo dice en `datos_personales` (`reemplazados: true/false`, y si no, cuántos hay).
+- `limpiar_captura.py` hace el mismo reemplazo (mismo algoritmo, mismos ficticios dada la misma
+  semilla) por defecto; `--sin-pii` lo desactiva.
+- Límite honesto: reconoce RUT con guion, correos y celulares chilenos. Un nombre y apellido, una
+  dirección o un RUT sin guion ni contexto `rut=` **no** se reemplazan.
+
 ## Limpiar una captura ya descargada
 
 Las capturas de la v2 y la v3.0 tachaban solo por nombre exacto (`token` no calzaba con

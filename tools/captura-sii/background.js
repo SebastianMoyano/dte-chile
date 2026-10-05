@@ -12,7 +12,7 @@ const ES_SII = url => { try { return /(^|\.)sii\.cl$/i.test(new URL(url).hostnam
 const RUIDO = /\.(png|jpe?g|gif|svg|ico|webp|avif|woff2?|ttf|otf|css|map)(\?|$)|\/JS\/|qualtrics|google-analytics|googletagmanager|doubleclick|facebook\.net|hotjar|sentry\.io|\/TSbd\/|AutTknData/i;
 const MAX_HTML = 2_000_000, MAX_TEXTO = 300_000, MAX_RESP = 1_000_000;
 
-importScripts("tachar.js");
+importScripts("tachar.js", "pii.js");
 const { tachar: tacharBase, auditar, esNombreSensible } = self.CapturaTachar;
 function tachar(texto) {
   if (texto == null) return texto;
@@ -45,11 +45,22 @@ function cuerpoDe(requestBody) {
 const E = chrome.storage.local;
 async function estado() { return (await E.get("cap"))?.cap || null; }
 async function modo() { return (await E.get("modo")).modo || "sii"; }
+// Reemplazo de datos personales: por defecto ON en "cualquier sitio" y OFF en sii.cl (ahí las
+// capturas se comparan campo a campo con el módulo y los RUT deben ser los reales).
+async function piiActivo(m) { const v = (await E.get("pii")).pii; return v === undefined ? m === "todo" : !!v; }
+let piiCache = null;   // { semilla, sobre } de la grabación en curso
+async function piiDe(cap) {
+  if (!cap.pii) return null;
+  if (!piiCache || piiCache.semilla !== cap.piiSemilla) piiCache = { semilla: cap.piiSemilla, ...self.CapturaPII.crear(cap.piiSemilla) };
+  return piiCache;
+}
 let cola = Promise.resolve();
 function agregar(entrada) {
   cola = cola.then(async () => {
     const cap = await estado(); if (!cap) return;
     const n = (cap.n || 0) + 1; entrada.n = n;
+    const pii = await piiDe(cap);
+    if (pii) entrada = pii.sobre(entrada);
     await E.set({ cap: { ...cap, n }, ["e" + String(n).padStart(6, "0")]: entrada });
   }).catch(() => {});
   return cola;
@@ -123,17 +134,22 @@ chrome.runtime.onMessage.addListener((msg, remitente, responder) => {
     if (msg.tipo === "estado") {
       const cap = await estado(); let titulo = null;
       if (cap) { try { const t = await chrome.tabs.get(cap.tabId); titulo = t.title || t.url; } catch {} }
-      responder({ grabando: !!cap, n: cap ? cap.n || 0 : 0, tabId: cap ? cap.tabId : null, titulo, modo: await modo(),
+      const m = await modo();
+      responder({ grabando: !!cap, n: cap ? cap.n || 0 : 0, tabId: cap ? cap.tabId : null, titulo, modo: m, pii: await piiActivo(m),
                   ultimo: (await E.get("ultimo")).ultimo || null });
     } else if (msg.tipo === "start") {
       if (await estado()) { responder({ error: "ya hay una grabación en curso" }); return; }
       const m = await modo();
       if (m === "sii" && !ES_SII(msg.url || "")) { responder({ error: "esta pestaña no es de sii.cl; activa 'cualquier sitio' para grabarla" }); return; }
-      await E.set({ cap: { tabId: msg.tabId, modo: m, inicio: new Date().toISOString(), n: 0, host: hostDe(msg.url) } });
+      const pii = await piiActivo(m);
+      const piiSemilla = Array.from(crypto.getRandomValues(new Uint8Array(12)), b => b.toString(16).padStart(2, "0")).join("");
+      await E.set({ cap: { tabId: msg.tabId, modo: m, pii, piiSemilla, inicio: new Date().toISOString(), n: 0, host: hostDe(msg.url) } });
       try { await chrome.tabs.sendMessage(msg.tabId, { tipo: "foto_ahora" }); } catch {}
       responder({ ok: true });
     } else if (msg.tipo === "stop") {
       responder(await detener());
+    } else if (msg.tipo === "pii") {
+      await E.set({ pii: !!msg.valor }); responder({ ok: true });
     } else if (msg.tipo === "modo") {
       responder(msg.valor === "todo" ? await activarTodo() : await desactivarTodo());
     }
@@ -151,20 +167,27 @@ async function detener() {
   const indice = entradas.map(e => e.tipo === "pagina" ? `${String(e.n).padStart(3)} [página ${e.momento}${e.marco === "iframe" ? " iframe" : ""}] ${e.url}`
     : e.tipo === "xhr" ? `${String(e.n).padStart(3)} [ajax] ${e.metodo} ${e.estado} ${e.url}`
     : `${String(e.n).padStart(3)} ${(e.metodo || "").padEnd(4)} ${e.estado ?? e.error ?? "---"} ${e.url}`);
-  const salida = { herramienta: "captura-web/3.1", modo: cap.modo, sitio: cap.host, inicio: cap.inicio, fin: new Date().toISOString(), pestaña: cap.tabId,
+  const salida = { herramienta: "captura-web/3.2", modo: cap.modo, sitio: cap.host, inicio: cap.inicio, fin: new Date().toISOString(), pestaña: cap.tabId,
                    nota: (cap.modo === "sii" ? "Solo sii.cl. " : "Cualquier sitio. ") + "Secretos tachados por nombre y por patrón (JWT, Bearer, hex largo, uuid junto a nombres sensibles); cookies y cabeceras de autorización omitidas; pasada final sobre el JSON entero y auditoría en 'auditoria'. 'red' = petición vista por la extensión; 'pagina' = HTML y texto visible resultantes; 'xhr' = llamada AJAX/fetch con su respuesta.",
                    indice, entradas };
   // Segunda capa: el JSON ENTERO pasa otra vez por el tachado (atrapa lo que se coló por un
   // campo no previsto) y se audita lo que queda. La auditoría va dentro del archivo y al popup:
   // el archivo dice la verdad sobre sí mismo.
-  const auditoria = auditar(tacharBase(JSON.stringify(salida)));
+  const pii = await piiDe(cap);
+  const paso = t => pii ? pii.reemplazar(tacharBase(t)) : tacharBase(t);
+  const auditoria = auditar(paso(JSON.stringify(salida)));
+  const personales = self.CapturaPII.auditar(paso(JSON.stringify(salida)));
+  salida.datos_personales = pii ? { reemplazados: true, nota: "RUT, correos y celulares sustituidos por ficticios consistentes (mismo real → mismo ficticio en toda la captura). Los RUT ficticios son válidos pero no corresponden a nadie." }
+                                : { reemplazados: false, presentes: personales, nota: "Sin reemplazo (modo sii.cl o desactivado): hay RUT/correos/celulares reales." };
   salida.auditoria = { ...auditoria, nota: "Conteo de cadenas que aún parecen secretos tras el tachado. Si no es todo 0, revisa antes de compartir." };
-  const json = tacharBase(JSON.stringify(salida, null, 1));
+  const json = paso(JSON.stringify(salida, null, 1));
   const nombre = `captura_${(cap.host || "web").replace(/[^a-z0-9.-]/gi, "_")}_${cap.inicio.replace(/[:.]/g, "-")}.json`;
   const url = "data:application/json;base64," + btoa(unescape(encodeURIComponent(json)));
   await chrome.downloads.download({ url, filename: nombre, saveAs: false });
   await E.remove(["cap", ...Object.keys(todo).filter(k => /^e\d{6}$/.test(k))]);
   const resto = auditoria.jwt_sin_tachar + auditoria.uuid_tras_nombre_sensible;
-  await E.set({ ultimo: `${nombre} (${entradas.length} entradas${resto ? `; ⚠ ${resto} posible(s) secreto(s) sin tachar` : "; tachado verificado"})` });
+  const p = salida.datos_personales.presentes;
+  const avisoPii = p && (p.ruts + p.correos + p.celulares) ? `; ${p.ruts} RUT/${p.correos} correos/${p.celulares} celulares reales` : "";
+  await E.set({ ultimo: `${nombre} (${entradas.length} entradas${resto ? `; ⚠ ${resto} posible(s) secreto(s) sin tachar` : "; tachado verificado"}${avisoPii})` });
   return { ok: true, nombre, auditoria };
 }

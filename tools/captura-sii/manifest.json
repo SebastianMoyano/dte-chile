@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Captura web (SII y cualquier sitio)",
-  "version": "3.1",
+  "version": "3.2",
   "description": "Graba, solo entre Grabar y Detener, lo que una pestaña manda y recibe (red, HTML y texto de cada página, AJAX con respuesta), con claves tachadas y sin cookies, y lo descarga como JSON. Por defecto solo sii.cl; puedes activar cualquier sitio.",
   "permissions": ["webRequest", "tabs", "downloads", "storage", "unlimitedStorage", "scripting"],
   "host_permissions": ["*://*.sii.cl/*"],
