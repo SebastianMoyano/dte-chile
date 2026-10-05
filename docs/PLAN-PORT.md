@@ -51,13 +51,16 @@ ambos casos**: el contrato son archivos, no una API de lenguaje.
 
 ### Fase 1 — Núcleo puro en Go (`nucleo/`, 1-2 semanas)
 
+> Estado 2026-10-04: `nucleo/` existe; `nucleo/bin/nucleo-dorado` produce `ted.xml` y
+> `totales.json` idénticos en los 15 casos (`test_dorado.py --port nucleo/bin/nucleo-dorado --parcial`).
+
 Un módulo Go sin red ni BD, con un ejecutable `nucleo-dorado` que cumple el contrato del
 runner (`<entrada.json> <fixtures/> <salida/>`). Orden, y cada paso se cierra con el corpus:
 
 | paso | qué | compara contra | trampa conocida |
 |---|---|---|---|
-| 1.1 | `calcular_totales` (redondeo half-up CLP, boleta con IVA incluido, exentos) | `totales.json` | boleta: precio bruto, neto derivado |
-| 1.2 | parseo del CAF y **TED**: `<DD>` aplanado, firma RSA-SHA1 con la clave del CAF, `<CAF>` incrustado tal cual | `ted.xml` | los saltos de línea del TED son parte de lo firmado |
+| 1.1 ✅ | `calcular_totales` (redondeo half-up CLP, boleta con IVA incluido, exentos) → `nucleo/totales` | `totales.json` | boleta: precio bruto, neto derivado |
+| 1.2 ✅ | parseo del CAF y **TED**: `<DD>` aplanado, firma RSA-SHA1 con la clave del CAF, `<CAF>` incrustado tal cual → `nucleo/ted` | `ted.xml` | los saltos de línea del TED son parte de lo firmado |
 | 1.3 | generación del `<DTE>` sin firma: orden de tags según XSD, ISO-8859-1, `Id="T{tipo}F{folio}"` | diff estructural (sin `<Signature>`) | orden de elementos; "é" en ISO-8859-1 |
 | 1.4 | **C14N** (xml-c14n 2001) + XMLDSig RSA-SHA1 del `<Documento>` standalone | `dte.xml` | C14N exactamente como lxml: namespaces, atributos ordenados, sin xsi del sobre |
 | 1.5 | **sobre** por concatenación de strings con el DTE verbatim, firma del `SetDTE` | `envio.xml` | nunca re-serializar el DTE firmado (L1, DTE-3-505) |
