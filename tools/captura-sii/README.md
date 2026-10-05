@@ -69,6 +69,9 @@ tres páginas) sin saber quién es. No se tocan folios, totales, fechas, código
 - El archivo lo dice en `datos_personales` (`reemplazados: true/false`, y si no, cuántos hay).
 - `limpiar_captura.py` hace el mismo reemplazo (mismo algoritmo, mismos ficticios dada la misma
   semilla) por defecto; `--sin-pii` lo desactiva.
+- El reemplazo se hace sobre los valores, nunca sobre el JSON serializado (la 3.2 lo hacía
+  sobre el texto y podía dejar `\persona…`, un escape inválido; `limpiar_captura.py` repara
+  esos archivos). Antes de descargar se comprueba que el JSON sea válido.
 - Límite honesto: reconoce RUT con guion, correos y celulares chilenos. Un nombre y apellido, una
   dirección o un RUT sin guion ni contexto `rut=` **no** se reemplazan.
 

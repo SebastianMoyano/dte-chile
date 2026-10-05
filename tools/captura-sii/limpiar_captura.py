@@ -119,12 +119,35 @@ def main() -> int:
     ruta = Path(sys.argv[1])
     crudo = ruta.read_text(encoding="utf-8")
     antes = auditar(crudo)
-    limpio = tachar(crudo)
     pii = "--sin-pii" not in sys.argv
+    # 1. Reparar archivos de la extensión 3.2: su pasada final dejaba "\persona…@ejemplo.cl"
+    #    (un escape inválido) donde había un correo tras un salto de línea.
+    reparado = re.sub(r"\\(?=persona\d{4}@ejemplo\.cl)", r"\\n", crudo)
+    reparaciones = len(crudo) != len(reparado)
+    # 2. Secretos: sobre el texto (las reglas excluyen la barra invertida, no rompen escapes).
+    limpio = tachar(reparado)
     pii_antes = auditar_pii(limpio)
+    try:
+        d = json.loads(limpio)
+    except json.JSONDecodeError as e:
+        d = None
+        print(f"aviso: el archivo no es JSON válido ({e}); se limpia como texto plano")
+    # 3. Datos personales: SOBRE LOS VALORES del JSON, nunca sobre el texto serializado.
+    semilla = __import__("secrets").token_hex(12)
     if pii:
-        import secrets
-        limpio = reemplazar_pii(limpio, secrets.token_hex(12))
+        if d is not None:
+            def sobre(o):
+                if isinstance(o, str):
+                    return reemplazar_pii(o, semilla)
+                if isinstance(o, list):
+                    return [sobre(x) for x in o]
+                if isinstance(o, dict):
+                    return {k: sobre(v) for k, v in o.items()}
+                return o
+            d = sobre(d)
+            limpio = json.dumps(d, ensure_ascii=False, indent=1)
+        else:
+            limpio = reemplazar_pii(limpio, semilla)
     despues = auditar(limpio)
     try:
         d = json.loads(limpio)
@@ -139,6 +162,8 @@ def main() -> int:
     print(f"antes : JWT {antes['jwt_sin_tachar']}, uuid tras nombre sensible {antes['uuid_tras_nombre_sensible']}, uuids repetidos {len(antes['uuids_repetidos_3_o_mas'])}")
     print(f"después: JWT {despues['jwt_sin_tachar']}, uuid tras nombre sensible {despues['uuid_tras_nombre_sensible']}, uuids repetidos {len(despues['uuids_repetidos_3_o_mas'])}")
     print(f"datos personales: {pii_antes} → {'reemplazados por ficticios' if pii else 'SIN reemplazar (--sin-pii)'}")
+    if reparaciones:
+        print("reparado: escapes rotos de la extensión 3.2 (\\persona… → \\npersona…)")
     if despues["uuids_repetidos_3_o_mas"]:
         print("  uuids que se repiten (pueden ser ids inocentes o un token con nombre no previsto):")
         for u, n in sorted(despues["uuids_repetidos_3_o_mas"].items(), key=lambda x: -x[1])[:5]:
