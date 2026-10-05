@@ -5,6 +5,11 @@
 // Lee el caso, los fixtures y el entorno (RELOJ_FIJO, DORADO_RESOLUCION_*), y escribe en
 // <salida/> ted.xml, dte.xml, totales.json por documento y envio.xml.
 // test_dorado.py --port nucleo/bin/nucleo-dorado lo compara byte a byte.
+// Los CAF que entrega el SII traen claves RSA de 512 bits; Go >= 1.24 las rechaza por defecto
+// ("512-bit keys are insecure"). Se habilitan aquí porque firmar el TED con esa clave no es
+// opcional: es el formato del SII. No afecta a la firma del DTE (certificado de 2048).
+//
+//go:debug rsa1024min=0
 package main
 
 import (
@@ -64,6 +69,19 @@ type docIn struct {
 	IndicadorServicio int        `json:"indicador_servicio"`
 	IndServicio       int        `json:"ind_servicio"`
 	Observaciones     string     `json:"observaciones"`
+	Emisor            *emisorIn  `json:"emisor"`
+}
+
+type emisorIn struct {
+	Rut             string `json:"rut"`
+	RazonSocial     string `json:"razon_social"`
+	Giro            string `json:"giro"`
+	CodigoActividad int    `json:"codigo_actividad"`
+	Direccion       string `json:"direccion"`
+	Comuna          string `json:"comuna"`
+	Ciudad          string `json:"ciudad"`
+	Telefono        string `json:"telefono"`
+	Email           string `json:"email"`
 }
 
 type casoIn struct {
@@ -125,7 +143,11 @@ func main() {
 	if err != nil {
 		fatal(err)
 	}
-	cert, err := firma.CargarP12(p12, "demo")
+	clave := os.Getenv("DORADO_CERT_CLAVE")
+	if clave == "" {
+		clave = "demo"
+	}
+	cert, err := firma.CargarP12(p12, clave)
 	if err != nil {
 		fatal(err)
 	}
@@ -146,6 +168,12 @@ func main() {
 		suf := ""
 		if len(docs) > 1 {
 			suf = fmt.Sprintf("_%d", i+1)
+		}
+		emisor := emisorDemo
+		if d.Emisor != nil {
+			emisor = xmlgen.Emisor{Rut: d.Emisor.Rut, RazonSocial: d.Emisor.RazonSocial, Giro: d.Emisor.Giro,
+				CodigoActividad: d.Emisor.CodigoActividad, Direccion: d.Emisor.Direccion, Comuna: d.Emisor.Comuna,
+				Ciudad: d.Emisor.Ciudad, Telefono: d.Emisor.Telefono, Email: d.Emisor.Email}
 		}
 		caf, err := ted.ParsearCAF(leerLatin1(filepath.Join(fixtures, fmt.Sprintf("caf_%d.xml", d.TipoDTE))))
 		if err != nil {
@@ -173,7 +201,7 @@ func main() {
 		if len(d.Items) > 0 {
 			primer = d.Items[0].Nombre
 		}
-		t, err := ted.Generar(caf, ted.Datos{Folio: d.Folio, RutEmisor: emisorDemo.Rut, RutReceptor: d.Receptor.Rut,
+		t, err := ted.Generar(caf, ted.Datos{Folio: d.Folio, RutEmisor: emisor.Rut, RutReceptor: d.Receptor.Rut,
 			TipoDTE: d.TipoDTE, FechaEmision: d.FechaEmision, MontoTotal: tot.MontoTotal,
 			RazonSocialReceptor: d.Receptor.RazonSocial, PrimerItem: primer, Marca: marca})
 		if err != nil {
@@ -192,7 +220,7 @@ func main() {
 			refs = append(refs, xmlgen.Referencia{NumeroLinea: r.NumeroLinea, TipoDocRef: r.TipoDocRef, FolioRef: r.FolioRef,
 				FechaDocRef: r.FechaDocRef, CodigoRef: r.CodigoRef, RazonRef: r.RazonRef})
 		}
-		doc := xmlgen.Documento{TipoDTE: d.TipoDTE, Folio: d.Folio, FechaEmision: d.FechaEmision, Emisor: emisorDemo,
+		doc := xmlgen.Documento{TipoDTE: d.TipoDTE, Folio: d.Folio, FechaEmision: d.FechaEmision, Emisor: emisor,
 			Receptor: xmlgen.Receptor{Rut: d.Receptor.Rut, RazonSocial: d.Receptor.RazonSocial, Giro: d.Receptor.Giro,
 				Direccion: d.Receptor.Direccion, Comuna: d.Receptor.Comuna, Ciudad: d.Receptor.Ciudad, Email: d.Receptor.Email},
 			Items: items, Referencias: refs, FormaPago: fp, FechaVencimiento: d.FechaVencimiento,
@@ -218,7 +246,11 @@ func main() {
 	if esBoleta {
 		raiz = "EnvioBOLETA"
 	}
-	envio, err := cert.Sobre(firmados, subtotales, emisorDemo.Rut, rutEnvia, fechaResol, nroResol, raiz, marca)
+	rutEmisor := emisorDemo.Rut
+	if docs[0].Emisor != nil {
+		rutEmisor = docs[0].Emisor.Rut
+	}
+	envio, err := cert.Sobre(firmados, subtotales, rutEmisor, rutEnvia, fechaResol, nroResol, raiz, marca)
 	if err != nil {
 		fatal(err)
 	}

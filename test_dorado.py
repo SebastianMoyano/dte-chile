@@ -38,6 +38,7 @@ HORA_FIJA = "2026-01-15T10:30:00"
 RESOLUCION = ("2026-01-01", 0)
 RAIZ = Path(__file__).parent / "tests" / "dorado"
 FIX, CASOS, ESPERADO = RAIZ / "fixtures", RAIZ / "casos", RAIZ / "esperado"
+CERT_ARCHIVO, CERT_CLAVE = "cert_demo.p12", "demo"   # el corpus privado (storage/) los cambia
 
 
 def _documento(d: dict, cert, es_boleta: bool):
@@ -49,7 +50,7 @@ def _documento(d: dict, cert, es_boleta: bool):
 
     caf = ManejadorCAF((FIX / f"caf_{d['tipo_dte']}.xml").read_bytes())
     dte = DTEInput(tipo_dte=d["tipo_dte"], folio=d["folio"], fecha_emision=date.fromisoformat(d["fecha_emision"]),
-                   emisor=EMISOR_DEMO, receptor=d["receptor"], items=d["items"],
+                   emisor=d.get("emisor") or EMISOR_DEMO, receptor=d["receptor"], items=d["items"],
                    referencias=d.get("referencias"), forma_pago=d.get("forma_pago", 1),
                    fecha_vencimiento=d.get("fecha_vencimiento"), indicador_servicio=d.get("indicador_servicio"),
                    observaciones=d.get("observaciones"))
@@ -74,7 +75,7 @@ def correr_caso(caso: dict) -> dict[str, bytes]:
     y un único `envio.xml`."""
     from core.crypto import CertificadoDigital
 
-    cert = CertificadoDigital((FIX / "cert_demo.p12").read_bytes(), "demo")
+    cert = CertificadoDigital((FIX / CERT_ARCHIVO).read_bytes(), CERT_CLAVE)
     docs = caso.get("documentos") or [caso]
     tipos = {d["tipo_dte"] for d in docs}
     es_boleta = tipos <= {39, 41}
@@ -93,7 +94,7 @@ def correr_caso(caso: dict) -> dict[str, bytes]:
         subtotales[d["tipo_dte"]] = subtotales.get(d["tipo_dte"], 0) + 1
     salida["envio.xml"] = armar_sobre_firmado(
         documentos_firmados=firmados, subtotales=sorted(subtotales.items()),
-        rut_emisor=docs[0]["emisor_rut"] if "emisor_rut" in docs[0] else "77777777-7",
+        rut_emisor=(docs[0].get("emisor") or {}).get("rut") or "77777777-7",
         rut_envia=cert.rut_emisor, cert=cert,
         fecha_resolucion=RESOLUCION[0], numero_resolucion=RESOLUCION[1],
         raiz="EnvioBOLETA" if es_boleta else "EnvioDTE")

@@ -44,8 +44,7 @@ ambos casos**: el contrato son archivos, no una API de lenguaje.
 - [x] Corpus de 15 casos: ND (56), guía (52), descuentos por línea, cantidad decimal,
       afecto + exento, crédito con vencimiento y tildes, NC parcial, boleta mixta con
       `IndServicio`, sobre con 3 DTE, sobre con 2 boletas, receptor mínimo. Los 15 validan XSD.
-- [ ] Corpus privado: los XML **aceptados** por el SII (en `storage/`, fuera de git) como
-      casos con su entrada reconstruida; comparación local solo.
+- [x] Corpus privado: `tests/dorado/privado.py` (datos en `storage/dorado_privado/`, fuera de git).
 - [x] Especificación de bytes en `DORADO.md` (totales, TED, DTE firmado, sobre) y modo
       `--parcial` del harness para medir un port a medio camino.
 
@@ -93,6 +92,14 @@ intento porque estaba escrito en la especificación de bytes antes de programar.
   folios no se repiten ni se saltan. (`test_fase2.py`, hecho.)
 
 ### Fase 3 — Contra el SII de certificación (1 semana, con folios de Maullín)
+
+> Estado 2026-10-05, parte A (local, privada) **cerrada**: `tests/dorado/privado.py` reconstruye
+> la entrada de cada sobre real de `storage/dtes/`, y Python puro y Go reproducen byte a byte,
+> con el certificado real (clave desde el Llavero) y el CAF real (elegido por el módulo de la
+> clave que lleva el TED): la factura exenta **34/111 aceptada por el SII (TrackID 253113966)**
+> y la boleta 39/1 de producción. Los sobres de julio anteriores a `core/sobre.py` se omiten.
+> Hallazgo del port: **los CAF del SII traen claves RSA de 512 bits** y Go ≥ 1.24 las rechaza;
+> los binarios llevan `//go:debug rsa1024min=0`. Parte B (envío a Maullín): pendiente.
 
 - El port emite el **set de pruebas** completo (`dry_run_certificacion.py` como guía) y se
   envía con el cliente SOAP Python existente (el envío no se porta todavía).

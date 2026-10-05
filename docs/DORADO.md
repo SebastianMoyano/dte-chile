@@ -187,6 +187,21 @@ Tipos 34 y 41: todo exento, IVA 0.
   el port en Go no tenía y el corpus detectó en el primer intento.
 - La salida son `<?xml version="1.0" encoding="ISO-8859-1"?>\n` + el string en ISO-8859-1.
 
+### Claves de 512 bits
+
+Los CAF reales del SII traen una clave RSA de **512 bits** (`<RSASK>`). Es lo que hay: el TED
+se firma con ella. Go ≥ 1.24 rechaza claves menores a 1024 por defecto; los binarios del
+núcleo llevan `//go:debug rsa1024min=0`. Un port en otro lenguaje tiene que revisar que su
+biblioteca RSA acepte 512 bits (y que no "mejore" el padding: es PKCS#1 v1.5 con SHA-1).
+
+### Corpus privado (datos reales, fuera de git)
+
+`tests/dorado/privado.py` toma cada sobre de `storage/dtes/`, reconstruye su entrada desde el
+propio XML, saca el CAF real (base o `storage/cafs/`, elegido por el módulo `<M>` del TED) y
+el certificado real (`firma_<rut>.pfx`, clave desde el Llavero `sii-clave-certificado`), y
+exige que Python puro y Go reproduzcan los bytes. Resultados en `storage/dorado_privado/`.
+Verificado el 2026-10-05 con el 34/111 aceptado por el SII (TrackID 253113966).
+
 ### Orden recomendado para un port
 
 totales → TED → DTE sin firma (comparar quitando `<Signature>`) → digest del Documento →

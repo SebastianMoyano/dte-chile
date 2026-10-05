@@ -6,6 +6,11 @@
 //
 // La clave del certificado va en NUCLEO_CERT_CLAVE (nunca como argumento: se vería en ps).
 // RELOJ_FIJO fija la hora (solo pruebas). No genera PDF ni envía al SII.
+// Los CAF que entrega el SII traen claves RSA de 512 bits; Go >= 1.24 las rechaza por defecto
+// ("512-bit keys are insecure"). Se habilitan aquí porque firmar el TED con esa clave no es
+// opcional: es el formato del SII. No afecta a la firma del DTE (certificado de 2048).
+//
+//go:debug rsa1024min=0
 package main
 
 import (
