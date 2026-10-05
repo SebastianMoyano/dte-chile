@@ -96,6 +96,7 @@ def generar_pdf_dte(
     dte_input: DTEInput,
     ted_xml: Optional[str] = None,
     nombre_archivo: Optional[str] = None,
+    ambiente: Optional[str] = None,
 ) -> bytes:
     """
     Genera el PDF de la representación gráfica del DTE.
@@ -104,6 +105,9 @@ def generar_pdf_dte(
         dte_input: Los datos del DTE.
         ted_xml: XML del TED para codificar en el PDF417.
         nombre_archivo: Nombre del archivo PDF (solo para metadata).
+        ambiente: "certificacion" | "produccion" | "simulacion". Solo cambia el pie: la
+            simulación (empresa de práctica) dice que el documento no tiene validez.
+            Por defecto, el ambiente SII activo.
 
     Returns:
         Contenido del PDF en bytes.
@@ -317,6 +321,21 @@ def generar_pdf_dte(
     ]))
     story.append(totales_table)
 
+    # ======== REFERENCIAS (notas de crédito/débito) ========
+    # Se imprimen porque son lo que explica el documento: "anula la boleta 7". Sin esto,
+    # una NC parece una venta negativa sin contexto.
+    if dte_input.referencias:
+        story.append(Spacer(1, 4 * mm))
+        estilo_ref = ParagraphStyle("Ref", parent=styles["Normal"], fontSize=8, textColor=colors.HexColor("#333333"))
+        motivos = {1: "Anula", 2: "Corrige texto de", 3: "Corrige montos de"}
+        for r in dte_input.referencias:
+            nombre_ref = NOMBRES_DTE.get(r.tipo_doc_ref.value, f"documento tipo {r.tipo_doc_ref.value}")
+            texto = (f"<b>Referencia:</b> {motivos.get(r.codigo_ref, 'Referencia a')} {nombre_ref} "
+                     f"N° {r.folio_ref} del {r.fecha_doc_ref.isoformat()}")
+            if r.razon_ref:
+                texto += f" — {r.razon_ref}"
+            story.append(Paragraph(texto, estilo_ref))
+
     # ======== TIMBRE ELECTRÓNICO / BARCODE ========
     story.append(Spacer(1, 6 * mm))
     story.append(HRFlowable(width="100%", thickness=0.5, color=colors.lightgrey))
@@ -336,24 +355,26 @@ def generar_pdf_dte(
             story.append(barcode_img)
 
     # Leyenda bajo el timbre: la resolución es POR EMISOR y por ambiente (L4).
+    from core.config import settings
     from core.resolucion import resolucion_emisor
-    fecha_res, nro_res = resolucion_emisor(dte_input.emisor.rut)
+    ambiente = ambiente or settings.sii_ambiente
     story.append(Spacer(1, 2 * mm))
-    story.append(Paragraph(
-        f"Res. {nro_res} de {fecha_res[:4]} — Verifique documento: www.sii.cl",
-        estilo_timbre,
-    ))
+    if ambiente == "simulacion":
+        story.append(Paragraph("Documento de práctica — no existe en www.sii.cl", estilo_timbre))
+    else:
+        fecha_res, nro_res = resolucion_emisor(dte_input.emisor.rut)
+        story.append(Paragraph(
+            f"Res. {nro_res} de {fecha_res[:4]} — Verifique documento: www.sii.cl",
+            estilo_timbre,
+        ))
 
     story.append(Spacer(1, 3 * mm))
 
     # Pie de página
-    from core.config import settings
     pie_style = ParagraphStyle("Pie", parent=styles["Normal"], fontSize=7, textColor=colors.grey, alignment=TA_CENTER)
-    story.append(Paragraph(
-        f"Documento generado el {date.today().isoformat()} — "
-        f"{'AMBIENTE DE CERTIFICACIÓN SII' if settings.sii_ambiente == 'certificacion' else 'PRODUCCIÓN SII'}",
-        pie_style,
-    ))
+    etiqueta = {"certificacion": "AMBIENTE DE CERTIFICACIÓN SII", "produccion": "PRODUCCIÓN SII",
+                "simulacion": "SIMULACIÓN · EMPRESA DE PRÁCTICA · SIN VALIDEZ TRIBUTARIA"}.get(ambiente, ambiente.upper())
+    story.append(Paragraph(f"Documento generado el {date.today().isoformat()} — {etiqueta}", pie_style))
 
     doc.build(story)
     return buf.getvalue()

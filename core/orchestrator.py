@@ -45,14 +45,24 @@ class OrquestadorDTE:
     Orquesta todo el flujo de emisión de un DTE.
     """
 
-    def __init__(self):
+    def __init__(self, storage_base: Optional[Path] = None, ambiente: Optional[str] = None):
+        """
+        Args:
+            storage_base: carpeta donde dejar XML/PDF. Por defecto `settings.storage_path`.
+                La simulación (core/simulacion.py) usa `storage/simulacion` para que sus
+                archivos (DTE_33_1.pdf…) no pisen los de una empresa real con el mismo folio.
+            ambiente: etiqueta que se persiste en `dtes.ambiente`. Por defecto el ambiente SII
+                activo; la simulación guarda "simulacion".
+        """
+        self.storage_base = Path(storage_base) if storage_base else Path(settings.storage_path)
+        self.ambiente = ambiente or settings.sii_ambiente
         self.asegurar_directorios()
 
     def asegurar_directorios(self) -> None:
         """
         Crea las carpetas necesarias en el almacenamiento local si no existen.
         """
-        storage_base = Path(settings.storage_path)
+        storage_base = self.storage_base
         (storage_base / "dtes").mkdir(parents=True, exist_ok=True)
         (storage_base / "pdfs").mkdir(parents=True, exist_ok=True)
         (storage_base / "cafs").mkdir(parents=True, exist_ok=True)
@@ -230,13 +240,13 @@ class OrquestadorDTE:
         )
 
         # 9. Guardar el DTE firmado tal cual se firmó (esos son los bytes que valen).
-        storage_base = Path(settings.storage_path)
+        storage_base = self.storage_base
         path_dte_xml = storage_base / "dtes" / f"DTE_{tipo_dte}_{dte_input.folio}.xml"
         xml_dte_bytes = dte_firmado_str.encode("ISO-8859-1")
         path_dte_xml.write_bytes(xml_dte_bytes)
 
         # 10. Generar el PDF y guardarlo en disco
-        pdf_bytes = generar_pdf_dte(dte_input, ted_xml=ted_xml)
+        pdf_bytes = generar_pdf_dte(dte_input, ted_xml=ted_xml, ambiente=self.ambiente)
         path_dte_pdf = storage_base / "pdfs" / f"DTE_{tipo_dte}_{dte_input.folio}.pdf"
         path_dte_pdf.write_bytes(pdf_bytes)
 
@@ -259,10 +269,11 @@ class OrquestadorDTE:
             iva=totales.iva_monto,
             monto_total=totales.monto_total,
             xml_firmado=xml_dte_str,
-            ambiente=settings.sii_ambiente,
+            ambiente=self.ambiente,
         )
-        
-        guardar_pdf_dte(dte_id, str(path_dte_pdf.relative_to(storage_base.parent)))
+
+        # Ruta relativa a la raíz del repo (el endpoint de PDF la resuelve desde el cwd).
+        guardar_pdf_dte(dte_id, str(path_dte_pdf.relative_to(Path(settings.storage_path).parent)))
 
         # Retornar detalles
         xml_envio_b64 = base64.b64encode(xml_envio_bytes).decode("ascii")
@@ -276,7 +287,7 @@ class OrquestadorDTE:
             "pdf_path": str(path_dte_pdf),
             "xml_envio_path": str(path_envio_xml),
             "xml_envio_b64": xml_envio_b64,
-            "ambiente": settings.sii_ambiente,
+            "ambiente": self.ambiente,
             "mensaje": f"DTE emitido exitosamente. Folio {dte_input.folio}.",
         }
 
@@ -284,6 +295,8 @@ class OrquestadorDTE:
 def emitir_documento(
     dte_input: DTEInput,
     certificado: Optional[CertificadoDigital] = None,
+    storage_base: Optional[Path] = None,
+    ambiente: Optional[str] = None,
 ) -> dict:
     """
     Punto de entrada único de emisión: rutea al orquestador que corresponde al tipo.
@@ -296,5 +309,5 @@ def emitir_documento(
         # Import local: orchestrator_boleta hereda de este módulo (evita el ciclo).
         from core.orchestrator_boleta import OrquestadorBoleta
 
-        return OrquestadorBoleta().emitir_boleta(dte_input, certificado=certificado)
-    return OrquestadorDTE().emitir_dte(dte_input, certificado=certificado)
+        return OrquestadorBoleta(storage_base=storage_base, ambiente=ambiente).emitir_boleta(dte_input, certificado=certificado)
+    return OrquestadorDTE(storage_base=storage_base, ambiente=ambiente).emitir_dte(dte_input, certificado=certificado)

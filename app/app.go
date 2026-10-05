@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -147,6 +148,32 @@ func (a *App) Guardar(ruta, nombreSugerido string) (string, error) {
 		return "", err
 	}
 	return destino, os.WriteFile(destino, datos, 0o644)
+}
+
+// Bytes baja un recurso del motor (p. ej. un PDF) y lo devuelve en base64 para mostrarlo
+// dentro de la app (visor embebido) sin pasar por disco.
+func (a *App) Bytes(ruta string) (string, error) {
+	req, err := http.NewRequest("GET", a.motor.URL+ruta, nil)
+	if err != nil {
+		return "", err
+	}
+	if a.motor.Clave != "" {
+		req.Header.Set("Authorization", "Bearer "+a.motor.Clave)
+	}
+	r, err := a.http.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer r.Body.Close()
+	if r.StatusCode != 200 {
+		b, _ := io.ReadAll(io.LimitReader(r.Body, 4096))
+		return "", fmt.Errorf("el motor respondió %d: %s", r.StatusCode, string(b))
+	}
+	datos, err := io.ReadAll(r.Body)
+	if err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(datos), nil
 }
 
 // AbrirURL abre una dirección en el navegador del sistema (panel web del motor, SII, docs).

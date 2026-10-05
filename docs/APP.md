@@ -30,14 +30,34 @@ DTE Chile.app (Go)                         motor (Python, main.py)
 - **Raíz del repo.** `DTE_REPO`, o subiendo desde el ejecutable o el cwd hasta encontrar
   `main.py` + `core/`. Para empaquetar sin repo (instalador) falta embeber Python; ver pendientes.
 
+## La empresa de práctica (modo simulación)
+
+Arriba hay un selector de empresa. La primera siempre es **EMPRESA DEMO SPA (práctica)**:
+el mundo del tramo 1 del curso. Con ella elegida, la barra dice **SIMULACIÓN** y todo lo que
+se emite pasa por el mismo pipeline que un documento real (folio atómico → TED → XML → firma
+→ PDF → BD) pero con un emisor ficticio, un CAF de mentira, un certificado autofirmado en
+memoria y **sin envío**. Ver `core/simulacion.py` y `api/routes/simulacion.py`
+(`/api/v1/simulacion/{estado,emitir,anular/{id},documentos/{id},reiniciar}`).
+
+- Los documentos quedan con `ambiente='simulacion'` y `estado='simulado'`, sus archivos en
+  `storage/simulacion/`, y el PDF dice "documento de práctica, sin validez tributaria".
+- "Anular" emite una nota de crédito por el total registrado y marca el original como
+  `anulado_simulado`: la lección de que nada se borra.
+- "Empezar de nuevo" (solo en práctica) borra todo lo de la empresa demo y vuelve al folio 1.
+- En boletas el precio se manda **con IVA incluido** (así las exige el SII); en facturas, neto.
+  La app lo hace sola.
+
+Prueba sin red: `.venv/bin/python test_simulacion.py` (20 comprobaciones).
+
 ## Pantallas (v0.1)
 
 | Pantalla | Qué hace hoy | Endpoints |
 |---|---|---|
-| Inicio | estado del motor, empresas con su etiqueta de habilitación, tres acciones | `/`, `keystore/negocios` |
-| Cobrarle a alguien | boleta/factura, afecta/exenta, monto con o sin IVA, cálculo en vivo, aviso rojo si la empresa está en producción; emite por el motor propio | `dte/emisor`, `dte/emitir` |
+| Inicio | estado del motor, la empresa activa (práctica o real) con su etiqueta, tres acciones, 'empezar de nuevo' en práctica | `/`, `keystore/negocios`, `simulacion/estado` |
+| Cobrarle a alguien | boleta/factura, afecta/exenta, monto con o sin IVA, cálculo en vivo, aviso verde/amarillo/rojo según el mundo; emite en práctica o por el motor propio y abre el visor | `simulacion/emitir`, `dte/emisor`, `dte/emitir` |
 | Mi mes | suma neto/IVA/total del mes por empresa (las NC restan), recordatorio de "sin movimiento" | `dte/documentos` |
-| Corregir | lista documentos corregibles; la NC desde la app es de la próxima versión | `dte/documentos` |
+| Corregir | lista documentos corregibles; en práctica anula con NC; en empresas reales, próxima versión | `dte/documentos`, `simulacion/anular` |
+| Ver | visor de PDF embebido con las partes explicadas, guardar PDF/XML, anular (práctica) | `dte/documentos/{id}/pdf` |
 | Documentos | todas las empresas, filtro, guardar PDF/XML con diálogo del sistema | `dte/documentos`, `/pdf`, `/xml` |
 | Aprender | los cinco tramos del curso (solo índice) | — |
 
@@ -66,7 +86,7 @@ Registro del motor arrancado por la app: `logs/app-motor.log`.
 2. **Nota de crédito desde "Corregir"** por el total registrado del documento.
 3. **Datos del emisor por negocio** en BD (giro, actividad, dirección) en vez de `EMPRESA_*`
    del `.env`; hoy solo la empresa del `.env` puede emitir con el motor propio.
-4. **Modo simulación** (motor en seco con EMPRESA DEMO SPA) para el tramo 1 de Aprender, y
-   cargar las lecciones y el quiz (`docs/aprender/`) en la pantalla.
+4. Cargar las lecciones y el quiz (`docs/aprender/`) en la pantalla Aprender, enlazados al
+   modo práctica (que ya existe).
 5. **Instalador**: embeber Python (o PyInstaller del motor) para que la app no dependa del
    repo; firma y notarización con la cuenta de Apple Developer; build Windows/Linux.

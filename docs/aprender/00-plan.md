@@ -100,5 +100,6 @@ lado a lado con el cálculo de la app. Cuando no coinciden, la app explica por q
 - Los videos del tramo 1: las **fuentes para NotebookLM** están en [`notebooklm/`](notebooklm/README.md)
   (un archivo por lección, autocontenido). Los prompts de [`videos-tramo-1.md`](videos-tramo-1.md)
   son la alternativa si se generan con un modelo de video en vez de NotebookLM.
-- En la app: el modo simulación (motor en seco con la empresa demo), la barra de "en qué mundo
-  estás", y la ficha de cada lección enlazada al flujo real.
+- En la app: **hecho** el modo simulación (EMPRESA DEMO SPA emite, se ve y se anula con el
+  pipeline real, sin envío; `core/simulacion.py`) y la barra de "en qué mundo estás". Falta la
+  ficha de cada lección dentro de la app, enlazada al flujo.

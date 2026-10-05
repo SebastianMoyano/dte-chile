@@ -101,7 +101,7 @@ class OrquestadorBoleta(OrquestadorDTE):
         validar_xml_dte_strict(xml_envio_bytes)
 
         # 11. Guardar el documento (bytes exactos que se firmaron) y el sobre.
-        storage_base = Path(settings.storage_path)
+        storage_base = self.storage_base
         xml_doc_bytes = doc_firmado_str.encode("ISO-8859-1")
         path_xml = storage_base / "dtes" / f"BOLETA_{tipo_dte}_{dte_input.folio}.xml"
         path_xml.write_bytes(xml_doc_bytes)
@@ -125,9 +125,9 @@ class OrquestadorBoleta(OrquestadorDTE):
             iva=totales.iva_monto,
             monto_total=totales.monto_total,
             xml_firmado=xml_doc_bytes.decode("ISO-8859-1"),
-            ambiente=settings.sii_ambiente,
+            ambiente=self.ambiente,
         )
-        guardar_pdf_dte(dte_id, str(path_pdf.relative_to(storage_base.parent)))
+        guardar_pdf_dte(dte_id, str(path_pdf.relative_to(Path(settings.storage_path).parent)))
 
         return {
             "dte_id": dte_id,
@@ -138,6 +138,6 @@ class OrquestadorBoleta(OrquestadorDTE):
             "pdf_path": str(path_pdf),
             "xml_envio_path": str(path_envio),
             "xml_envio_b64": base64.b64encode(xml_envio_bytes).decode("ascii"),
-            "ambiente": settings.sii_ambiente,
+            "ambiente": self.ambiente,
             "mensaje": f"Boleta emitida. Folio {dte_input.folio}.",
         }

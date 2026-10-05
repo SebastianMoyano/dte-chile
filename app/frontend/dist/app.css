@@ -15,6 +15,7 @@ nav a.on { color:var(--fg); background:var(--bg); font-weight:600; }
 .m-sim { background:color-mix(in srgb,var(--ok) 15%,transparent); color:var(--ok); }
 .m-pruebas { background:color-mix(in srgb,var(--warn) 18%,transparent); color:var(--warn); }
 .m-real { background:color-mix(in srgb,var(--no) 15%,transparent); color:var(--no); }
+#empresa { width:auto; max-width:260px; padding:5px 10px; font-size:.86rem; border-radius:8px; --wails-draggable:no-drag; }
 .m-error { background:color-mix(in srgb,var(--no) 15%,transparent); color:var(--no); }
 
 .wrap { max-width:960px; margin:0 auto; padding:28px 20px 60px; }

@@ -1,15 +1,23 @@
 // DTE Chile — interfaz de la app de escritorio. Sin framework: una función por vista.
 // Todo lo que toca al motor pasa por `api()`, que llama a Go (App.API) y Go firma la petición.
 // La clave del motor nunca llega aquí.
+//
+// La empresa activa (selector de arriba) decide "en qué mundo estás":
+//   demo (EMPRESA DEMO SPA)      → SIMULACIÓN: nada sale del computador (core/simulacion.py)
+//   negocio en certificación     → PRUEBAS DEL SII: responde el SII, sin efecto tributario
+//   negocio en producción        → REAL: cada documento cuenta
 
 const $ = (id) => document.getElementById(id);
 const clp = (n) => (n == null ? "—" : "$ " + Math.round(n).toLocaleString("es-CL"));
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const TIPOS = { 33: "Factura", 34: "Factura exenta", 39: "Boleta", 41: "Boleta exenta", 52: "Guía de despacho", 56: "Nota de débito", 61: "Nota de crédito" };
 const IVA = 0.19;
+const RUT_DEMO = "77777777-7";
+const DEMO = { rut: RUT_DEMO, razon_social: "EMPRESA DEMO SPA", demo: true, ambiente: "simulacion", estado_etiqueta: "Empresa de práctica", usa_sw_propio: 1 };
 
 let estado = { listo: false };
-let negocios = [];
+let negocios = [];          // reales, del motor
+let empresaRut = (() => { try { return localStorage.getItem("empresa") || RUT_DEMO; } catch { return RUT_DEMO; } })();
 
 // ---------- motor ----------
 async function api(metodo, ruta, cuerpo) {
@@ -24,21 +32,34 @@ async function api(metodo, ruta, cuerpo) {
 }
 function aviso(txt, ms = 3500) { const a = $("aviso"); a.textContent = txt; a.style.display = "block"; clearTimeout(a._t); a._t = setTimeout(() => (a.style.display = "none"), ms); }
 
+// ---------- empresa activa y mundo ----------
+const todas = () => [DEMO, ...negocios];
+const empresa = () => todas().find((n) => n.rut === empresaRut) || DEMO;
+const mundo = () => { const e = empresa(); return e.demo ? "sim" : e.ambiente === "produccion" ? "real" : "pruebas"; };
+
 function pintarMundo() {
   const m = $("mundo");
   if (!estado.listo) { m.className = "mundo " + (estado.error ? "m-error" : "m-cargando"); m.textContent = estado.error ? "motor con error" : "arrancando motor…"; return; }
-  if (estado.ambiente === "produccion") { m.className = "mundo m-real"; m.textContent = "REAL · cada documento cuenta"; }
-  else { m.className = "mundo m-pruebas"; m.textContent = "PRUEBAS DEL SII · sin efecto tributario"; }
+  const w = mundo();
+  m.className = "mundo m-" + w;
+  m.textContent = w === "sim" ? "SIMULACIÓN · nada sale de tu computador" : w === "real" ? "REAL · cada documento cuenta" : "PRUEBAS DEL SII · sin efecto tributario";
 }
-
+function pintarSelector() {
+  const s = $("empresa");
+  s.innerHTML = todas().map((n) => `<option value="${esc(n.rut)}" ${n.rut === empresaRut ? "selected" : ""}>${esc(n.razon_social || n.rut)}${n.demo ? " (práctica)" : ""}</option>`).join("");
+  s.onchange = () => { empresaRut = s.value; try { localStorage.setItem("empresa", empresaRut); } catch {} pintarMundo(); render(); };
+}
 async function cargarNegocios() {
-  try { negocios = await api("GET", "/api/v1/keystore/negocios"); } catch (e) { negocios = []; }
+  try { negocios = await api("GET", "/api/v1/keystore/negocios"); } catch { negocios = []; }
+  if (!todas().some((n) => n.rut === empresaRut)) empresaRut = RUT_DEMO;
+  pintarSelector(); pintarMundo();
   return negocios;
 }
 
 // ---------- router ----------
 const vistas = {};
 function ir(v) { location.hash = "#" + v; }
+function param(k) { const q = (location.hash.split("?")[1] || ""); return new URLSearchParams(q).get(k); }
 async function render() {
   const v = (location.hash || "#inicio").slice(1).split("?")[0];
   document.querySelectorAll("nav a").forEach((a) => a.classList.toggle("on", a.dataset.v === v));
@@ -56,45 +77,56 @@ vistas.inicio = async (el) => {
     return;
   }
   await cargarNegocios();
-  const emp = negocios.length
-    ? negocios.map((n) => `<div class="card"><b>${esc(n.razon_social || n.rut)}</b> <span class="mut">${esc(n.rut)}</span><br>
-        <span class="pill ${n.usa_sw_propio ? "p-ok" : "p-mut"}">${esc(n.estado_etiqueta || "sin diagnóstico")}</span>
-        <span class="pill ${n.ambiente === "produccion" ? "p-no" : "p-warn"}">${n.ambiente === "produccion" ? "real" : "pruebas"}</span></div>`).join("")
-    : `<div class="card"><b>Todavía no hay ninguna empresa.</b><p class="mut">Agrega la primera desde el panel del motor (certificado + RUT). Después aparece aquí y en todas las pantallas.</p>
-        <button class="sec" onclick="window.go.main.App.AbrirPanel('certificados')">Abrir el panel</button></div>`;
+  const e = empresa();
+  let cab;
+  if (e.demo) {
+    const st = await api("GET", "/api/v1/simulacion/estado");
+    cab = `<div class="banner verde"><b>Estás practicando con EMPRESA DEMO SPA.</b> Todo lo que emitas aquí se forma, se firma y se timbra como un documento real, pero nunca sale de tu computador.
+      Llevas <b>${st.documentos}</b> documento(s); la próxima boleta es la <b>N° ${st.folios["39"]?.siguiente ?? 1}</b> y la próxima factura la <b>N° ${st.folios["33"]?.siguiente ?? 1}</b>.
+      <br><span class="lnk" onclick="reiniciarDemo()">Empezar de nuevo</span> <span class="mut">(solo existe en la práctica: en el mundo real nada se borra)</span></div>`;
+  } else {
+    cab = `<div class="banner ${mundo() === "real" ? "rojo" : ""}"><b>${esc(e.razon_social || e.rut)}</b> · ${esc(e.rut)} · <span class="pill ${e.usa_sw_propio ? "p-ok" : "p-mut"}">${esc(e.estado_etiqueta || "sin diagnóstico")}</span>
+      ${mundo() === "real" ? "<br>Esta empresa está en <b>producción</b>: lo que emitas cuenta ante el SII." : "<br>Esta empresa está en el <b>ambiente de pruebas</b> del SII: el SII responde, pero sin efecto tributario."}</div>`;
+  }
   el.innerHTML = `
     <h1>¿Qué quieres hacer?</h1>
     <p class="sub">Tres cosas cubren casi todo. Lo demás está arriba.</p>
+    ${cab}
     <div class="grid">
       <div class="card accion" onclick="ir('cobrar')"><div class="ico">🧾</div><h3>Cobrarle a alguien</h3><p>Una boleta o una factura. Te muestro el neto, el IVA y el total antes de emitir.</p></div>
       <div class="card accion" onclick="ir('mes')"><div class="ico">📅</div><h3>Mi mes</h3><p>Cuánto vendiste, cuánto IVA cobraste y qué va a pedir el F29.</p></div>
       <div class="card accion" onclick="ir('corregir')"><div class="ico">↩️</div><h3>Corregir</h3><p>Nada se borra. Una nota de crédito arregla lo que salió mal.</p></div>
     </div>
-    <h2>Tus empresas</h2>
-    ${emp}
+    ${negocios.length ? "" : `<div class="card"><b>Todavía no hay ninguna empresa real.</b><p class="mut">Practica con la demo todo lo que quieras. Cuando tengas tu certificado, agrega tu empresa desde el panel del motor y aparecerá en el selector de arriba.</p>
+      <button class="sec" onclick="window.go.main.App.AbrirPanel('certificados')">Abrir el panel</button></div>`}
     <p class="mut">Motor v${esc(estado.version)} en <code>${esc(estado.url)}</code>${estado.externo ? " (externo)" : ""}.</p>`;
+};
+window.reiniciarDemo = async () => {
+  if (!confirm("¿Borrar todos los documentos de práctica y volver a la boleta N° 1?")) return;
+  const r = await api("POST", "/api/v1/simulacion/reiniciar");
+  aviso(`Listo: ${r.documentos_borrados} documento(s) de práctica borrados.`); render();
 };
 
 // ---------- cobrar ----------
 vistas.cobrar = async (el) => {
   await cargarNegocios();
-  if (!negocios.length) { el.innerHTML = `<h1>Cobrarle a alguien</h1><div class="banner">Primero agrega una empresa en <span class="lnk" onclick="ir('inicio')">Inicio</span>.</div>`; return; }
+  const e = empresa();
   el.innerHTML = `
     <h1>Cobrarle a alguien</h1>
     <p class="sub">Llena lo mínimo. Abajo ves cómo queda el documento antes de emitirlo.</p>
     <div class="card">
-      <label>Desde qué empresa</label>
-      <select id="c_emp">${negocios.map((n) => `<option value="${esc(n.rut)}">${esc(n.razon_social || n.rut)}</option>`).join("")}</select>
+      <p class="mut">Desde <b>${esc(e.razon_social || e.rut)}</b> (cambia la empresa arriba).</p>
       <label>A quién</label>
       <div class="radio">
         <label><input type="radio" name="c_quien" value="persona" checked> Una persona (boleta)</label>
         <label><input type="radio" name="c_quien" value="empresa"> Una empresa (factura)</label>
       </div>
       <div id="c_datos_emp" style="display:none">
-        <div class="row"><div><label>RUT del cliente</label><input id="c_rut" placeholder="76111111-6"></div><div><label>Nombre o razón social</label><input id="c_nombre" placeholder="CLIENTE DEMO SPA"></div></div>
+        <div class="row"><div><label>RUT del cliente</label><input id="c_rut" placeholder="${e.demo ? "76111111-6" : "12345678-5"}" value="${e.demo ? "76111111-6" : ""}"></div>
+        <div><label>Nombre o razón social</label><input id="c_nombre" placeholder="CLIENTE DEMO SPA" value="${e.demo ? "CLIENTE DEMO SPA" : ""}"></div></div>
       </div>
-      <label>Qué le vendes</label><input id="c_que" placeholder="Café para reunión">
-      <div class="row"><div><label>Monto</label><input id="c_monto" type="number" min="0" step="1" placeholder="23800"></div>
+      <label>Qué le vendes</label><input id="c_que" placeholder="${e.demo ? "Café" : "Servicio"}">
+      <div class="row"><div><label>Monto</label><input id="c_monto" type="number" min="0" step="1" placeholder="${e.demo ? "1190" : ""}"></div>
         <div><label>Ese monto es…</label><select id="c_modo"><option value="total">con IVA incluido (lo que paga)</option><option value="neto">neto (sin IVA)</option></select></div></div>
       <div class="chk"><input type="checkbox" id="c_exento"><label for="c_exento" style="margin:0;font-weight:500">No lleva IVA (educación, salud, arriendo sin muebles…)</label></div>
       <div class="totales"><div><span>Neto</span><b id="t_neto">—</b></div><div><span>IVA 19%</span><b id="t_iva">—</b></div><div><span>Total</span><b id="t_total">—</b></div></div>
@@ -108,51 +140,57 @@ vistas.cobrar = async (el) => {
     if (ex) neto = monto;
     const iva = ex ? 0 : Math.round(neto * IVA);
     $("t_neto").textContent = clp(neto); $("t_iva").textContent = clp(iva); $("t_total").textContent = clp(neto + iva);
-    const empresa = document.querySelector('input[name="c_quien"]:checked').value === "empresa";
-    $("c_datos_emp").style.display = empresa ? "block" : "none";
-    const tipo = empresa ? (ex ? 34 : 33) : (ex ? 41 : 39);
+    const aEmpresa = document.querySelector('input[name="c_quien"]:checked').value === "empresa";
+    $("c_datos_emp").style.display = aEmpresa ? "block" : "none";
+    const tipo = aEmpresa ? (ex ? 34 : 33) : (ex ? 41 : 39);
     $("c_tipo").textContent = `Documento: ${TIPOS[tipo]} (tipo ${tipo}).`;
-    const neg = negocios.find((n) => n.rut === $("c_emp").value);
-    $("c_aviso").innerHTML = neg?.ambiente === "produccion"
+    const w = mundo();
+    $("c_aviso").innerHTML = w === "real"
       ? `<div class="banner rojo"><b>Esto es real.</b> Un folio gastado no vuelve. Revisa el RUT, el monto y el tipo antes de emitir.</div>`
-      : `<div class="banner">Esta empresa está en el <b>ambiente de pruebas del SII</b>: el documento no tiene efecto tributario.</div>`;
-    return { neto, iva, tipo, empresa, ex };
+      : w === "pruebas" ? `<div class="banner">Ambiente de <b>pruebas del SII</b>: el documento no tiene efecto tributario.</div>`
+      : `<div class="banner verde"><b>Práctica.</b> El documento se arma, se firma y se timbra igual que uno real, pero no sale de aquí.</div>`;
+    return { neto, iva, tipo, aEmpresa, ex };
   };
   el.querySelectorAll("input,select").forEach((i) => i.addEventListener("input", rec));
   rec();
   window.emitir = async () => {
-    const { neto, tipo, empresa, ex } = rec();
-    const rut = $("c_emp").value, neg = negocios.find((n) => n.rut === rut);
+    const { neto, iva, tipo, aEmpresa, ex } = rec();
     if (!neto) return aviso("Falta el monto.");
-    if (empresa && !$("c_rut").value) return aviso("Falta el RUT del cliente.");
-    if (!neg?.usa_sw_propio) {
-      $("c_aviso").innerHTML += `<div class="banner"><b>${esc(neg?.razon_social || rut)}</b> emite hoy con <b>${neg?.estado_etiqueta?.toLowerCase().includes("gratuito") ? "el sistema gratuito del SII" : "otro software"}</b>, no con el motor propio.
-        La emisión por el gratuito desde esta app llega en la próxima versión; mientras tanto el panel web ya importa lo emitido. <span class="lnk" onclick="window.go.main.App.AbrirPanel('certificados')">Abrir el panel</span>.</div>`;
-      return;
-    }
-    const body = {
-      dte: {
-        tipo_dte: tipo, folio: 0,
-        emisor: await emisorDe(rut),
-        receptor: empresa ? { rut: $("c_rut").value.trim(), razon_social: $("c_nombre").value.trim() || "CLIENTE", es_contribuyente: true }
-                          : { rut: "66666666-6", razon_social: "CONSUMIDOR FINAL", es_contribuyente: false },
-        items: [{ numero_linea: 1, nombre: $("c_que").value.trim() || "Venta", cantidad: 1, precio_unitario: neto, exento: ex }],
-        forma_pago: 1,
-      },
-    };
-    if (!confirm(`Emitir ${TIPOS[tipo]} por ${clp(neto + (ex ? 0 : Math.round(neto * IVA)))}?`)) return;
+    if (aEmpresa && !$("c_rut").value.trim()) return aviso("Falta el RUT del cliente.");
+    const que = $("c_que").value.trim() || "Venta";
+    const total = neto + iva;
+    if (!confirm(`Emitir ${TIPOS[tipo]} por ${clp(total)}?`)) return;
     $("c_btn").disabled = true;
     try {
+      if (e.demo) {
+        // En boletas el precio va CON IVA incluido (así las exige el SII); en facturas, neto.
+        const precio = tipo === 39 ? total : neto;
+        const body = { tipo_dte: tipo, items: [{ nombre: que, precio_unitario: precio, exento: ex }] };
+        if (aEmpresa) body.receptor = { rut: $("c_rut").value.trim(), razon_social: $("c_nombre").value.trim() || "CLIENTE", es_contribuyente: true };
+        const r = await api("POST", "/api/v1/simulacion/emitir", body);
+        aviso(`${TIPOS[r.tipo_dte]} N° ${r.folio} emitida (práctica).`, 5000);
+        ir(`ver?id=${r.dte_id}`);
+        return;
+      }
+      if (!e.usa_sw_propio) {
+        $("c_aviso").innerHTML += `<div class="banner"><b>${esc(e.razon_social || e.rut)}</b> emite hoy con <b>${(e.estado_etiqueta || "").toLowerCase().includes("gratuito") ? "el sistema gratuito del SII" : "otro software"}</b>, no con el motor propio.
+          La emisión por el gratuito desde esta app llega en la próxima versión. <span class="lnk" onclick="window.go.main.App.AbrirPanel('certificados')">Abrir el panel</span>.</div>`;
+        return;
+      }
+      const body = { dte: { tipo_dte: tipo, folio: 0, emisor: await emisorDe(e.rut),
+        receptor: aEmpresa ? { rut: $("c_rut").value.trim(), razon_social: $("c_nombre").value.trim() || "CLIENTE", es_contribuyente: true }
+                           : { rut: "66666666-6", razon_social: "CONSUMIDOR FINAL", es_contribuyente: false },
+        items: [{ numero_linea: 1, nombre: que, cantidad: 1, precio_unitario: tipo === 39 ? total : neto, exento: ex }], forma_pago: 1 } };
       const r = await api("POST", "/api/v1/dte/emitir", body);
       aviso(`Listo: ${TIPOS[r.tipo_dte]} folio ${r.folio}, ${clp(r.monto_total)}.`, 6000);
-      ir("documentos");
-    } catch (e) { $("c_aviso").innerHTML += `<div class="banner rojo">${esc(e.message)}</div>`; }
+      ir(`ver?id=${r.dte_id}`);
+    } catch (err) { $("c_aviso").innerHTML += `<div class="banner rojo">${esc(err.message)}</div>`; }
     finally { $("c_btn").disabled = false; }
   };
 };
 
-// Datos del emisor: el motor guarda la empresa configurada en .env (EMPRESA_*). Hasta que cada
-// negocio tenga sus datos completos en BD, se usa esa y se exige que el RUT coincida.
+// Datos del emisor real: el motor guarda la empresa configurada en .env (EMPRESA_*). Hasta que
+// cada negocio tenga sus datos completos en BD, se usa esa y se exige que el RUT coincida.
 async function emisorDe(rut) {
   const neg = negocios.find((n) => n.rut === rut);
   const e = await api("GET", "/api/v1/dte/emisor");
@@ -164,22 +202,48 @@ async function emisorDe(rut) {
            direccion: e.direccion, comuna: e.comuna, ciudad: e.ciudad, email: e.email, telefono: e.telefono };
 }
 
+// ---------- ver (visor de PDF embebido) ----------
+vistas.ver = async (el) => {
+  const id = param("id");
+  const docs = (await api("GET", "/api/v1/dte/documentos?limite=200")).documentos;
+  const d = docs.find((x) => String(x.id) === String(id));
+  if (!d) throw new Error("No encontré ese documento.");
+  const b64 = d.tiene_pdf ? await window.go.main.App.Bytes(`/api/v1/dte/documentos/${d.id}/pdf`) : null;
+  const sim = d.ambiente === "simulacion";
+  el.innerHTML = `
+    <h1>${esc(TIPOS[d.tipo_dte] || d.tipo_dte)} N° ${d.folio}</h1>
+    <p class="sub">${esc(d.razon_social_receptor || d.rut_receptor)} · ${esc((d.fecha_emision || "").slice(0, 10))} · ${clp(d.monto_total)}
+      ${sim ? '<span class="pill p-ok">práctica</span>' : ""} ${d.estado === "anulado_simulado" ? '<span class="pill p-no">anulada</span>' : ""}</p>
+    <div class="banner ${sim ? "verde" : ""}">Mira las partes: quién vende y su RUT, el <b>folio</b>, la fecha, el detalle, <b>neto, IVA y total</b>, y abajo el <b>timbre</b> (el código de barras cuadrado). ${sim ? "Es idéntico a uno real; solo que este no salió de tu computador." : ""}</div>
+    ${b64 ? `<iframe style="width:100%;height:70vh;border:1px solid var(--bd);border-radius:12px;background:#fff" src="data:application/pdf;base64,${b64}"></iframe>` : '<p class="mut">Este documento no tiene PDF.</p>'}
+    <div class="row" style="margin-top:12px">
+      ${b64 ? `<button class="sec" onclick="bajar(${d.id},'pdf',${d.tipo_dte},${d.folio})">Guardar PDF</button>` : ""}
+      ${d.tiene_xml ? `<button class="sec" onclick="bajar(${d.id},'xml',${d.tipo_dte},${d.folio})">Guardar XML</button>` : ""}
+      ${sim && ![56, 61].includes(d.tipo_dte) && d.estado !== "anulado_simulado" ? `<button class="peligro" onclick="anularDemo(${d.id})">Anular con nota de crédito</button>` : ""}
+      <button onclick="ir('cobrar')">Emitir otro</button>
+    </div>`;
+};
+window.anularDemo = async (id) => {
+  if (!confirm("Se va a emitir una nota de crédito por el total de este documento. El original no se borra: queda anulado. ¿Seguir?")) return;
+  try { const nc = await api("POST", `/api/v1/simulacion/anular/${id}`, { motivo: "Anula documento" }); aviso(`Nota de crédito N° ${nc.folio} emitida.`); ir(`ver?id=${nc.dte_id}`); }
+  catch (e) { aviso(e.message, 6000); }
+};
+
 // ---------- mi mes ----------
 vistas.mes = async (el) => {
   await cargarNegocios();
+  const e = empresa();
   const hoy = new Date(), per = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}`;
   el.innerHTML = `
     <h1>Mi mes</h1>
-    <p class="sub">Lo que esta app tiene registrado. El SII arma su propio registro con lo que le llegó; si no coinciden, falta algo de un lado.</p>
+    <p class="sub">Lo que esta app tiene registrado de <b>${esc(e.razon_social || e.rut)}</b>. El SII arma su propio registro con lo que le llegó; si no coinciden, falta algo de un lado.</p>
     <div class="card"><div class="row">
-      <div><label>Empresa</label><select id="m_emp"><option value="">Todas</option>${negocios.map((n) => `<option value="${esc(n.rut)}">${esc(n.razon_social || n.rut)}</option>`).join("")}</select></div>
       <div><label>Mes</label><input id="m_per" type="month" value="${per}"></div>
       <div><button class="sec" onclick="calcMes()">Ver</button></div></div>
       <div id="m_res"></div></div>`;
   window.calcMes = async () => {
-    const rut = $("m_emp").value, p = $("m_per").value;
-    const q = new URLSearchParams({ limite: 200 }); if (rut) q.set("rut_emisor", rut);
-    const r = await api("GET", "/api/v1/dte/documentos?" + q);
+    const p = $("m_per").value;
+    const r = await api("GET", "/api/v1/dte/documentos?" + new URLSearchParams({ limite: 200, rut_emisor: e.rut }));
     const docs = r.documentos.filter((d) => (d.fecha_emision || "").startsWith(p));
     const signo = (d) => (d.tipo_dte === 61 ? -1 : 1);
     const sum = (k) => docs.reduce((a, d) => a + signo(d) * (d[k] || 0), 0);
@@ -195,35 +259,38 @@ vistas.mes = async (el) => {
 
 // ---------- corregir ----------
 vistas.corregir = async (el) => {
-  const r = await api("GET", "/api/v1/dte/documentos?limite=50");
+  await cargarNegocios();
+  const e = empresa();
+  const r = await api("GET", "/api/v1/dte/documentos?" + new URLSearchParams({ limite: 100, rut_emisor: e.rut }));
+  const corregibles = r.documentos.filter((d) => ![56, 61].includes(d.tipo_dte) && d.estado !== "anulado_simulado");
   el.innerHTML = `
     <h1>Corregir</h1>
     <p class="sub">Un documento emitido no se borra. Se corrige con otro: la nota de crédito resta, la nota de débito suma.</p>
-    <div class="banner">Elige el documento que salió mal. La nota de crédito se arma por el <b>total registrado</b> de ese documento, para que quede en cero.</div>
-    <div class="card">${tabla(r.documentos.filter((d) => ![56, 61].includes(d.tipo_dte)), true)}</div>
-    <p class="mut">La emisión de la nota de crédito desde esta app llega en la próxima versión. Hoy se hace desde el panel web del motor o, si la empresa usa el gratuito, desde el portal del SII con la guía del repo (docs/MIPYME.md).</p>`;
+    <div class="banner ${e.demo ? "verde" : ""}">Elige el documento que salió mal. La nota de crédito se arma por el <b>total registrado</b> de ese documento, para que quede en cero.</div>
+    <div class="card">${tabla(corregibles, true)}</div>
+    ${e.demo ? "" : `<p class="mut">La nota de crédito para empresas reales desde esta app llega en la próxima versión. Hoy se hace desde el panel web del motor o, si la empresa usa el gratuito, desde el portal del SII (docs/MIPYME.md).</p>`}`;
 };
 
 // ---------- documentos ----------
 vistas.documentos = async (el) => {
-  const [r, em] = await Promise.all([api("GET", "/api/v1/dte/documentos?limite=100"), api("GET", "/api/v1/dte/documentos/emisores")]);
+  await cargarNegocios();
+  const e = empresa();
+  const r = await api("GET", "/api/v1/dte/documentos?" + new URLSearchParams({ limite: 100, rut_emisor: e.rut }));
   el.innerHTML = `
     <h1>Documentos</h1>
-    <p class="sub">Boletas, facturas y notas de todas tus empresas, tanto las del motor como las del gratuito del SII.</p>
-    <div class="card"><label>Empresa</label><select id="d_emp" onchange="filtrarDocs()"><option value="">Todas</option>${em.emisores.map((e) => `<option value="${esc(e.rut)}">${esc(e.razon_social || e.rut)} (${e.documentos})</option>`).join("")}</select>
-    <div id="d_tabla">${tabla(r.documentos)}</div></div>`;
-  window._docs = r.documentos;
-  window.filtrarDocs = () => { const rut = $("d_emp").value; $("d_tabla").innerHTML = tabla(window._docs.filter((d) => !rut || d.rut_emisor === rut)); };
+    <p class="sub">Boletas, facturas y notas de <b>${esc(e.razon_social || e.rut)}</b>${e.demo ? " (práctica)" : ", tanto las del motor como las del gratuito del SII"}.</p>
+    <div class="card">${tabla(r.documentos)}</div>`;
 };
 
 function tabla(docs, elegir = false) {
-  if (!docs.length) return `<p class="mut">No hay documentos.</p>`;
-  const est = (e) => { e = e || ""; const c = e.includes("acept") || e.includes("emitido") ? "p-ok" : e.includes("rechaz") ? "p-no" : e.includes("envi") ? "p-warn" : "p-mut"; return `<span class="pill ${c}">${esc(e.replace("_mipyme", " · gratuito SII"))}</span>`; };
-  return `<div class="tablewrap"><table><tr><th>Fecha</th><th>Documento</th><th>Folio</th><th>Para</th><th class="num">Total</th><th>Estado</th><th></th></tr>
+  if (!docs.length) return `<p class="mut">No hay documentos todavía. <span class="lnk" onclick="ir('cobrar')">Emitir el primero</span>.</p>`;
+  const est = (e) => { e = e || ""; const c = e.includes("acept") || e.includes("emitido") || e === "simulado" ? "p-ok" : e.includes("rechaz") || e.includes("anulado") ? "p-no" : e.includes("envi") ? "p-warn" : "p-mut";
+    const t = e === "simulado" ? "práctica" : e === "anulado_simulado" ? "anulada" : e.replace("_mipyme", " · gratuito SII"); return `<span class="pill ${c}">${esc(t)}</span>`; };
+  return `<div class="tablewrap"><table><tr><th>Fecha</th><th>Documento</th><th>N°</th><th>Para</th><th class="num">Total</th><th>Estado</th><th></th></tr>
     ${docs.map((d) => `<tr><td>${esc((d.fecha_emision || "").slice(0, 10))}</td><td>${esc(TIPOS[d.tipo_dte] || d.tipo_dte)}</td><td>${d.folio}</td>
       <td>${esc(d.razon_social_receptor || d.rut_receptor || "")}</td><td class="num">${clp(d.monto_total)}</td><td>${est(d.estado)}</td>
-      <td>${elegir ? `<span class="lnk" onclick="aviso('Anular desde la app: próxima versión.')">corregir</span>` :
-        `${d.tiene_pdf ? `<span class="lnk" onclick="bajar(${d.id},'pdf',${d.tipo_dte},${d.folio})">PDF</span>` : ""} ${d.tiene_xml ? `<span class="lnk" onclick="bajar(${d.id},'xml',${d.tipo_dte},${d.folio})">XML</span>` : ""}`}</td></tr>`).join("")}
+      <td>${elegir ? `<span class="lnk" onclick="${d.ambiente === "simulacion" ? `anularDemo(${d.id})` : `aviso('Anular empresas reales desde la app: próxima versión.')`}">anular</span>` :
+        `${d.tiene_pdf ? `<span class="lnk" onclick="ir('ver?id=${d.id}')">ver</span> <span class="lnk" onclick="bajar(${d.id},'pdf',${d.tipo_dte},${d.folio})">PDF</span>` : ""} ${d.tiene_xml ? `<span class="lnk" onclick="bajar(${d.id},'xml',${d.tipo_dte},${d.folio})">XML</span>` : ""}`}</td></tr>`).join("")}
     </table></div>`;
 }
 window.bajar = async (id, que, tipo, folio) => {
@@ -237,7 +304,7 @@ vistas.aprender = async (el) => {
     <h1>Aprender</h1>
     <p class="sub">Para quien no sabe nada de finanzas. Cinco tramos, en el orden en que pasan en la vida real.</p>
     <div class="grid">
-      ${[["1. Entender", "Qué es una boleta, el IVA, el folio, el SII, declarar. Simulación, sin riesgo.", "sim"],
+      ${[["1. Entender", "Qué es una boleta, el IVA, el folio, el SII, declarar. Practica con EMPRESA DEMO SPA: elige la empresa de práctica arriba y ve a Cobrarle a alguien.", "sim"],
          ["2. Crear la empresa", "Persona natural o empresa, Empresa en un Día, el RUT propio.", "sim"],
          ["3. Iniciar actividades", "Giro, clave tributaria, certificado digital, inscribirse como emisor.", "sim"],
          ["4. Usar lo gratis del SII", "El emisor gratuito de facturas y boletas, con esta app como complemento. Real desde el primer clic.", "real"],
@@ -250,7 +317,7 @@ vistas.aprender = async (el) => {
 // ---------- arranque ----------
 (async () => {
   estado = await window.go.main.App.Estado();
-  pintarMundo();
+  pintarSelector(); pintarMundo();
   window.runtime.EventsOn("motor", (e) => { estado = e; pintarMundo(); render(); });
   render();
 })();

@@ -55,6 +55,12 @@ def _iso(fecha: str) -> Optional[str]:
     return None
 
 
+def fijar_resolucion_local(rut: str, fecha_iso: str, numero: int, ambiente: Optional[str] = None) -> None:
+    """Fija en memoria la resolución de `rut` para que `resolucion_emisor` NO consulte al
+    SII. Para emisores ficticios (simulación) o pruebas sin red. No toca la BD."""
+    _MEM[(rut, ambiente or settings.sii_ambiente)] = (fecha_iso, int(numero))
+
+
 def _cache_get(rut: str, ambiente: str) -> Optional[Tuple[str, int]]:
     key = (rut, ambiente)
     if key in _MEM:
