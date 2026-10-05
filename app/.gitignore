@@ -1,0 +1,4 @@
+# Binarios y bindings generados por `wails build` (frontend/dist SÍ se versiona: es la interfaz).
+build/bin
+frontend/wailsjs
+node_modules

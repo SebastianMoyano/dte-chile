@@ -133,6 +133,10 @@ class Settings(BaseSettings):
 
     # ---- CORS ----
     cors_origins: str = Field(default="*", description="Orígenes CORS (separados por coma)")
+    # Clave efímera que la app de escritorio (app/) inyecta en el entorno del motor que ella
+    # misma arranca. Autentica como el usuario dueño de la cuenta. NO va en .env: la genera
+    # la app en cada arranque y muere con el proceso. Ver docs/APP.md.
+    app_shell_key: Optional[str] = Field(default=None, description="Clave efímera de la app de escritorio (solo por entorno)")
 
     # ---- Exposición pública acotada ----
     # Host público que SOLO puede ver el buscador de boletas (ej. "boletas.tu-dominio.cl").

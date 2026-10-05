@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DTE Chile</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand" onclick="ir('inicio')">DTE Chile</div>
+  <nav>
+    <a href="#inicio" data-v="inicio">Inicio</a>
+    <a href="#cobrar" data-v="cobrar">Cobrarle a alguien</a>
+    <a href="#mes" data-v="mes">Mi mes</a>
+    <a href="#corregir" data-v="corregir">Corregir</a>
+    <a href="#documentos" data-v="documentos">Documentos</a>
+    <a href="#aprender" data-v="aprender">Aprender</a>
+  </nav>
+  <div id="mundo" class="mundo m-cargando" title="En qué mundo estás">cargando…</div>
+</header>
+
+<main id="vista" class="wrap"></main>
+
+<div id="aviso" class="aviso" style="display:none"></div>
+<script src="app.js"></script>
+</body>
+</html>

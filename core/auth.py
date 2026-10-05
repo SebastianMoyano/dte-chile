@@ -6,6 +6,7 @@ Módulo de autenticación JWT para proteger los endpoints de la API.
 
 from __future__ import annotations
 
+import secrets
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -100,6 +101,14 @@ async def obtener_usuario_actual(
     return usuario
 
 
+def _usuario_dueno() -> Optional[dict]:
+    """El usuario dueño de la instalación: el de menor id (la cuenta es única, ver
+    docs/PLATAFORMA.md). Es con quien actúa la app de escritorio."""
+    from core.models import listar_usuarios
+    usuarios = sorted(listar_usuarios(), key=lambda u: u["id"])
+    return usuarios[0] if usuarios else None
+
+
 async def requerir_autenticacion(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
 ) -> dict:
@@ -111,6 +120,15 @@ async def requerir_autenticacion(
     if usuario:
         actualizar_ultimo_acceso(usuario["id"])
         return usuario
+    # Clave efímera de la app de escritorio (APP_SHELL_KEY, solo por entorno): actúa como el
+    # usuario dueño de la cuenta (el primero creado), así los recursos por cuenta (negocios,
+    # certificados) son los suyos. Comparación en tiempo constante.
+    if credentials and settings.app_shell_key and len(settings.app_shell_key) >= 24 \
+            and secrets.compare_digest(credentials.credentials, settings.app_shell_key):
+        dueno = _usuario_dueno()
+        if dueno:
+            actualizar_ultimo_acceso(dueno["id"])
+            return dueno
     # No es un JWT válido → probar como API key.
     if credentials:
         from core.apikeys import verificar_api_key

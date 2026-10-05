@@ -1,0 +1,17 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "DTE Chile",
+  "outputfilename": "dte-chile",
+  "frontend:install": "",
+  "frontend:build": "",
+  "frontend:dev:watcher": "",
+  "frontend:dev:serverUrl": "",
+  "author": { "name": "Extralatte", "email": "" },
+  "info": {
+    "companyName": "Extralatte",
+    "productName": "DTE Chile",
+    "productVersion": "0.1.0",
+    "copyright": "MIT",
+    "comments": "Facturación electrónica para Chile. Gratis, sin garantía."
+  }
+}

@@ -1,0 +1,72 @@
+# App de escritorio (`app/`)
+
+Cascarón multiplataforma en **Go + Wails v2** sobre el motor Python. No reimplementa nada:
+arranca `main.py` como proceso hijo y le habla por HTTP. La idea de producto está en
+[`aprender/00-plan.md`](aprender/00-plan.md): una app para quien no sabe nada de finanzas,
+con tres acciones ("Cobrarle a alguien", "Mi mes", "Corregir") y una barra que dice siempre
+en qué mundo estás (simulación / pruebas del SII / real).
+
+## Cómo funciona
+
+```
+DTE Chile.app (Go)                         motor (Python, main.py)
+  ├─ localiza la raíz del repo  ──────►    .venv/bin/python -m uvicorn main:app
+  ├─ puerto libre en 127.0.0.1               --host 127.0.0.1 --port <libre>
+  ├─ APP_SHELL_KEY=app_<48 hex>  ──────►    settings.app_shell_key
+  ├─ espera GET / == 200
+  └─ App.API(método, ruta, json) ─────►    Authorization: Bearer <clave>
+       (la interfaz nunca ve la clave)      → actúa como el usuario dueño (menor id)
+```
+
+- **Clave efímera.** `APP_SHELL_KEY` vive solo en el entorno del proceso hijo. No va en
+  `.env` ni en la BD. `core/auth.py::requerir_autenticacion` la compara en tiempo constante y
+  devuelve el usuario dueño de la instalación, así los negocios y certificados son los suyos.
+- **Sin CORS, sin login.** La interfaz (`app/frontend/dist`, HTML/CSS/JS sin framework) llama a
+  Go (`window.go.main.App.API`) y Go firma la petición. No hay token en el webview.
+- **Cierre limpio.** Al cerrar la app, Go manda SIGINT a uvicorn (apaga programadores y BD) y
+  si no termina en 5 s lo mata. En Windows mata directo.
+- **Modo externo.** Con `DTE_API_URL` (y `DTE_API_KEY`, una API key `dte_...`) la app no
+  arranca nada y usa ese motor: sirve para desarrollo y para el motor desplegado en otra máquina.
+- **Raíz del repo.** `DTE_REPO`, o subiendo desde el ejecutable o el cwd hasta encontrar
+  `main.py` + `core/`. Para empaquetar sin repo (instalador) falta embeber Python; ver pendientes.
+
+## Pantallas (v0.1)
+
+| Pantalla | Qué hace hoy | Endpoints |
+|---|---|---|
+| Inicio | estado del motor, empresas con su etiqueta de habilitación, tres acciones | `/`, `keystore/negocios` |
+| Cobrarle a alguien | boleta/factura, afecta/exenta, monto con o sin IVA, cálculo en vivo, aviso rojo si la empresa está en producción; emite por el motor propio | `dte/emisor`, `dte/emitir` |
+| Mi mes | suma neto/IVA/total del mes por empresa (las NC restan), recordatorio de "sin movimiento" | `dte/documentos` |
+| Corregir | lista documentos corregibles; la NC desde la app es de la próxima versión | `dte/documentos` |
+| Documentos | todas las empresas, filtro, guardar PDF/XML con diálogo del sistema | `dte/documentos`, `/pdf`, `/xml` |
+| Aprender | los cinco tramos del curso (solo índice) | — |
+
+Si la empresa elegida no emite con el motor propio (gratuito del SII u otro software), "Cobrar"
+lo dice y manda al panel web; no intenta emitir.
+
+## Desarrollo
+
+```bash
+go install github.com/wailsapp/wails/v2/cmd/wails@latest   # una vez
+cd app
+wails dev                      # recarga en caliente; abre el motor como sidecar
+wails build -platform darwin/arm64 -s     # build/bin/DTE Chile.app
+wails build -platform darwin/universal    # Intel + Apple Silicon
+```
+
+La interfaz está en `app/frontend/dist` directamente (sin bundler, sin `npm install`). Los
+bindings `app/frontend/wailsjs` los genera Wails y no se versionan.
+
+Registro del motor arrancado por la app: `logs/app-motor.log`.
+
+## Pendientes
+
+1. **Emitir por el gratuito desde la app** (canal MIPYME, `core/sii_mipyme.py`): hoy solo el
+   motor propio. Requiere la primera emisión verificada (`CADENAS_VERIFICADAS`).
+2. **Nota de crédito desde "Corregir"** por el total registrado del documento.
+3. **Datos del emisor por negocio** en BD (giro, actividad, dirección) en vez de `EMPRESA_*`
+   del `.env`; hoy solo la empresa del `.env` puede emitir con el motor propio.
+4. **Modo simulación** (motor en seco con EMPRESA DEMO SPA) para el tramo 1 de Aprender, y
+   cargar las lecciones y el quiz (`docs/aprender/`) en la pantalla.
+5. **Instalador**: embeber Python (o PyInstaller del motor) para que la app no dependa del
+   repo; firma y notarización con la cuenta de Apple Developer; build Windows/Linux.

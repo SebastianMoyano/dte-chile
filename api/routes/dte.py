@@ -20,6 +20,7 @@ from pydantic import BaseModel
 
 from core.auth import requerir_autenticacion
 from core.caf import ManejadorCAF
+from core.config import settings
 from core.crypto import CertificadoDigital
 from core.sobre import firmar_documento_standalone
 from core.dte import DTEInput, GeneradorDTE, TipoDTE, calcular_totales
@@ -125,6 +126,21 @@ async def listar_documentos(
         d["tiene_pdf"] = bool(d.get("pdf_path")) and Path(d["pdf_path"]).exists()
         d["canal"] = "mipyme" if (d.get("estado") or "").endswith("_mipyme") else "motor"
     return {"total": len(docs), "documentos": docs}
+
+
+@router.get("/emisor", summary="Datos del emisor configurado en el motor (EMPRESA_* del .env)")
+async def emisor_configurado() -> dict:
+    """Los datos fijos del emisor que el motor usa para armar un DTE (giro, código de actividad,
+    dirección). Son los de `.env` (`EMPRESA_*`). La app de escritorio los lee para no pedirlos
+    en cada emisión; `configurada` es False si faltan RUT o razón social."""
+    return {
+        "configurada": settings.empresa_configurada,
+        "rut": settings.empresa_rut, "razon_social": settings.empresa_razon_social,
+        "giro": settings.empresa_giro, "codigo_actividad": settings.empresa_codigo_actividad,
+        "direccion": settings.empresa_direccion, "comuna": settings.empresa_comuna,
+        "ciudad": settings.empresa_ciudad, "email": settings.empresa_email or None,
+        "telefono": settings.empresa_telefono or None,
+    }
 
 
 @router.get("/documentos/emisores", summary="Empresas emisoras presentes en la BD (para filtrar)")
