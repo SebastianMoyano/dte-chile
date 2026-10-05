@@ -34,6 +34,19 @@ tests/dorado/
 Constantes fijas del harness: hora `2026-01-15T10:30:00`, resolución `2026-01-01` / `0`,
 emisor `EMISOR_DEMO` de `core/simulacion.py`.
 
+## Probar un port externo
+
+```bash
+.venv/bin/python test_dorado.py --port "./nucleo/bin/nucleo-dorado"
+.venv/bin/python test_dorado.py --port ".venv/bin/python tests/dorado/port_ejemplo.py"   # ejemplo que pasa
+```
+
+Por cada caso el runner ejecuta `<comando> <entrada.json> <fixtures/> <salida/>` con
+`RELOJ_FIJO`, `DORADO_RESOLUCION_FECHA` y `DORADO_RESOLUCION_NUMERO` en el entorno. El port
+escribe `ted.xml`, `dte.xml` y `envio.xml` en `<salida/>`; el runner los compara byte a byte
+y reporta el primer byte distinto. `tests/dorado/port_ejemplo.py` es la referencia de qué se
+lee y qué se escribe. El plan de port está en [`PLAN-PORT.md`](PLAN-PORT.md).
+
 ## Cómo se corre
 
 ```bash

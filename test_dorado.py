@@ -9,6 +9,12 @@ tests/dorado/casos/*.json y compara contra tests/dorado/esperado/<caso>/.
 
     .venv/bin/python test_dorado.py            # compara (falla al primer byte distinto)
     .venv/bin/python test_dorado.py --generar  # (re)escribe lo esperado — SOLO a propósito
+    .venv/bin/python test_dorado.py --port "<comando>"   # prueba un PORT externo (ver abajo)
+
+Modo --port: por cada caso se ejecuta `<comando> <entrada.json> <fixtures/> <salida/>` con
+RELOJ_FIJO en el entorno; el port debe dejar en <salida/> los archivos ted.xml, dte.xml y
+envio.xml, y se comparan byte a byte contra lo esperado. Sirve para Go, Rust o lo que sea:
+el contrato es solo archivos. Ejemplo que pasa: --port ".venv/bin/python tests/dorado/port_ejemplo.py"
 
 Para qué sirve:
   1. Un cambio en el motor que altere un byte de la salida se nota al instante.
@@ -68,8 +74,25 @@ def primer_byte_distinto(a: bytes, b: bytes) -> str:
     return f"byte {n} (largo {len(a)} vs {len(b)})\n      esperado: …{ctx(a)}…\n      obtenido: …{ctx(b)}…"
 
 
+def correr_port(comando: str, caso_dir: Path) -> dict[str, bytes]:
+    """Ejecuta un port externo sobre un caso y devuelve lo que dejó en su carpeta de salida."""
+    import os
+    import shlex
+    import subprocess
+    import tempfile
+    with tempfile.TemporaryDirectory(prefix="dorado_port_") as tmp:
+        env = dict(os.environ, RELOJ_FIJO=HORA_FIJA, DORADO_RESOLUCION_FECHA=RESOLUCION[0],
+                   DORADO_RESOLUCION_NUMERO=str(RESOLUCION[1]))
+        cmd = shlex.split(comando) + [str(caso_dir / "entrada.json"), str(FIX), tmp]
+        r = subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=120)
+        if r.returncode != 0:
+            raise RuntimeError(f"el port terminó con código {r.returncode}:\n{r.stderr[-2000:]}")
+        return {k: (Path(tmp) / k).read_bytes() for k in ("ted.xml", "dte.xml", "envio.xml") if (Path(tmp) / k).exists()}
+
+
 def main() -> int:
     generar = "--generar" in sys.argv
+    port = sys.argv[sys.argv.index("--port") + 1] if "--port" in sys.argv else None
     if not (FIX / "cert_demo.p12").exists():
         print("Faltan los fixtures: .venv/bin/python tests/dorado/generar_fixtures.py"); return 2
     reloj.fijar(HORA_FIJA)
@@ -78,6 +101,22 @@ def main() -> int:
     for ruta in casos:
         caso = json.loads(ruta.read_text(encoding="utf-8"))
         nombre = ruta.stem
+        if port:
+            carpeta = ESPERADO / nombre
+            try:
+                salida = correr_port(port, carpeta)
+            except Exception as e:  # noqa: BLE001 — se reporta por caso y se sigue
+                print(f"✗ {nombre}: {e}"); fallos += 1; continue
+            faltan = [k for k in ("ted.xml", "dte.xml", "envio.xml") if k not in salida]
+            malos = [k for k, v in salida.items() if (carpeta / k).read_bytes() != v]
+            if faltan or malos:
+                fallos += 1
+                print(f"✗ {nombre}: " + (f"no produjo {', '.join(faltan)}. " if faltan else "") + (f"difiere en {', '.join(malos)}" if malos else ""))
+                for k in malos:
+                    print(f"    {k}: " + primer_byte_distinto((carpeta / k).read_bytes(), salida[k]))
+            else:
+                print(f"✓ {nombre}: el port produce bytes idénticos")
+            continue
         salida = correr_caso(caso)
         # Determinismo dentro del proceso: dos corridas, mismos bytes.
         if correr_caso(caso) != salida:
@@ -102,7 +141,7 @@ def main() -> int:
                 print(f"    {k}: " + primer_byte_distinto((carpeta / k).read_bytes(), salida[k]))
         else:
             print(f"✓ {nombre}: idéntico byte a byte ({len(salida['envio.xml'])} bytes de sobre)")
-    print(f"\n{len(casos) - fallos}/{len(casos)} casos {'escritos' if generar else 'idénticos'}")
+    print(f"\n{len(casos) - fallos}/{len(casos)} casos {'escritos' if generar else 'idénticos'}" + (" (port externo)" if port else ""))
     return 1 if fallos else 0
 
 
