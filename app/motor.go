@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -25,13 +26,15 @@ import (
 //   - externo: si existen DTE_API_URL (y DTE_API_KEY), no arranca nada y habla con ese motor
 //     (sirve para desarrollo y para el motor desplegado en otra máquina).
 type Motor struct {
-	Raiz    string
-	URL     string
-	Clave   string
-	Externo bool
-	LogPath string
-	cmd     *exec.Cmd
-	logF    *os.File
+	Raiz        string // repo (desarrollo) o carpeta de datos (empaquetado)
+	URL         string
+	Clave       string
+	Externo     bool
+	Empaquetado bool   // el motor viene dentro de la app (PyInstaller)
+	ClaveAdmin  string // clave del usuario admin del panel web (solo empaquetado; del .env de datos)
+	LogPath     string
+	cmd         *exec.Cmd
+	logF        *os.File
 }
 
 // localizarRaiz busca la carpeta que tiene `main.py` y `core/`: DTE_REPO, o subiendo desde
@@ -105,6 +108,80 @@ func claveEfimera() string {
 	return "app_" + hex.EncodeToString(b)
 }
 
+// motorEmpaquetado devuelve la ruta del motor congelado (PyInstaller) si la app lo lleva
+// dentro: macOS → Contents/Resources/motor/motor; Windows/Linux → motor/motor(.exe) junto
+// al ejecutable. "" si no está (modo desarrollo: se usa el repo y su .venv).
+func motorEmpaquetado() string {
+	exe, err := os.Executable()
+	if err != nil {
+		return ""
+	}
+	dir := filepath.Dir(exe)
+	cands := []string{
+		filepath.Join(dir, "..", "Resources", "motor", "motor"),
+		filepath.Join(dir, "motor", "motor"),
+		filepath.Join(dir, "motor", "motor.exe"),
+	}
+	for _, c := range cands {
+		if st, err := os.Stat(c); err == nil && !st.IsDir() {
+			return c
+		}
+	}
+	return ""
+}
+
+// carpetaDatos es donde vive todo lo que la app escribe cuando va empaquetada:
+// ~/Library/Application Support/DTE Chile (macOS), %AppData%\DTE Chile, ~/.config/DTE Chile.
+func carpetaDatos() (string, error) {
+	base, err := os.UserConfigDir()
+	if err != nil {
+		return "", err
+	}
+	d := filepath.Join(base, "DTE Chile")
+	for _, sub := range []string{"", "logs", "storage"} {
+		if err := os.MkdirAll(filepath.Join(d, sub), 0o755); err != nil {
+			return "", err
+		}
+	}
+	return d, nil
+}
+
+// asegurarEnv crea el `.env` de la carpeta de datos la primera vez, con secretos generados
+// aquí (JWT y clave maestra del keystore) y la clave del usuario admin del panel web. Si ya
+// existe no se toca: ahí vive la configuración del usuario.
+func asegurarEnv(dir string) (string, error) {
+	ruta := filepath.Join(dir, ".env")
+	if b, err := os.ReadFile(ruta); err == nil {
+		return claveAdminDe(string(b)), nil
+	}
+	azar := func(n int) string { b := make([]byte, n); _, _ = rand.Read(b); return hex.EncodeToString(b) }
+	fernet := make([]byte, 32)
+	_, _ = rand.Read(fernet)
+	admin := azar(8)
+	contenido := "# Configuración del motor DTE Chile (creada por la app; edítala si hace falta)\n" +
+		"SII_AMBIENTE=certificacion\n" +
+		"HOST=127.0.0.1\n" +
+		"CORS_ORIGINS=http://127.0.0.1\n" +
+		"LOG_LEVEL=info\n" +
+		"NOMBRE_SOFTWARE=DTE_CHILE\n" +
+		"JWT_SECRET_KEY=" + azar(32) + "\n" +
+		"DTE_MASTER_KEY=" + base64.URLEncoding.EncodeToString(fernet) + "\n" +
+		"ADMIN_PASSWORD=" + admin + "\n"
+	if err := os.WriteFile(ruta, []byte(contenido), 0o600); err != nil {
+		return "", err
+	}
+	return admin, nil
+}
+
+func claveAdminDe(env string) string {
+	for _, l := range strings.Split(env, "\n") {
+		if strings.HasPrefix(l, "ADMIN_PASSWORD=") {
+			return strings.TrimSpace(strings.TrimPrefix(l, "ADMIN_PASSWORD="))
+		}
+	}
+	return ""
+}
+
 // Iniciar arranca (o conecta) el motor y espera a que responda en "/".
 func (m *Motor) Iniciar(ctx context.Context) error {
 	if u := os.Getenv("DTE_API_URL"); u != "" {
@@ -113,9 +190,26 @@ func (m *Motor) Iniciar(ctx context.Context) error {
 		m.Externo = true
 		return m.esperar(ctx, 20*time.Second)
 	}
-	raiz, err := localizarRaiz()
-	if err != nil {
-		return err
+	var programa []string
+	var raiz string
+	if emp := motorEmpaquetado(); emp != "" {
+		d, err := carpetaDatos()
+		if err != nil {
+			return err
+		}
+		admin, err := asegurarEnv(d)
+		if err != nil {
+			return err
+		}
+		m.Empaquetado, m.ClaveAdmin, raiz = true, admin, d
+		programa = []string{emp}
+	} else {
+		r, err := localizarRaiz()
+		if err != nil {
+			return err
+		}
+		raiz = r
+		programa = []string{pythonDe(raiz), "-m", "uvicorn", "main:app"}
 	}
 	m.Raiz = raiz
 	port, err := puertoLibre()
@@ -135,9 +229,9 @@ func (m *Motor) Iniciar(ctx context.Context) error {
 
 	// Sin CommandContext: el contexto de Wails se cancela antes de OnShutdown y mataría el
 	// motor sin dejarnos cerrarlo con cuidado. Detener() se encarga.
-	cmd := exec.Command(pythonDe(raiz), "-m", "uvicorn", "main:app",
-		"--host", "127.0.0.1", "--port", strconv.Itoa(port), "--log-level", "info")
-	cmd.Dir = raiz
+	args := append(programa[1:], "--host", "127.0.0.1", "--port", strconv.Itoa(port), "--log-level", "info")
+	cmd := exec.Command(programa[0], args...)
+	cmd.Dir = raiz // el motor resuelve .env, base, storage y logs desde aquí
 	cmd.Env = append(os.Environ(), "APP_SHELL_KEY="+m.Clave, "PYTHONUNBUFFERED=1")
 	cmd.Stdout, cmd.Stderr = m.logF, m.logF
 	if err := cmd.Start(); err != nil {

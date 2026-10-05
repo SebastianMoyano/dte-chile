@@ -68,6 +68,28 @@ reproduce el corpus dorado byte a byte y cuyo T34 el SII aceptó). La secuencia,
 Python sigue siendo dueño del keystore, del PDF, del envío al SII, de MIPYME, RCV y F29.
 La app de práctica (EMPRESA DEMO SPA) sigue en Python (`core/simulacion.py`).
 
+## Empaquetado: la app con el motor adentro
+
+```bash
+cd app && ./empaquetar-mac.sh      # build/bin/DTE Chile.app (~220 MB), sin repo ni .venv
+IDENTIDAD="Developer ID Application: …" ./firmar-mac.sh   # firma y notarización (opcional)
+```
+
+- `motor.spec` + `motor_embebido.py`: PyInstaller congela el motor (onedir) con `static/` y
+  `core/xsd/` adentro; `empaquetar-mac.sh` lo copia a `Contents/Resources/motor/`.
+- El cascarón detecta el motor empaquetado (`motor.go::motorEmpaquetado`) y lo arranca con
+  **cwd en la carpeta de datos del usuario**: `~/Library/Application Support/DTE Chile`
+  (macOS; `%AppData%` / `~/.config` en los otros). Ahí viven `.env`, `dte_database.db`,
+  `storage/` y `logs/`. Dentro del paquete no se escribe nada.
+- La primera vez, el cascarón crea el `.env` con secretos generados ahí mismo (`JWT_SECRET_KEY`,
+  `DTE_MASTER_KEY` del keystore) y una `ADMIN_PASSWORD` para el panel web, que Inicio muestra.
+  Si el `.env` ya existe no se toca: es la configuración del usuario.
+- Sin motor empaquetado (desarrollo), la app sigue usando el repo y su `.venv`.
+- El motor congelado es de la arquitectura donde se compiló (hoy arm64). Para Windows y Linux:
+  mismo spec, `wails build` de esa plataforma y copiar `motor/` junto al ejecutable.
+- Verificado 2026-10-05: la app empaquetada arrancó desde una carpeta de datos vacía, creó
+  `.env`, base y logs, y la simulación completa (firma, XSD, PDF con timbre) funcionó.
+
 ## Pantallas (v0.1)
 
 | Pantalla | Qué hace hoy | Endpoints |
@@ -107,6 +129,5 @@ Registro del motor arrancado por la app: `logs/app-motor.log`.
    del `.env`; hoy solo la empresa del `.env` puede emitir con el motor propio.
 4. Cargar las lecciones y el quiz (`docs/aprender/`) en la pantalla Aprender, enlazados al
    modo práctica (que ya existe).
-5. **Instalador**: embeber Python (o PyInstaller del motor) para que la app no dependa del
-   repo; build Windows/Linux. La firma y notarización en macOS ya tiene script:
-   `app/firmar-mac.sh` (identidad y credenciales por entorno, nada en el repo).
+5. **Instalador**: hecho para macOS (motor PyInstaller dentro del bundle, carpeta de datos,
+   `.env` generado). Falta: builds Windows/Linux, universal (Intel) y un DMG.

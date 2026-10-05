@@ -119,12 +119,14 @@ intento porque estaba escrito en la especificación de bytes antes de programar.
 > `docs/APP.md`): certificado en PEM desde el keystore por `contexto-emision`, emisión con
 > `nucleo/emision`, PDF por Python (`POST /dte/documentos/{id}/pdf` + `core/dte_xml.py`).
 > CI: `.github/workflows/dorado.yml` corre el corpus contra Python y contra Go en cada push.
-> Firma macOS: `app/firmar-mac.sh`. Pendiente: instalador sin repo (Python embebido).
+> Firma macOS: `app/firmar-mac.sh`. **Instalador sin repo: hecho** (`app/empaquetar-mac.sh`:
+> motor congelado con PyInstaller dentro del bundle, datos en la carpeta del usuario, `.env`
+> con secretos generados la primera vez). Pendiente: Windows/Linux, DMG.
 
 - El cascarón Go (`app/`) llama al núcleo directo para generar/firmar; Python queda como
   servicio para MIPYME, RCV, F29, portal y envío SOAP.
 - Instalador: un binario Go + un Python embebido solo para esos servicios (o PyInstaller del
-  motor) hasta que se decida si el envío SOAP también se porta.
+  motor) hasta que se decida si el envío SOAP también se porta. (Hecho con PyInstaller.)
 - Corpus dorado corriendo en CI contra Python y contra el port, en cada commit. (Hecho.)
 
 ### Fase 5 — Decidir qué más (abierto)

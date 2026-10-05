@@ -28,7 +28,7 @@ Código y comentarios **en español**.
 | **Modelo de emisión** (voucher vs boleta, tarjetas, código 48, convivir con un POS) | [`MODELO-EMISION.md`](MODELO-EMISION.md) |
 | **Emitir por el gratuito del SII** (empresa en MiPyme, NC de anulación por el portal) | [`MIPYME.md`](MIPYME.md) → `core/sii_mipyme.py` |
 | **Volver a dibujar el PDF de un documento** (solo XML: emitidos por Go o importados) | `core/dte_xml.py` → `POST /api/v1/dte/documentos/{id}/pdf` |
-| **App de escritorio** (Go + Wails, arranca el motor como sidecar, clave efímera) | [`APP.md`](APP.md) → `app/` |
+| **App de escritorio** (Go + Wails, motor como sidecar o empaquetado con PyInstaller, clave efímera) | [`APP.md`](APP.md) → `app/`, `motor.spec` |
 | **Portar el núcleo a Go/Rust** (plan por fases, criterios, riesgos) | [`PLAN-PORT.md`](PLAN-PORT.md) → `nucleo/` (Go; fases 1-4; `test_fase2.py`, `fase3_envio.py`, CI `.github/workflows/dorado.yml`) |
 | **Verificar que la salida no cambió / probar un port** (byte a byte, sin SII) | [`DORADO.md`](DORADO.md) → `test_dorado.py`, `tests/dorado/`, `core/reloj.py` |
 | **Practicar sin riesgo** (EMPRESA DEMO SPA: mismo pipeline, CAF y certificado ficticios, sin envío) | [`APP.md`](APP.md) → `core/simulacion.py`, `test_simulacion.py` |

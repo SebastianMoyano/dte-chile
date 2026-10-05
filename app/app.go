@@ -20,14 +20,16 @@ import (
 
 // Estado es lo que la interfaz necesita saber del motor. Nunca incluye la clave.
 type Estado struct {
-	Listo    bool   `json:"listo"`
-	Error    string `json:"error"`
-	URL      string `json:"url"`
-	Ambiente string `json:"ambiente"`
-	Version  string `json:"version"`
-	Externo  bool   `json:"externo"`
-	Raiz     string `json:"raiz"`
-	Log      string `json:"log"`
+	Listo       bool   `json:"listo"`
+	Error       string `json:"error"`
+	URL         string `json:"url"`
+	Ambiente    string `json:"ambiente"`
+	Version     string `json:"version"`
+	Externo     bool   `json:"externo"`
+	Empaquetado bool   `json:"empaquetado"`
+	ClaveAdmin  string `json:"clave_admin"` // panel web (solo empaquetado)
+	Raiz        string `json:"raiz"`
+	Log         string `json:"log"`
 }
 
 // Respuesta de una llamada al motor: status HTTP y cuerpo tal cual (normalmente JSON).
@@ -59,7 +61,8 @@ func (a *App) shutdown(ctx context.Context) {
 
 func (a *App) arrancar() {
 	err := a.motor.Iniciar(a.ctx)
-	e := Estado{URL: a.motor.URL, Externo: a.motor.Externo, Raiz: a.motor.Raiz, Log: a.motor.LogPath}
+	e := Estado{URL: a.motor.URL, Externo: a.motor.Externo, Empaquetado: a.motor.Empaquetado,
+		ClaveAdmin: a.motor.ClaveAdmin, Raiz: a.motor.Raiz, Log: a.motor.LogPath}
 	if err != nil {
 		e.Error = err.Error()
 	} else {
