@@ -1,0 +1,42 @@
+{
+ "descripcion": "Un EnvioBOLETA con dos boletas (afecta y exenta)",
+ "documentos": [
+  {
+   "tipo_dte": 39,
+   "folio": 6,
+   "fecha_emision": "2026-01-23",
+   "receptor": {
+    "rut": "66666666-6",
+    "razon_social": "CONSUMIDOR FINAL",
+    "es_contribuyente": false
+   },
+   "items": [
+    {
+     "numero_linea": 1,
+     "nombre": "Café",
+     "cantidad": 1,
+     "precio_unitario": 1190
+    }
+   ]
+  },
+  {
+   "tipo_dte": 41,
+   "folio": 4,
+   "fecha_emision": "2026-01-23",
+   "receptor": {
+    "rut": "66666666-6",
+    "razon_social": "CONSUMIDOR FINAL",
+    "es_contribuyente": false
+   },
+   "items": [
+    {
+     "numero_linea": 1,
+     "nombre": "Clase particular",
+     "cantidad": 1,
+     "precio_unitario": 15000,
+     "exento": true
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,53 @@
+<DTE xmlns="http://www.sii.cl/SiiDte" version="1.0"><Documento ID="T61F5"><Encabezado><IdDoc><TipoDTE>61</TipoDTE><Folio>5</Folio><FchEmis>2026-01-22</FchEmis><FmaPago>1</FmaPago></IdDoc><Emisor><RUTEmisor>77777777-7</RUTEmisor><RznSoc>EMPRESA DEMO SPA</RznSoc><GiroEmis>Cafetería</GiroEmis><CorreoEmisor>hola@empresademo.cl</CorreoEmisor><Acteco>561000</Acteco><DirOrigen>Calle Ficticia 123</DirOrigen><CmnaOrigen>Santiago</CmnaOrigen><CiudadOrigen>Santiago</CiudadOrigen></Emisor><Receptor><RUTRecep>76111111-6</RUTRecep><RznSocRecep>CLIENTE DEMO SPA</RznSocRecep><GiroRecep>Oficina</GiroRecep><DirRecep>Avenida Imaginaria 456</DirRecep><CmnaRecep>Providencia</CmnaRecep><CiudadRecep>Santiago</CiudadRecep></Receptor><Totales><MntNeto>20000</MntNeto><TasaIVA>19</TasaIVA><IVA>3800</IVA><MntTotal>23800</MntTotal></Totales></Encabezado><Detalle><NroLinDet>1</NroLinDet><NmbItem>Anula factura folio 20</NmbItem><QtyItem>1</QtyItem><PrcItem>20000</PrcItem><MontoItem>20000</MontoItem></Detalle><Referencia><NroLinRef>1</NroLinRef><TpoDocRef>33</TpoDocRef><FolioRef>20</FolioRef><FchRef>2026-01-22</FchRef><CodRef>1</CodRef><RazonRef>Anula</RazonRef></Referencia><TED version="1.0">
+<DD>
+<RE>77777777-7</RE>
+<TD>61</TD>
+<F>5</F>
+<FE>2026-01-22</FE>
+<RR>76111111-6</RR>
+<RSR>CLIENTE DEMO SPA</RSR>
+<MNT>23800</MNT>
+<IT1>Anula factura folio 20</IT1>
+<CAF version="1.0">
+    <DA>
+      <RE>77777777-7</RE>
+      <RS>EMPRESA DEMO SPA</RS>
+      <TD>61</TD>
+      <RNG><D>1</D><H>100</H></RNG>
+      <FA>2026-10-04</FA>
+      <RSAPK><M>olLJXLtRnq/dFdApJiIHDYeKDUKkTT9FO5boV8iGE+Niq3kxMlHoTp6Vy86DOGKxAUJh1lrZq/onXWYD1kRIscnpsTSuMtfq3cxltnMaLxl5ICH99FgAsx/innJ57FIc+1he/3TL+/gHQ7KFA57xYQ1WxE900YnDUuvi3qLjfqk=</M><E>AQAB</E></RSAPK>
+      <IDK>100</IDK>
+    </DA>
+    <FRMA algoritmo="SHA1withRSA">U0lNVUxBQ0lPTi1OTy1FUy1VTkEtRklSTUEtREVMLVNJSQ==</FRMA>
+  </CAF>
+  
+<TSTED>2026-01-15T10:30:00</TSTED>
+</DD>
+<FRMT algoritmo="SHA1withRSA">V0fAuzUPk9sXQrjMa7dbqe7Km2+Pwx+CLFN0zvl4+ix3mnV8Frj0FSy0+3QDnemnMAz8BwtqpVtUClkmJMV5BLuvcQmzMpmrpswOKkP4juSLHneFOV8x5S240Xo+JvAoq4PRsbIYeIW3TTvkTR3GNS6THZzoUQP47HgwRPeAV4w=</FRMT>
+</TED><TmstFirma>2026-01-15T10:30:00</TmstFirma></Documento><Signature xmlns="http://www.w3.org/2000/09/xmldsig#"><SignedInfo><CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/><SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1"/><Reference URI="#T61F5"><Transforms><Transform Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/></Transforms><DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/><DigestValue>BXQvDv1+541l3KKlwSv/5CDRZzM=</DigestValue></Reference></SignedInfo><SignatureValue>nWkSKLzxuh8jxOfKd5kGqc5suxJgoF8uD5x7NiVbhSulO7UjVbB4qKZwYPJ/eX+sLA1snERMxZs7twA3IGnNDjUznekuMGQmBnT3XIWOL2ruRlf0aNonBZCqhmOX1WIPCd9WSeOl8PS8BQllMdm3Ji1J4YM9X4RIsnY+jDdsA622wSVRDfeLx9YtBtLvm8kJWtZSWsx5je958BZvM5+TJ39KVYjlc9N34s02dz7U7vDYtmPBsuTsJJfhFFp4CVMNihTvOk5nsBc/wRkq8VKiEkE81ic4aIh2pMW/eGM5HoVc/ypdsz69JVtmjjHXwbz1W9HQjMQl4afBeyS8obD1gw==</SignatureValue><KeyInfo><KeyValue><RSAKeyValue><Modulus>
+1D1oqdqkSf6HxCRoqqEIDrL5//X4DkjZkSySD4YFDtIdK2TqC6U+twtinLyP1xV5
+qB5DPkgv9Hc4mj3JuiTwsfYj5qCpPMmLh/s0XX7Gy2/ax5hbagKEPg09dOZAlkMt
+YXS1GuY30CoRFJFJLWtCofRVdE8cIC2KiwvVfni3XPyN8P9kcBkLi8RAcXjbt+R2
+H1t4sSil1wn8uYVpEh336hKW5nLwJaan7CDMM9TQcIzhYtqGcla3WGobCuiGTEIo
+thoB7kyuts9Vo0W5l0vjtfKOCm1esmqVWs0j5ZgWMkOry6q04wwGOzWDRsgw2FtB
+btoCBoOrCruGlVSsNSkRGw==
+</Modulus><Exponent>AQAB</Exponent></RSAKeyValue></KeyValue><X509Data><X509Certificate>
+MIIDPjCCAiagAwIBAgIBATANBgkqhkiG9w0BAQsFADBNMQswCQYDVQQGEwJDTDEg
+MB4GA1UECgwXQ09SUFVTIERPUkFETyBEVEUgQ0hJTEUxHDAaBgNVBAMME0FOQSBE
+RU1PIDEyMzQ1Njc4LTUwIBcNMjYwMTAxMDAwMDAwWhgPMjA1NTEyMjUwMDAwMDBa
+ME0xCzAJBgNVBAYTAkNMMSAwHgYDVQQKDBdDT1JQVVMgRE9SQURPIERURSBDSElM
+RTEcMBoGA1UEAwwTQU5BIERFTU8gMTIzNDU2NzgtNTCCASIwDQYJKoZIhvcNAQEB
+BQADggEPADCCAQoCggEBANQ9aKnapEn+h8QkaKqhCA6y+f/1+A5I2ZEskg+GBQ7S
+HStk6gulPrcLYpy8j9cVeageQz5IL/R3OJo9ybok8LH2I+agqTzJi4f7NF1+xstv
+2seYW2oChD4NPXTmQJZDLWF0tRrmN9AqERSRSS1rQqH0VXRPHCAtiosL1X54t1z8
+jfD/ZHAZC4vEQHF427fkdh9beLEopdcJ/LmFaRId9+oSluZy8CWmp+wgzDPU0HCM
+4WLahnJWt1hqGwrohkxCKLYaAe5MrrbPVaNFuZdL47XyjgptXrJqlVrNI+WYFjJD
+q8uqtOMMBjs1g0bIMNhbQW7aAgaDqwq7hpVUrDUpERsCAwEAAaMnMCUwIwYDVR0R
+BBwwGqAYBggrBgEEAcEBAaAMFgoxMjM0NTY3OC01MA0GCSqGSIb3DQEBCwUAA4IB
+AQCiGYUjSDpLkAXbaWA3CelHMUJGNWnhGIJ+kFhBQxcOhl3j0fN0t4I3rPiF3cNw
+7lylnTnX/1i1hRBxxn5Bp94wgzoxyX8N53DBXRdIOV02Kb5W+beseQGLWHP2ZPv8
+43GaOUqiLnrz5Pu6X0ITmBWbuWxK7lt7aZyMDrxa3OM9FStOLF44OriLcIHUJZhv
+WUHUT72gPXC5/ulhOifIPmrcpRiSvhVrzixuAzj8rYSDa3vt3WETyf5nwK0DugOs
+grtfd8ZhxP5Sg8XkIRIgo4hdl/lRXsL2vm4Wdj/bQupHYP+/uBp44WqpF2yDRaxa
+YO9RsQg4Z4kpGfSHmQOk+hAO
+</X509Certificate></X509Data></KeyInfo></Signature></DTE>

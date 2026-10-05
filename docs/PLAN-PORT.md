@@ -41,14 +41,13 @@ ambos casos**: el contrato son archivos, no una API de lenguaje.
 
 - [x] Reloj único (`core/reloj.py`) y corpus dorado con 5 casos.
 - [x] Runner para ports externos (`--port`) y port de ejemplo que lo valida.
-- [ ] Ampliar el corpus: nota de débito (56), guía (52), descuentos por línea y globales,
-      ítems con cantidad decimal, `MntExe` + afecto en el mismo documento, un sobre con 3
-      DTE, boleta con `IndServicio`. Meta: 15 casos.
+- [x] Corpus de 15 casos: ND (56), guía (52), descuentos por línea, cantidad decimal,
+      afecto + exento, crédito con vencimiento y tildes, NC parcial, boleta mixta con
+      `IndServicio`, sobre con 3 DTE, sobre con 2 boletas, receptor mínimo. Los 15 validan XSD.
 - [ ] Corpus privado: los XML **aceptados** por el SII (en `storage/`, fuera de git) como
       casos con su entrada reconstruida; comparación local solo.
-- [ ] Escribir en `DORADO.md` la **especificación de bytes** del TED (saltos de línea, orden,
-      el `<CAF>` incrustado verbatim) y del sobre (carátula por string), con un ejemplo
-      comentado byte a byte. Es lo primero que lee quien porta.
+- [x] Especificación de bytes en `DORADO.md` (totales, TED, DTE firmado, sobre) y modo
+      `--parcial` del harness para medir un port a medio camino.
 
 ### Fase 1 — Núcleo puro en Go (`nucleo/`, 1-2 semanas)
 

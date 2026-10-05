@@ -1,0 +1,78 @@
+{
+ "descripcion": "Un EnvioDTE con tres documentos: dos facturas y una nota de crédito (SubTotDTE por tipo)",
+ "documentos": [
+  {
+   "tipo_dte": 33,
+   "folio": 20,
+   "fecha_emision": "2026-01-22",
+   "receptor": {
+    "rut": "76111111-6",
+    "razon_social": "CLIENTE DEMO SPA",
+    "giro": "Oficina",
+    "direccion": "Avenida Imaginaria 456",
+    "comuna": "Providencia",
+    "ciudad": "Santiago"
+   },
+   "items": [
+    {
+     "numero_linea": 1,
+     "nombre": "Café para reunión",
+     "cantidad": 1,
+     "precio_unitario": 20000
+    }
+   ]
+  },
+  {
+   "tipo_dte": 33,
+   "folio": 21,
+   "fecha_emision": "2026-01-22",
+   "receptor": {
+    "rut": "76111111-6",
+    "razon_social": "CLIENTE DEMO SPA",
+    "giro": "Oficina",
+    "direccion": "Avenida Imaginaria 456",
+    "comuna": "Providencia",
+    "ciudad": "Santiago"
+   },
+   "items": [
+    {
+     "numero_linea": 1,
+     "nombre": "Pastelería",
+     "cantidad": 1,
+     "precio_unitario": 12000
+    }
+   ]
+  },
+  {
+   "tipo_dte": 61,
+   "folio": 5,
+   "fecha_emision": "2026-01-22",
+   "receptor": {
+    "rut": "76111111-6",
+    "razon_social": "CLIENTE DEMO SPA",
+    "giro": "Oficina",
+    "direccion": "Avenida Imaginaria 456",
+    "comuna": "Providencia",
+    "ciudad": "Santiago"
+   },
+   "items": [
+    {
+     "numero_linea": 1,
+     "nombre": "Anula factura folio 20",
+     "cantidad": 1,
+     "precio_unitario": 20000
+    }
+   ],
+   "referencias": [
+    {
+     "numero_linea": 1,
+     "tipo_doc_ref": 33,
+     "folio_ref": 20,
+     "fecha_doc_ref": "2026-01-22",
+     "codigo_ref": 1,
+     "razon_ref": "Anula"
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,53 @@
+<DTE xmlns="http://www.sii.cl/SiiDte" version="1.0"><Documento ID="T41F4"><Encabezado><IdDoc><TipoDTE>41</TipoDTE><Folio>4</Folio><FchEmis>2026-01-23</FchEmis><IndServicio>3</IndServicio></IdDoc><Emisor><RUTEmisor>77777777-7</RUTEmisor><RznSocEmisor>EMPRESA DEMO SPA</RznSocEmisor><GiroEmisor>Cafetería</GiroEmisor><DirOrigen>Calle Ficticia 123</DirOrigen><CmnaOrigen>Santiago</CmnaOrigen><CiudadOrigen>Santiago</CiudadOrigen></Emisor><Receptor><RUTRecep>66666666-6</RUTRecep></Receptor><Totales><MntExe>15000</MntExe><MntTotal>15000</MntTotal></Totales></Encabezado><Detalle><NroLinDet>1</NroLinDet><IndExe>1</IndExe><NmbItem>Clase particular</NmbItem><QtyItem>1</QtyItem><PrcItem>15000</PrcItem><MontoItem>15000</MontoItem></Detalle><TED version="1.0">
+<DD>
+<RE>77777777-7</RE>
+<TD>41</TD>
+<F>4</F>
+<FE>2026-01-23</FE>
+<RR>66666666-6</RR>
+<RSR>CONSUMIDOR FINAL</RSR>
+<MNT>15000</MNT>
+<IT1>Clase particular</IT1>
+<CAF version="1.0">
+    <DA>
+      <RE>77777777-7</RE>
+      <RS>EMPRESA DEMO SPA</RS>
+      <TD>41</TD>
+      <RNG><D>1</D><H>100</H></RNG>
+      <FA>2026-10-04</FA>
+      <RSAPK><M>lZSlk7ol1+e9oEaobDkzwl4VRw+u8s8cP32xCFrSUhOEWQqlHgq8OWIivGx39Owoj6/VyLeFpWKiAqEexj+JlsIhuwLLfDkfpnPQ1gvne8197EY3LoixY6dJGIj941eJevx+jvHQiFo6b33BymgABtdklmD9H8JHxWgHCej6/Lc=</M><E>AQAB</E></RSAPK>
+      <IDK>100</IDK>
+    </DA>
+    <FRMA algoritmo="SHA1withRSA">U0lNVUxBQ0lPTi1OTy1FUy1VTkEtRklSTUEtREVMLVNJSQ==</FRMA>
+  </CAF>
+  
+<TSTED>2026-01-15T10:30:00</TSTED>
+</DD>
+<FRMT algoritmo="SHA1withRSA">f0VfkJfVYNzrBlcWy5KYgcU0iIQ7UcrxafhsM6wftXivx1hzWHwEpaQcuw2eBsQsU3FenYTu7Q5EJJgpzgDCaaRLNdACupyGCS1bK0EjrwNpb8hjaWSQ5OYwaLM6E52J1JckKGMcYjPeu7VkzNOByp3FxCvEfZAsgHTyK57+md0=</FRMT>
+</TED><TmstFirma>2026-01-15T10:30:00</TmstFirma></Documento><Signature xmlns="http://www.w3.org/2000/09/xmldsig#"><SignedInfo><CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/><SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1"/><Reference URI="#T41F4"><Transforms><Transform Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/></Transforms><DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/><DigestValue>KR8c6+IRa9FiaKmI/bXPkG2oXBY=</DigestValue></Reference></SignedInfo><SignatureValue>SWqFe6uNJkfASOdEhd5+KFnmsNoDhq65ZYCd4HS2t8MCoqjUsLwTqQBZOT3+DGvDvLytHGEsaEqQRuY6ndh+vHcDQk5p4vl0MDUAtZ6y4k9I4pZJ2BL+Gb6D/m393RHOyoiCDJeieH3o5B2mhDATPbWhKCUfqCPz6w6zwM7HIxp3zos0ZGdB1ta3TBWC3cfRtOYhPwLTsEKqtvdPw5SW0eSiadPMdBkJvme0YVCQirklcCXazVPUeAkY09mxGCZhRaMW190M/aT+aAL7yAcTw1bt4sYgI7Ip8u99Js88c6ZUYMtPceQOyRugwKxqlr65xTL4ceb3IeLD4L+blE9oTw==</SignatureValue><KeyInfo><KeyValue><RSAKeyValue><Modulus>
+1D1oqdqkSf6HxCRoqqEIDrL5//X4DkjZkSySD4YFDtIdK2TqC6U+twtinLyP1xV5
+qB5DPkgv9Hc4mj3JuiTwsfYj5qCpPMmLh/s0XX7Gy2/ax5hbagKEPg09dOZAlkMt
+YXS1GuY30CoRFJFJLWtCofRVdE8cIC2KiwvVfni3XPyN8P9kcBkLi8RAcXjbt+R2
+H1t4sSil1wn8uYVpEh336hKW5nLwJaan7CDMM9TQcIzhYtqGcla3WGobCuiGTEIo
+thoB7kyuts9Vo0W5l0vjtfKOCm1esmqVWs0j5ZgWMkOry6q04wwGOzWDRsgw2FtB
+btoCBoOrCruGlVSsNSkRGw==
+</Modulus><Exponent>AQAB</Exponent></RSAKeyValue></KeyValue><X509Data><X509Certificate>
+MIIDPjCCAiagAwIBAgIBATANBgkqhkiG9w0BAQsFADBNMQswCQYDVQQGEwJDTDEg
+MB4GA1UECgwXQ09SUFVTIERPUkFETyBEVEUgQ0hJTEUxHDAaBgNVBAMME0FOQSBE
+RU1PIDEyMzQ1Njc4LTUwIBcNMjYwMTAxMDAwMDAwWhgPMjA1NTEyMjUwMDAwMDBa
+ME0xCzAJBgNVBAYTAkNMMSAwHgYDVQQKDBdDT1JQVVMgRE9SQURPIERURSBDSElM
+RTEcMBoGA1UEAwwTQU5BIERFTU8gMTIzNDU2NzgtNTCCASIwDQYJKoZIhvcNAQEB
+BQADggEPADCCAQoCggEBANQ9aKnapEn+h8QkaKqhCA6y+f/1+A5I2ZEskg+GBQ7S
+HStk6gulPrcLYpy8j9cVeageQz5IL/R3OJo9ybok8LH2I+agqTzJi4f7NF1+xstv
+2seYW2oChD4NPXTmQJZDLWF0tRrmN9AqERSRSS1rQqH0VXRPHCAtiosL1X54t1z8
+jfD/ZHAZC4vEQHF427fkdh9beLEopdcJ/LmFaRId9+oSluZy8CWmp+wgzDPU0HCM
+4WLahnJWt1hqGwrohkxCKLYaAe5MrrbPVaNFuZdL47XyjgptXrJqlVrNI+WYFjJD
+q8uqtOMMBjs1g0bIMNhbQW7aAgaDqwq7hpVUrDUpERsCAwEAAaMnMCUwIwYDVR0R
+BBwwGqAYBggrBgEEAcEBAaAMFgoxMjM0NTY3OC01MA0GCSqGSIb3DQEBCwUAA4IB
+AQCiGYUjSDpLkAXbaWA3CelHMUJGNWnhGIJ+kFhBQxcOhl3j0fN0t4I3rPiF3cNw
+7lylnTnX/1i1hRBxxn5Bp94wgzoxyX8N53DBXRdIOV02Kb5W+beseQGLWHP2ZPv8
+43GaOUqiLnrz5Pu6X0ITmBWbuWxK7lt7aZyMDrxa3OM9FStOLF44OriLcIHUJZhv
+WUHUT72gPXC5/ulhOifIPmrcpRiSvhVrzixuAzj8rYSDa3vt3WETyf5nwK0DugOs
+grtfd8ZhxP5Sg8XkIRIgo4hdl/lRXsL2vm4Wdj/bQupHYP+/uBp44WqpF2yDRaxa
+YO9RsQg4Z4kpGfSHmQOk+hAO
+</X509Certificate></X509Data></KeyInfo></Signature></DTE>

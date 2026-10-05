@@ -1,0 +1,4 @@
+{"descripcion": "Factura con una línea afecta y una exenta (MntNeto + MntExe en el mismo documento)",
+ "tipo_dte": 33, "folio": 10, "fecha_emision": "2026-01-19", "receptor": {"rut": "76111111-6", "razon_social": "CLIENTE DEMO SPA", "giro": "Oficina", "direccion": "Avenida Imaginaria 456", "comuna": "Providencia", "ciudad": "Santiago"},
+ "items": [{"numero_linea": 1, "nombre": "Café", "cantidad": 1, "precio_unitario": 1000},
+           {"numero_linea": 2, "nombre": "Clase de barismo", "cantidad": 1, "precio_unitario": 10000, "exento": true}]}

@@ -1,0 +1,3 @@
+{"descripcion": "Guía de despacho: 10 cajas de café a CLIENTE DEMO SPA",
+ "tipo_dte": 52, "folio": 1, "fecha_emision": "2026-01-18", "receptor": {"rut": "76111111-6", "razon_social": "CLIENTE DEMO SPA", "giro": "Oficina", "direccion": "Avenida Imaginaria 456", "comuna": "Providencia", "ciudad": "Santiago"},
+ "items": [{"numero_linea": 1, "nombre": "Cajas de café", "cantidad": 10, "unidad_medida": "UN", "precio_unitario": 1500}]}

@@ -1,0 +1,26 @@
+{
+ "descripcion": "Factura a crédito con fecha de vencimiento y observaciones con tilde y ñ",
+ "tipo_dte": 33,
+ "folio": 11,
+ "fecha_emision": "2026-01-20",
+ "receptor": {
+  "rut": "76111111-6",
+  "razon_social": "CLIENTE DEMO SPA",
+  "giro": "Oficina",
+  "direccion": "Avenida Imaginaria 456",
+  "comuna": "Providencia",
+  "ciudad": "Santiago"
+ },
+ "forma_pago": 2,
+ "fecha_vencimiento": "2026-02-19",
+ "observaciones": "Pago a 30 días. Señalar número de factura en la transferencia.",
+ "items": [
+  {
+   "numero_linea": 1,
+   "nombre": "Suscripción mensual de café",
+   "descripcion": "Entrega semanal, 4 kg",
+   "cantidad": 1,
+   "precio_unitario": 48000
+  }
+ ]
+}

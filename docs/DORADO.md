@@ -85,9 +85,112 @@ codificación ISO-8859-1 de la "é" de *Café*, el `Id` del `<Documento>` (`T39F
 la firma, y el sobre armado por concatenación de strings sin re-serializar el DTE. Cada una
 de esas es una lección ya pagada; el corpus las cobra gratis.
 
+## Especificación de bytes (lo que un port tiene que reproducir)
+
+Todo lo de abajo está sacado del código (`core/caf.py`, `core/crypto.py`, `core/sobre.py`) y
+confirmado sobre `tests/dorado/esperado/02_factura_reunion/`. Cuando el texto y los bytes del
+corpus difieran, mandan los bytes.
+
+### 1. Totales (`totales.json`)
+
+`core/dte.py::calcular_totales`. Montos enteros en pesos, redondeo **half-up** (`redondear`).
+Por ítem: `monto_item = round(cantidad × precio_unitario)`; descuento: si hay
+`descuento_monto > 0` se usa ese, si no `round(monto_item × descuento_pct / 100)`; el ítem
+aporta `monto_item − descuento` al neto (afecto) o al exento. **Boletas (39/41)**: el precio es
+**bruto** (IVA incluido): `neto = round(bruto / 1,19)`, `iva = bruto − neto`,
+`total = bruto + exento`. Facturas y notas: `iva = round(neto × 0,19)`, `total = neto + exento + iva`.
+Tipos 34 y 41: todo exento, IVA 0.
+
+### 2. TED (`ted.xml`), 26 líneas, sin declaración XML
+
+```
+<TED version="1.0">\n
+<DD>\n
+<RE>{rut_emisor}</RE>\n<TD>{tipo}</TD>\n<F>{folio}</F>\n<FE>{fecha}</FE>\n
+<RR>{rut_receptor}</RR>\n<RSR>{razón social receptor[:40]}</RSR>\n<MNT>{total}</MNT>\n
+<IT1>{nombre del primer ítem[:40]}</IT1>\n
+{el elemento <CAF> del archivo CAF, serializado tal cual (con su sangría interna) + el texto que
+ sigue a </CAF> en el archivo (en los fixtures es "\n  ")}\n
+<TSTED>{hora del reloj, YYYY-MM-DDTHH:MM:SS}</TSTED>\n
+</DD>\n
+<FRMT algoritmo="SHA1withRSA">{firma base64 en UNA línea}</FRMT>\n
+</TED>
+```
+
+- Separador `\n` (nunca `\r\n`). Texto escapado como XML (`&` → `&amp;`, `<` → `&lt;`, `>` → `&gt;`).
+- **Lo que se firma** (`FRMT`): el `<DD>` canonicalizado (C14N 1.0 inclusiva, sin comentarios),
+  **aplanado** quitando todo espacio en blanco entre `>` y `<` (regex `>\s+<` → `><`), y
+  codificado en **ISO-8859-1** (no UTF-8). Firma RSA PKCS#1 v1.5 + SHA-1 con la clave privada
+  del CAF (`<RSASK>`). Para un DD sin namespaces ni atributos raros, la C14N equivale a: misma
+  secuencia de tags, texto escapado, atributos entre comillas dobles.
+- El TED va **verbatim** dentro del `<Documento>` del DTE (byte a byte el mismo string).
+
+### 3. DTE firmado (`dte.xml`), una sola línea salvo dentro de `<KeyInfo>`
+
+```
+<DTE xmlns="http://www.sii.cl/SiiDte" version="1.0"><Documento ID="T{tipo}F{folio}">
+  <Encabezado>…</Encabezado><Detalle>…</Detalle>[<Referencia>…</Referencia>]
+  {TED verbatim}<TmstFirma>{hora}</TmstFirma></Documento>
+<Signature xmlns="http://www.w3.org/2000/09/xmldsig#"><SignedInfo>
+  <CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
+  <SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1"/>
+  <Reference URI="#T{tipo}F{folio}"><Transforms>
+    <Transform Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/></Transforms>
+    <DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/>
+    <DigestValue>{sha1 base64}</DigestValue></Reference></SignedInfo>
+<SignatureValue>{rsa-sha1 base64 en UNA línea}</SignatureValue>
+<KeyInfo><KeyValue><RSAKeyValue><Modulus>\n{base64 en líneas de 64}\n</Modulus>
+  <Exponent>AQAB</Exponent></RSAKeyValue></KeyValue>
+  <X509Data><X509Certificate>\n{base64 DER del cert en líneas de 64}\n</X509Certificate></X509Data>
+</KeyInfo></Signature></DTE>
+```
+
+- Sin declaración `<?xml …?>`; el archivo son los bytes del string en ISO-8859-1 (los únicos
+  `\n` fuera de `KeyInfo` son los 26 del TED).
+- Orden de los elementos del `Encabezado`/`Detalle`/`Referencia`: el del XSD
+  (`core/xsd/DTE_v10.xsd`); el generador es `core/dte.py::GeneradorDTE` (facturas, notas,
+  guías) y `core/boleta.py::generar_documento_boleta` (39/41).
+- **DigestValue** = SHA-1 de la C14N 1.0 del `<Documento>` **reparseado como documento
+  independiente**, es decir con los namespaces heredados declarados en su ápice:
+  `<Documento xmlns="http://www.sii.cl/SiiDte" ID="…">…</Documento>`. (C14N ordena: primero
+  declaraciones de namespace, luego atributos.)
+- **SignatureValue** = RSA-SHA1 PKCS#1 v1.5 (clave del certificado) de la C14N del
+  `<SignedInfo>` también reparseado: `<SignedInfo xmlns="http://www.w3.org/2000/09/xmldsig#">…`.
+- `Modulus`, `Exponent` y `X509Certificate`: base64 estándar; si el texto supera 64
+  caracteres se escribe como `\n` + líneas de 64 + `\n`. `SignatureValue` **nunca** se envuelve.
+- El `Exponent` base64 de 65537 es `AQAB`.
+
+### 4. Sobre (`envio.xml`)
+
+```
+<?xml version="1.0" encoding="ISO-8859-1"?>\n
+<EnvioDTE xmlns="http://www.sii.cl/SiiDte" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xsi:schemaLocation="http://www.sii.cl/SiiDte EnvioDTE_v10.xsd" version="1.0">
+<SetDTE ID="SetDoc">
+<Caratula version="1.0"><RutEmisor>…</RutEmisor><RutEnvia>{RUT del certificado}</RutEnvia>
+ <RutReceptor>60803000-K</RutReceptor><FchResol>{fecha}</FchResol><NroResol>{n}</NroResol>
+ <TmstFirmaEnv>{hora}</TmstFirmaEnv><SubTotDTE><TpoDTE>33</TpoDTE><NroDTE>1</NroDTE></SubTotDTE>…</Caratula>
+{DTE 1 verbatim}{DTE 2 verbatim}…
+</SetDTE><Signature …>…</Signature></EnvioDTE>
+```
+
+- Boletas: raíz `EnvioBOLETA` y `EnvioBOLETA_v11.xsd`; la carátula es igual.
+- `SubTotDTE`: un bloque por tipo presente, ordenado por tipo ascendente, con la cuenta.
+- El sobre se **concatena como string**; los DTE firmados se insertan sin tocarlos. La firma
+  del sobre (`URI="#SetDoc"`) se calcula parseando el sobre solo para leer: DigestValue = SHA-1
+  de la C14N del `<SetDTE>` reparseado (ápice con `xmlns` SiiDte y `xmlns:xsi`); la
+  `<Signature>` resultante se inserta como string justo antes de `</EnvioDTE>`.
+- La salida son `<?xml version="1.0" encoding="ISO-8859-1"?>\n` + el string en ISO-8859-1.
+
+### Orden recomendado para un port
+
+totales → TED → DTE sin firma (comparar quitando `<Signature>`) → digest del Documento →
+firma → sobre. Con `--parcial`, el harness acepta un port que solo produzca `ted.xml`.
+
 ## Lo que todavía no cubre
 
-- Documentos con descuentos, guías (52), notas de débito (56), más de un DTE por sobre.
+- Sobres con más de 3 DTE, boletas con `IndServicio` distinto de 3, documentos con `IndTraslado`
+  de guía explícito, descuentos globales (`DscRcgGlobal`).
 - Los XML **aceptados por el SII** de empresas reales (TrackID 253113966 y los T34 de
   certificación): están en `storage/` y no pueden entrar al repo (L14). Son el segundo nivel
   de verificación, local y privado: un port también debería reproducirlos.

@@ -1,0 +1,5 @@
+{"descripcion": "Boleta con línea afecta (bruto) y línea exenta, IndServicio 3",
+ "tipo_dte": 39, "folio": 5, "fecha_emision": "2026-01-21", "ind_servicio": 3,
+ "receptor": {"rut": "66666666-6", "razon_social": "CONSUMIDOR FINAL", "es_contribuyente": false},
+ "items": [{"numero_linea": 1, "nombre": "Café", "cantidad": 2, "precio_unitario": 1190},
+           {"numero_linea": 2, "nombre": "Clase de barismo", "cantidad": 1, "precio_unitario": 8000, "exento": true}]}

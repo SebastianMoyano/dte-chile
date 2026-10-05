@@ -1,0 +1,27 @@
+<TED version="1.0">
+<DD>
+<RE>77777777-7</RE>
+<TD>61</TD>
+<F>5</F>
+<FE>2026-01-22</FE>
+<RR>76111111-6</RR>
+<RSR>CLIENTE DEMO SPA</RSR>
+<MNT>23800</MNT>
+<IT1>Anula factura folio 20</IT1>
+<CAF version="1.0">
+    <DA>
+      <RE>77777777-7</RE>
+      <RS>EMPRESA DEMO SPA</RS>
+      <TD>61</TD>
+      <RNG><D>1</D><H>100</H></RNG>
+      <FA>2026-10-04</FA>
+      <RSAPK><M>olLJXLtRnq/dFdApJiIHDYeKDUKkTT9FO5boV8iGE+Niq3kxMlHoTp6Vy86DOGKxAUJh1lrZq/onXWYD1kRIscnpsTSuMtfq3cxltnMaLxl5ICH99FgAsx/innJ57FIc+1he/3TL+/gHQ7KFA57xYQ1WxE900YnDUuvi3qLjfqk=</M><E>AQAB</E></RSAPK>
+      <IDK>100</IDK>
+    </DA>
+    <FRMA algoritmo="SHA1withRSA">U0lNVUxBQ0lPTi1OTy1FUy1VTkEtRklSTUEtREVMLVNJSQ==</FRMA>
+  </CAF>
+  
+<TSTED>2026-01-15T10:30:00</TSTED>
+</DD>
+<FRMT algoritmo="SHA1withRSA">V0fAuzUPk9sXQrjMa7dbqe7Km2+Pwx+CLFN0zvl4+ix3mnV8Frj0FSy0+3QDnemnMAz8BwtqpVtUClkmJMV5BLuvcQmzMpmrpswOKkP4juSLHneFOV8x5S240Xo+JvAoq4PRsbIYeIW3TTvkTR3GNS6THZzoUQP47HgwRPeAV4w=</FRMT>
+</TED>
