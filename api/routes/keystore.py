@@ -154,6 +154,34 @@ async def timbraje_negocio(
     return {"rut": neg["rut"], "razon_social": neg.get("razon_social"), "documentos": docs}
 
 
+@router.get("/negocios/{negocio_id}/contexto-emision",
+            summary="Lo que el núcleo (Go) necesita para emitir por este negocio: certificado en PEM, resolución, rutas")
+async def contexto_emision(
+    negocio_id: int, usuario: dict = Depends(requerir_autenticacion),
+) -> dict:
+    """Entrega al cascarón de escritorio (app/) todo lo que el núcleo en Go necesita para
+    emitir SIN sacar el certificado del keystore a disco: el par cert/clave en PEM (en
+    memoria, por la conexión local), la resolución del emisor para su ambiente, y las rutas
+    absolutas de la base y del storage. Solo por localhost y con la clave de la app; la
+    clave privada viaja una vez por emisión y no se persiste en ningún lado."""
+    from pathlib import Path
+    from core.config import settings
+    from core.database import DATABASE_PATH
+    from core.resolucion import resolucion_emisor
+    neg = _negocio_o_404(usuario["id"], negocio_id)
+    p12, pwd = keystore._descifrar(neg["cert_id"], usuario["id"])
+    cert_pem, key_pem = keystore._p12_a_pem(p12, pwd)
+    ambiente = neg.get("ambiente") or settings.sii_ambiente
+    fecha, numero = resolucion_emisor(neg["rut"], ambiente)
+    return {
+        "negocio_id": neg["id"], "rut": neg["rut"], "razon_social": neg.get("razon_social"),
+        "ambiente": ambiente, "resolucion": {"fecha": fecha, "numero": numero},
+        "cert_pem": cert_pem.decode("ascii"), "key_pem": key_pem.decode("ascii"),
+        "database_path": str(Path(DATABASE_PATH).resolve()),
+        "storage_path": str(Path(settings.storage_path).resolve()),
+    }
+
+
 @router.get("/negocios/{negocio_id}/estado")
 async def estado_negocio(
     negocio_id: int, usuario: dict = Depends(requerir_autenticacion),

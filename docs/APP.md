@@ -49,12 +49,31 @@ memoria y **sin envío**. Ver `core/simulacion.py` y `api/routes/simulacion.py`
 
 Prueba sin red: `.venv/bin/python test_simulacion.py` (20 comprobaciones).
 
+## El núcleo en Go dentro de la app (fase 4 del port)
+
+Cuando la empresa elegida emite con el motor propio, "Cobrarle a alguien" **no** llama a
+`/dte/emitir`: el cascarón firma y persiste con el núcleo en Go (`nucleo/`, el mismo que
+reproduce el corpus dorado byte a byte y cuyo T34 el SII aceptó). La secuencia, en
+`app.go::EmitirNucleo`:
+
+1. `GET /api/v1/keystore/negocios/{id}/contexto-emision` → el motor descifra el certificado
+   del keystore y lo entrega en PEM **en memoria por la conexión local**, junto con la
+   resolución del emisor para su ambiente y las rutas absolutas de la base y del storage.
+   La clave privada viaja una vez por emisión y no se escribe en ningún lado.
+2. `nucleo/emision.Emitir` sobre la misma base (folio atómico) y el mismo storage: mismas
+   rutas y la misma fila que Python.
+3. `POST /api/v1/dte/documentos/{id}/pdf` → Python dibuja el PDF desde el XML firmado
+   (`core/dte_xml.py` reconstruye la entrada, el TED es el original). El núcleo no hace PDF.
+
+Python sigue siendo dueño del keystore, del PDF, del envío al SII, de MIPYME, RCV y F29.
+La app de práctica (EMPRESA DEMO SPA) sigue en Python (`core/simulacion.py`).
+
 ## Pantallas (v0.1)
 
 | Pantalla | Qué hace hoy | Endpoints |
 |---|---|---|
 | Inicio | estado del motor, la empresa activa (práctica o real) con su etiqueta, tres acciones, 'empezar de nuevo' en práctica | `/`, `keystore/negocios`, `simulacion/estado` |
-| Cobrarle a alguien | boleta/factura, afecta/exenta, monto con o sin IVA, cálculo en vivo, aviso verde/amarillo/rojo según el mundo; emite en práctica o por el motor propio y abre el visor | `simulacion/emitir`, `dte/emisor`, `dte/emitir` |
+| Cobrarle a alguien | boleta/factura, afecta/exenta, monto con o sin IVA, cálculo en vivo, aviso verde/amarillo/rojo según el mundo; emite en práctica (Python) o con el **núcleo Go** (empresa real) y abre el visor | `simulacion/emitir`, `dte/emisor`, `keystore/…/contexto-emision`, `dte/documentos/{id}/pdf` |
 | Mi mes | suma neto/IVA/total del mes por empresa (las NC restan), recordatorio de "sin movimiento" | `dte/documentos` |
 | Corregir | lista documentos corregibles; en práctica anula con NC; en empresas reales, próxima versión | `dte/documentos`, `simulacion/anular` |
 | Ver | visor de PDF embebido con las partes explicadas, guardar PDF/XML, anular (práctica) | `dte/documentos/{id}/pdf` |
@@ -89,4 +108,5 @@ Registro del motor arrancado por la app: `logs/app-motor.log`.
 4. Cargar las lecciones y el quiz (`docs/aprender/`) en la pantalla Aprender, enlazados al
    modo práctica (que ya existe).
 5. **Instalador**: embeber Python (o PyInstaller del motor) para que la app no dependa del
-   repo; firma y notarización con la cuenta de Apple Developer; build Windows/Linux.
+   repo; build Windows/Linux. La firma y notarización en macOS ya tiene script:
+   `app/firmar-mac.sh` (identidad y credenciales por entorno, nada en el repo).

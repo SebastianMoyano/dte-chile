@@ -24,51 +24,7 @@ import (
 	"dtechile/nucleo/almacen"
 	"dtechile/nucleo/emision"
 	"dtechile/nucleo/firma"
-	"dtechile/nucleo/xmlgen"
 )
-
-type entrada struct {
-	TipoDTE      int    `json:"tipo_dte"`
-	Folio        int    `json:"folio"`
-	FechaEmision string `json:"fecha_emision"`
-	Emisor       struct {
-		Rut, RazonSocial, Giro, Direccion, Comuna, Ciudad, Telefono, Email string
-		CodigoActividad                                                    int
-	} `json:"-"`
-	EmisorJSON   map[string]any `json:"emisor"`
-	ReceptorJSON map[string]any `json:"receptor"`
-	Items        []struct {
-		NumeroLinea    int      `json:"numero_linea"`
-		Nombre         string   `json:"nombre"`
-		Descripcion    string   `json:"descripcion"`
-		Cantidad       *float64 `json:"cantidad"`
-		UnidadMedida   string   `json:"unidad_medida"`
-		PrecioUnitario float64  `json:"precio_unitario"`
-		DescuentoPct   float64  `json:"descuento_pct"`
-		DescuentoMonto float64  `json:"descuento_monto"`
-		Exento         bool     `json:"exento"`
-		CodigoProducto string   `json:"codigo_producto"`
-	} `json:"items"`
-	Referencias []struct {
-		NumeroLinea int    `json:"numero_linea"`
-		TipoDocRef  int    `json:"tipo_doc_ref"`
-		FolioRef    int    `json:"folio_ref"`
-		FechaDocRef string `json:"fecha_doc_ref"`
-		CodigoRef   int    `json:"codigo_ref"`
-		RazonRef    string `json:"razon_ref"`
-	} `json:"referencias"`
-	FormaPago         *int   `json:"forma_pago"`
-	FechaVencimiento  string `json:"fecha_vencimiento"`
-	IndicadorServicio int    `json:"indicador_servicio"`
-	IndServicio       int    `json:"ind_servicio"`
-}
-
-func s(m map[string]any, k string) string {
-	if v, ok := m[k]; ok && v != nil {
-		return fmt.Sprint(v)
-	}
-	return ""
-}
 
 func main() {
 	db := flag.String("db", "dte_database.db", "ruta de la base SQLite del motor")
@@ -77,28 +33,41 @@ func main() {
 	ambiente := flag.String("ambiente", "certificacion", "certificacion | produccion | simulacion")
 	fResol := flag.String("resolucion-fecha", "", "FchResol de la carátula (la del emisor y ambiente)")
 	nResol := flag.Int("resolucion-numero", 0, "NroResol de la carátula")
+	contextoPath := flag.String("contexto", "", "archivo JSON con la respuesta de /keystore/negocios/{id}/contexto-emision (el camino de la app; reemplaza a --cert/--db/--storage/--ambiente/--resolucion-*)")
 	flag.Parse()
-	clave := os.Getenv("NUCLEO_CERT_CLAVE")
-	if *certPath == "" || *fResol == "" {
-		fatal(fmt.Errorf("faltan --cert y/o --resolucion-fecha"))
-	}
 	raw, err := io.ReadAll(os.Stdin)
 	if err != nil {
 		fatal(err)
 	}
-	var e entrada
-	if err := json.Unmarshal(raw, &e); err != nil {
-		fatal(err)
-	}
-	p12, err := os.ReadFile(*certPath)
+	doc, err := emision.DocumentoDesdeJSON(raw)
 	if err != nil {
 		fatal(err)
 	}
-	cert, err := firma.CargarP12(p12, clave)
-	if err != nil {
-		fatal(err)
+	var cert *firma.Certificado
+	dbPath, storagePath, amb, fr, nr := *db, *storage, *ambiente, *fResol, *nResol
+	if *contextoPath != "" {
+		cj, err := os.ReadFile(*contextoPath)
+		if err != nil {
+			fatal(err)
+		}
+		ctx, err := emision.ContextoDesdeJSON(cj)
+		if err != nil {
+			fatal(err)
+		}
+		cert, dbPath, storagePath, amb, fr, nr = ctx.Cert, ctx.DatabasePath, ctx.StoragePath, ctx.Ambiente, ctx.FechaResolucion, ctx.NumeroResolucion
+	} else {
+		if *certPath == "" || *fResol == "" {
+			fatal(fmt.Errorf("faltan --cert y/o --resolucion-fecha (o --contexto)"))
+		}
+		p12, err := os.ReadFile(*certPath)
+		if err != nil {
+			fatal(err)
+		}
+		if cert, err = firma.CargarP12(p12, os.Getenv("NUCLEO_CERT_CLAVE")); err != nil {
+			fatal(err)
+		}
 	}
-	alm, err := almacen.Abrir(*db)
+	alm, err := almacen.Abrir(dbPath)
 	if err != nil {
 		fatal(err)
 	}
@@ -107,35 +76,8 @@ func main() {
 	if marca == "" {
 		marca = time.Now().Format("2006-01-02T15:04:05")
 	}
-	doc := xmlgen.Documento{TipoDTE: e.TipoDTE, Folio: e.Folio, FechaEmision: e.FechaEmision,
-		FechaVencimiento: e.FechaVencimiento, IndicadorServicio: e.IndicadorServicio, IndServicioBoleta: e.IndServicio, FormaPago: 1}
-	if e.FormaPago != nil {
-		doc.FormaPago = *e.FormaPago
-	}
-	em := e.EmisorJSON
-	doc.Emisor = xmlgen.Emisor{Rut: s(em, "rut"), RazonSocial: s(em, "razon_social"), Giro: s(em, "giro"),
-		Direccion: s(em, "direccion"), Comuna: s(em, "comuna"), Ciudad: s(em, "ciudad"), Telefono: s(em, "telefono"), Email: s(em, "email")}
-	if v, ok := em["codigo_actividad"].(float64); ok {
-		doc.Emisor.CodigoActividad = int(v)
-	}
-	rc := e.ReceptorJSON
-	doc.Receptor = xmlgen.Receptor{Rut: s(rc, "rut"), RazonSocial: s(rc, "razon_social"), Giro: s(rc, "giro"),
-		Direccion: s(rc, "direccion"), Comuna: s(rc, "comuna"), Ciudad: s(rc, "ciudad"), Email: s(rc, "email")}
-	for _, it := range e.Items {
-		c := 1.0
-		if it.Cantidad != nil {
-			c = *it.Cantidad
-		}
-		doc.Items = append(doc.Items, xmlgen.Item{NumeroLinea: it.NumeroLinea, Nombre: it.Nombre, Descripcion: it.Descripcion,
-			Cantidad: c, UnidadMedida: it.UnidadMedida, PrecioUnitario: it.PrecioUnitario, DescuentoPct: it.DescuentoPct,
-			DescuentoMonto: it.DescuentoMonto, Exento: it.Exento, CodigoProducto: it.CodigoProducto})
-	}
-	for _, r := range e.Referencias {
-		doc.Referencias = append(doc.Referencias, xmlgen.Referencia{NumeroLinea: r.NumeroLinea, TipoDocRef: r.TipoDocRef,
-			FolioRef: r.FolioRef, FechaDocRef: r.FechaDocRef, CodigoRef: r.CodigoRef, RazonRef: r.RazonRef})
-	}
-	res, err := emision.Emitir(emision.Contexto{Almacen: alm, Cert: cert, StorageBase: *storage, Ambiente: *ambiente,
-		FechaResolucion: *fResol, NumeroResolucion: *nResol, Marca: marca}, doc)
+	res, err := emision.Emitir(emision.Contexto{Almacen: alm, Cert: cert, StorageBase: storagePath, Ambiente: amb,
+		FechaResolucion: fr, NumeroResolucion: nr, Marca: marca}, doc)
 	if err != nil {
 		fatal(err)
 	}

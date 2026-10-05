@@ -178,6 +178,36 @@ async def pdf_documento(dte_id: int) -> Response:
         "Content-Disposition": f'inline; filename="dte_{d["tipo_dte"]}_{d["folio"]}.pdf"'})
 
 
+@router.post("/documentos/{dte_id}/pdf", summary="(Re)generar el PDF de un documento desde su XML firmado")
+async def regenerar_pdf_documento(dte_id: int) -> dict:
+    """Para documentos que tienen XML pero no PDF: los que emite el núcleo en Go (que no hace
+    PDF) o los importados. Reconstruye la entrada desde el XML (`core/dte_xml.py`), dibuja el
+    PDF con el TED original y guarda la ruta. Boletas (39/41) salen en formato 80 mm."""
+    from pathlib import Path
+    from core.config import settings
+    from core.dte_xml import documento_desde_xml
+    from core.errors import RecursoNoEncontrado
+    from core.models import guardar_pdf_dte
+    from core.orchestrator import ruta_para_bd
+    from core.pdf_gen import generar_boleta_80mm, generar_pdf_dte
+    d = obtener_dte(dte_id)
+    if not d:
+        raise RecursoNoEncontrado(f"Documento {dte_id} no existe")
+    if not d.get("xml_firmado"):
+        raise RecursoNoEncontrado("Este documento no tiene XML guardado: no se puede dibujar")
+    dte_in, ted = documento_desde_xml(d["xml_firmado"])
+    base = Path(settings.storage_path) / ("simulacion" if d.get("ambiente") == "simulacion" else "")
+    (base / "pdfs").mkdir(parents=True, exist_ok=True)
+    if d["tipo_dte"] in (39, 41):
+        path = base / "pdfs" / f"BOLETA_{d['tipo_dte']}_{d['folio']}.pdf"
+        path.write_bytes(generar_boleta_80mm(dte_in, ted_xml=ted))
+    else:
+        path = base / "pdfs" / f"DTE_{d['tipo_dte']}_{d['folio']}.pdf"
+        path.write_bytes(generar_pdf_dte(dte_in, ted_xml=ted, ambiente=d.get("ambiente")))
+    guardar_pdf_dte(dte_id, ruta_para_bd(path))
+    return {"dte_id": dte_id, "pdf_path": ruta_para_bd(path)}
+
+
 @router.get("/documentos/{dte_id}/xml", summary="XML firmado de un documento")
 async def xml_documento(dte_id: int) -> Response:
     """El XML firmado tal como se guardó (ISO-8859-1). Los importados del historial MIPYME

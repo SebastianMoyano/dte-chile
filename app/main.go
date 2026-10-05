@@ -20,16 +20,16 @@ var assets embed.FS
 func main() {
 	app := NewApp()
 	err := wails.Run(&options.App{
-		Title:     "DTE Chile",
-		Width:     1120,
-		Height:    780,
-		MinWidth:  820,
-		MinHeight: 600,
-		AssetServer: &assetserver.Options{Assets: assets},
+		Title:            "DTE Chile",
+		Width:            1120,
+		Height:           780,
+		MinWidth:         820,
+		MinHeight:        600,
+		AssetServer:      &assetserver.Options{Assets: assets},
 		BackgroundColour: &options.RGBA{R: 244, G: 245, B: 247, A: 1},
-		OnStartup:  app.startup,
-		OnShutdown: app.shutdown,
-		Bind:       []interface{}{app},
+		OnStartup:        app.startup,
+		OnShutdown:       app.shutdown,
+		Bind:             []interface{}{app},
 	})
 	if err != nil {
 		println("Error:", err.Error())

@@ -115,11 +115,17 @@ intento porque estaba escrito en la especificación de bytes antes de programar.
 
 ### Fase 4 — Integración en el producto (1 semana)
 
+> Estado 2026-10-05: **la app emite con el núcleo Go** (`app.go::EmitirNucleo`, ver
+> `docs/APP.md`): certificado en PEM desde el keystore por `contexto-emision`, emisión con
+> `nucleo/emision`, PDF por Python (`POST /dte/documentos/{id}/pdf` + `core/dte_xml.py`).
+> CI: `.github/workflows/dorado.yml` corre el corpus contra Python y contra Go en cada push.
+> Firma macOS: `app/firmar-mac.sh`. Pendiente: instalador sin repo (Python embebido).
+
 - El cascarón Go (`app/`) llama al núcleo directo para generar/firmar; Python queda como
   servicio para MIPYME, RCV, F29, portal y envío SOAP.
 - Instalador: un binario Go + un Python embebido solo para esos servicios (o PyInstaller del
   motor) hasta que se decida si el envío SOAP también se porta.
-- Corpus dorado corriendo en CI contra Python y contra el port, en cada commit.
+- Corpus dorado corriendo en CI contra Python y contra el port, en cada commit. (Hecho.)
 
 ### Fase 5 — Decidir qué más (abierto)
 

@@ -177,12 +177,14 @@ vistas.cobrar = async (el) => {
           La emisión por el gratuito desde esta app llega en la próxima versión. <span class="lnk" onclick="window.go.main.App.AbrirPanel('certificados')">Abrir el panel</span>.</div>`;
         return;
       }
-      const body = { dte: { tipo_dte: tipo, folio: 0, emisor: await emisorDe(e.rut),
-        receptor: aEmpresa ? { rut: $("c_rut").value.trim(), razon_social: $("c_nombre").value.trim() || "CLIENTE", es_contribuyente: true }
-                           : { rut: "66666666-6", razon_social: "CONSUMIDOR FINAL", es_contribuyente: false },
-        items: [{ numero_linea: 1, nombre: que, cantidad: 1, precio_unitario: tipo === 39 ? total : neto, exento: ex }], forma_pago: 1 } };
-      const r = await api("POST", "/api/v1/dte/emitir", body);
-      aviso(`Listo: ${TIPOS[r.tipo_dte]} folio ${r.folio}, ${clp(r.monto_total)}.`, 6000);
+      // Empresa real con motor propio: firma y persiste el NÚCLEO EN GO (fase 4 del port);
+      // Python dibuja el PDF. Misma base, mismas rutas, mismos bytes que el motor Python.
+      const doc = { tipo_dte: tipo, folio: 0, fecha_emision: new Date().toISOString().slice(0, 10), emisor: await emisorDe(e.rut),
+        receptor: aEmpresa ? { rut: $("c_rut").value.trim(), razon_social: $("c_nombre").value.trim() || "CLIENTE" }
+                           : { rut: "66666666-6", razon_social: "CONSUMIDOR FINAL" },
+        items: [{ numero_linea: 1, nombre: que, cantidad: 1, precio_unitario: tipo === 39 ? total : neto, exento: ex }], forma_pago: 1 };
+      const r = JSON.parse(await window.go.main.App.EmitirNucleo(e.id, JSON.stringify(doc)));
+      aviso(`Listo: ${TIPOS[r.tipo_dte]} folio ${r.folio}, ${clp(r.monto_total)} (núcleo Go).`, 6000);
       ir(`ver?id=${r.dte_id}`);
     } catch (err) { $("c_aviso").innerHTML += `<div class="banner rojo">${esc(err.message)}</div>`; }
     finally { $("c_btn").disabled = false; }

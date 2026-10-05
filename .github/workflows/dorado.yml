@@ -1,0 +1,28 @@
+name: corpus dorado
+
+# L15: la salida del motor es reproducible byte a byte, en Python y en el núcleo Go.
+# Si este workflow falla, alguien movió un byte de la firma: se averigua, no se regenera.
+on:
+  push:
+    paths: ["core/**", "nucleo/**", "tests/dorado/**", "test_dorado.py", "requirements.txt", ".github/workflows/dorado.yml"]
+  pull_request:
+
+jobs:
+  dorado:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.13", cache: pip }
+      - run: pip install -r requirements.txt
+      - name: Python puro == esperado (15 casos)
+        run: python test_dorado.py
+      - uses: actions/setup-go@v5
+        with: { go-version: "1.24", cache-dependency-path: nucleo/go.sum }
+      - name: Núcleo Go
+        working-directory: nucleo
+        run: go vet ./... && go build -o bin/nucleo-dorado ./cmd/nucleo-dorado
+      - name: Go == esperado (port externo)
+        run: python test_dorado.py --port nucleo/bin/nucleo-dorado
+      - name: Mundo de práctica (sin red)
+        run: python test_simulacion.py

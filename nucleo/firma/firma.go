@@ -10,6 +10,7 @@ import (
 	"crypto/x509"
 	"encoding/asn1"
 	"encoding/base64"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"regexp"
@@ -41,6 +42,35 @@ func CargarP12(datos []byte, clave string) (*Certificado, error) {
 	rk, ok := k.(*rsa.PrivateKey)
 	if !ok {
 		return nil, errors.New("la clave del certificado no es RSA")
+	}
+	return &Certificado{Clave: rk, Cert: c}, nil
+}
+
+// CargarPEM arma el certificado desde el par cert/clave en PEM (lo que entrega el keystore
+// del motor por `contexto-emision`). La clave puede venir PKCS#1 ("RSA PRIVATE KEY") o PKCS#8.
+func CargarPEM(certPEM, keyPEM []byte) (*Certificado, error) {
+	bc, _ := pem.Decode(certPEM)
+	if bc == nil {
+		return nil, errors.New("cert_pem no es PEM")
+	}
+	c, err := x509.ParseCertificate(bc.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("certificado: %w", err)
+	}
+	bk, _ := pem.Decode(keyPEM)
+	if bk == nil {
+		return nil, errors.New("key_pem no es PEM")
+	}
+	var rk *rsa.PrivateKey
+	if k1, err := x509.ParsePKCS1PrivateKey(bk.Bytes); err == nil {
+		rk = k1
+	} else if k8, err2 := x509.ParsePKCS8PrivateKey(bk.Bytes); err2 == nil {
+		var ok bool
+		if rk, ok = k8.(*rsa.PrivateKey); !ok {
+			return nil, errors.New("la clave no es RSA")
+		}
+	} else {
+		return nil, fmt.Errorf("clave privada ilegible: %v / %v", err, err2)
 	}
 	return &Certificado{Clave: rk, Cert: c}, nil
 }

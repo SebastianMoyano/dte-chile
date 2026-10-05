@@ -160,5 +160,18 @@ for tipo, folio, penv in ((39, 1, "EnvioBOLETA"), (39, 3, "EnvioBOLETA"), (33, 1
     validar_xml_dte_strict((STORAGE / "dtes" / f"{penv}_{tipo}_{folio}.xml").read_bytes())
 check(True, "los 3 sobres de Go validan contra el XSD oficial")
 
+print("[5] El camino de la app: nucleo-emitir --contexto (certificado en PEM, como lo entrega el keystore)")
+ctx = {"rut": RUT_DEMO, "ambiente": "certificacion", "resolucion": {"fecha": RES[0], "numero": RES[1]},
+       "cert_pem": (FIX / "cert_demo.cert.pem").read_text(), "key_pem": (FIX / "cert_demo.key.pem").read_text(),
+       "database_path": str(DB), "storage_path": str(STORAGE)}
+(TMP / "contexto.json").write_text(json.dumps(ctx))
+c = dict(caso(33), emisor=EMISOR_DEMO.model_dump())
+r = subprocess.run([str(GO), "--contexto", str(TMP / "contexto.json")], input=json.dumps(c), capture_output=True, text=True, env=dict(os.environ))
+check(r.returncode == 0, f"emite con contexto PEM: {r.stderr.strip()[-200:] or 'ok'}")
+res = json.loads(r.stdout)
+dte_go = (STORAGE / "dtes" / f"DTE_33_{res['folio']}.xml").read_bytes()
+dte_py, _ = bytes_puros(33, res["folio"])
+check(dte_go == dte_py, f"factura {res['folio']} por el camino de la app == pipeline puro")
+
 shutil.rmtree(TMP, ignore_errors=True)
 print(f"\nTodo OK ({ok} checks)")

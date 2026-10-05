@@ -13,6 +13,9 @@ import (
 	"time"
 
 	wruntime "github.com/wailsapp/wails/v2/pkg/runtime"
+
+	"dtechile/nucleo/almacen"
+	"dtechile/nucleo/emision"
 )
 
 // Estado es lo que la interfaz necesita saber del motor. Nunca incluye la clave.
@@ -174,6 +177,60 @@ func (a *App) Bytes(ruta string) (string, error) {
 		return "", err
 	}
 	return base64.StdEncoding.EncodeToString(datos), nil
+}
+
+// EmitirNucleo emite un documento con el NÚCLEO EN GO (fase 4 del port): pide al motor el
+// contexto del negocio (certificado en PEM, resolución, rutas), firma y persiste con
+// nucleo/emision sobre la misma base y storage, y le pide a Python el PDF. El material de la
+// clave privada vive solo en memoria mientras dura la llamada.
+// `docJSON` tiene la forma de la entrada de nucleo-emitir (tipo_dte, folio, fecha_emision,
+// emisor, receptor, items, referencias…). Devuelve el resultado en JSON.
+func (a *App) EmitirNucleo(negocioID int, docJSON string) (string, error) {
+	r, err := a.API("GET", fmt.Sprintf("/api/v1/keystore/negocios/%d/contexto-emision", negocioID), "")
+	if err != nil {
+		return "", err
+	}
+	if r.Status != 200 {
+		return "", fmt.Errorf("contexto de emisión: %s", r.Cuerpo)
+	}
+	ctx, err := emision.ContextoDesdeJSON([]byte(r.Cuerpo))
+	if err != nil {
+		return "", err
+	}
+	doc, err := emision.DocumentoDesdeJSON([]byte(docJSON))
+	if err != nil {
+		return "", err
+	}
+	if doc.Emisor.Rut != "" && doc.Emisor.Rut != ctx.Rut {
+		return "", fmt.Errorf("el emisor del documento (%s) no es el negocio elegido (%s)", doc.Emisor.Rut, ctx.Rut)
+	}
+	alm, err := almacen.Abrir(ctx.DatabasePath)
+	if err != nil {
+		return "", err
+	}
+	defer alm.Cerrar()
+	marca := os.Getenv("RELOJ_FIJO")
+	if marca == "" {
+		marca = time.Now().Format("2006-01-02T15:04:05")
+	}
+	res, err := emision.Emitir(emision.Contexto{Almacen: alm, Cert: ctx.Cert, StorageBase: ctx.StoragePath,
+		Ambiente: ctx.Ambiente, FechaResolucion: ctx.FechaResolucion, NumeroResolucion: ctx.NumeroResolucion,
+		Marca: marca}, doc)
+	if err != nil {
+		return "", err
+	}
+	// El PDF lo dibuja Python desde el XML firmado (el núcleo no hace PDF).
+	if p, err := a.API("POST", fmt.Sprintf("/api/v1/dte/documentos/%d/pdf", res.DTEID), ""); err == nil && p.Status == 200 {
+		var pp struct {
+			PDFPath string `json:"pdf_path"`
+		}
+		if json.Unmarshal([]byte(p.Cuerpo), &pp) == nil {
+			res.PDFPath = pp.PDFPath
+		}
+	}
+	res.Mensaje += " (núcleo Go)"
+	out, _ := json.Marshal(res)
+	return string(out), nil
 }
 
 // AbrirURL abre una dirección en el navegador del sistema (panel web del motor, SII, docs).
