@@ -24,6 +24,10 @@ type Contexto struct {
 	FechaResolucion  string
 	NumeroResolucion int
 	Marca            string // hora (reloj único); el llamador decide si fija o no
+	// Validar, si no es nil, recibe el sobre completo ANTES de escribirlo y persistirlo (el
+	// folio ya está consumido, igual que en Python). El núcleo no valida XSD por sí mismo
+	// (fase 1.6 del plan): la app lo conecta a `POST /api/v1/dte/validar-xml` del motor.
+	Validar func(xmlEnvio []byte) error
 }
 
 type Resultado struct {
@@ -116,6 +120,12 @@ func Emitir(c Contexto, d xmlgen.Documento) (*Resultado, error) {
 		c.FechaResolucion, c.NumeroResolucion, raiz, c.Marca)
 	if err != nil {
 		return nil, err
+	}
+	// 8b. XSD (por el motor Python), antes de tocar disco o BD.
+	if c.Validar != nil {
+		if err := c.Validar(envio); err != nil {
+			return nil, fmt.Errorf("el sobre no valida contra el XSD del SII: %w", err)
+		}
 	}
 	// 9-11. disco (bytes exactos que se firmaron)
 	dtes := filepath.Join(c.StorageBase, "dtes")

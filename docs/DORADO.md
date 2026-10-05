@@ -214,6 +214,12 @@ byte, sin dependencias de Python. Paquetes: `totales`, `ted`, `xmlgen` (serializ
 lxml), `c14n` (Canonical XML 1.0 inclusiva con ápice reparseado), `firma` (PKCS#12, XMLDSig,
 sobre). Compilar: `cd nucleo && go build -o bin/nucleo-dorado ./cmd/nucleo-dorado`.
 
+### Semilla del token (`tests/dorado/sii/`)
+
+`generar_esperado.py` escribe con Python la semilla firmada (`getToken`, firma enveloped de
+`core/crypto.py::firmar_documento_xml`, distinta de la de los DTE) con el certificado ficticio;
+`nucleo/sii` la reproduce byte a byte (`go test ./sii/`).
+
 ## Lo que todavía no cubre
 
 - Sobres con más de 3 DTE, boletas con `IndServicio` distinto de 3, documentos con `IndTraslado`

@@ -64,7 +64,7 @@ runner (`<entrada.json> <fixtures/> <salida/>`). Orden, y cada paso se cierra co
 | 1.3 ✅ | generación del `<DTE>` sin firma: orden de tags según XSD, ISO-8859-1, `Id="T{tipo}F{folio}"` | diff estructural (sin `<Signature>`) | orden de elementos; "é" en ISO-8859-1 |
 | 1.4 ✅ | **C14N** (xml-c14n 2001) + XMLDSig RSA-SHA1 del `<Documento>` standalone | `dte.xml` | C14N exactamente como lxml: namespaces, atributos ordenados, sin xsi del sobre |
 | 1.5 ✅ | **sobre** por concatenación de strings con el DTE verbatim, firma del `SetDTE` | `envio.xml` | nunca re-serializar el DTE firmado (L1, DTE-3-505) |
-| 1.6 | validación XSD con `core/xsd/` (opcional en Go; si no hay librería madura, se delega a Python en esta fase) | — | — |
+| 1.6 ✅ | validación XSD: no hay validador XSD maduro en Go puro; el núcleo expone el gancho `Contexto.Validar` y la app lo conecta a `POST /dte/validar-xml` del motor Python **antes de persistir** | — | el folio ya está consumido al validar (igual que en Python) |
 
 Criterio de salida: `test_dorado.py --port ./nucleo/bin/nucleo-dorado` → todos idénticos
 (**cumplido para los 15 casos públicos el 2026-10-04**), incluido el corpus privado de
@@ -130,6 +130,14 @@ intento porque estaba escrito en la especificación de bytes antes de programar.
 - Corpus dorado corriendo en CI contra Python y contra el port, en cada commit. (Hecho.)
 
 ### Fase 5 — Decidir qué más (abierto)
+
+> Estado 2026-10-05: **cliente SII en Go hecho** (`nucleo/sii`): semilla, firma de la semilla
+> (byte a byte igual a Python, `tests/dorado/sii/`), token, envío por DTEUpload y estado por
+> TrackID con lectura de Aceptados/Rechazados/Reparos; reintentos ante 5xx. Probado en vivo
+> contra Maullín: token obtenido y el TrackID 261542052 leído como EPR, aceptados 1.
+> `nucleo/bin/nucleo-sii token|estado|enviar`. Con esto el núcleo puede emitir Y enviar sin
+> Python; falta decidir si la app lo usa para enviar (hoy envía Python). PDF/PDF417 y
+> EnvioBOLETA (REST de boletas) siguen pendientes.
 
 Con fases 1-4 hechas, se mira el valor de portar: envío SOAP y semilla/token (sencillo),
 PDF con PDF417 (hay librerías en Go), boletas EnvioBOLETA + RVD. El portal MIPYME no se
