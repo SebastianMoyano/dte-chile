@@ -44,6 +44,7 @@ from lxml import etree
 
 from core.crypto import CertificadoDigital, firmar_xml_sii
 from core.dte import redondear
+from core.reloj import marca
 
 SII_NS = "http://www.sii.cl/SiiDte"
 DS_NS = "http://www.w3.org/2000/09/xmldsig#"
@@ -184,7 +185,7 @@ class GeneradorLibro:
             rut_envia: RUT declarado en <RutEnvia>; por defecto el del certificado.
         """
         rut_envia = rut_envia or certificado.rut_emisor
-        ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        ts = marca()
 
         caratula_xml = self._construir_caratula(caratula, rut_envia)
         resumen_xml = self._construir_resumen(

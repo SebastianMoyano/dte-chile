@@ -1,0 +1,29 @@
+{
+ "descripcion": "Nota de crédito que anula la boleta 1 por el total (código 1)",
+ "tipo_dte": 61,
+ "folio": 1,
+ "fecha_emision": "2026-01-15",
+ "receptor": {
+  "rut": "66666666-6",
+  "razon_social": "CONSUMIDOR FINAL",
+  "es_contribuyente": false
+ },
+ "items": [
+  {
+   "numero_linea": 1,
+   "nombre": "Anula boleta folio 1",
+   "cantidad": 1,
+   "precio_unitario": 1000
+  }
+ ],
+ "referencias": [
+  {
+   "numero_linea": 1,
+   "tipo_doc_ref": 39,
+   "folio_ref": 1,
+   "fecha_doc_ref": "2026-01-15",
+   "codigo_ref": 1,
+   "razon_ref": "Era un café, no una torta"
+  }
+ ]
+}

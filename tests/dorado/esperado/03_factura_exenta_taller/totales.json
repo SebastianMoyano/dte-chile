@@ -1,0 +1,7 @@
+{
+ "monto_neto": 0,
+ "monto_exento": 35000,
+ "iva_tasa": 19,
+ "iva_monto": 0,
+ "monto_total": 35000
+}

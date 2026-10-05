@@ -78,6 +78,12 @@ def certificado_demo() -> CertificadoDigital:
     global _CERT
     if _CERT is not None:
         return _CERT
+    # Si existe el certificado fijo del corpus dorado, usarlo: así la demo es estable y la
+    # misma que comparan los ports (tests/dorado/fixtures, clave "demo", ficticio).
+    fijo = Path("tests/dorado/fixtures/cert_demo.p12")
+    if fijo.exists():
+        _CERT = CertificadoDigital(fijo.read_bytes(), "demo")
+        return _CERT
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     nombre = x509.Name([
         x509.NameAttribute(NameOID.COUNTRY_NAME, "CL"),

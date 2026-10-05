@@ -1,0 +1,27 @@
+<TED version="1.0">
+<DD>
+<RE>77777777-7</RE>
+<TD>41</TD>
+<F>3</F>
+<FE>2026-01-20</FE>
+<RR>66666666-6</RR>
+<RSR>CONSUMIDOR FINAL</RSR>
+<MNT>15000</MNT>
+<IT1>Clase particular de matemáticas</IT1>
+<CAF version="1.0">
+    <DA>
+      <RE>77777777-7</RE>
+      <RS>EMPRESA DEMO SPA</RS>
+      <TD>41</TD>
+      <RNG><D>1</D><H>100</H></RNG>
+      <FA>2026-10-04</FA>
+      <RSAPK><M>lZSlk7ol1+e9oEaobDkzwl4VRw+u8s8cP32xCFrSUhOEWQqlHgq8OWIivGx39Owoj6/VyLeFpWKiAqEexj+JlsIhuwLLfDkfpnPQ1gvne8197EY3LoixY6dJGIj941eJevx+jvHQiFo6b33BymgABtdklmD9H8JHxWgHCej6/Lc=</M><E>AQAB</E></RSAPK>
+      <IDK>100</IDK>
+    </DA>
+    <FRMA algoritmo="SHA1withRSA">U0lNVUxBQ0lPTi1OTy1FUy1VTkEtRklSTUEtREVMLVNJSQ==</FRMA>
+  </CAF>
+  
+<TSTED>2026-01-15T10:30:00</TSTED>
+</DD>
+<FRMT algoritmo="SHA1withRSA">j2VZ4CtvE4Fo5vWiomeOPrPd3md16tpzDR65i7dekw6m7t0VZUIE5/XHS0RhY53RFFKipp4y04K3DNRBroBWjfcmLJH3wrwH4T2L6jCCiSbNXX0RuCJXUzlbw1rLoijQofF/R2gSdb5Bx4sNF/3T3xZE0f/y5DfMF+xDckfj++Y=</FRMT>
+</TED>

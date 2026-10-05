@@ -1,0 +1,27 @@
+<TED version="1.0">
+<DD>
+<RE>77777777-7</RE>
+<TD>33</TD>
+<F>1</F>
+<FE>2026-01-15</FE>
+<RR>76111111-6</RR>
+<RSR>CLIENTE DEMO SPA</RSR>
+<MNT>23800</MNT>
+<IT1>Café para reunión</IT1>
+<CAF version="1.0">
+    <DA>
+      <RE>77777777-7</RE>
+      <RS>EMPRESA DEMO SPA</RS>
+      <TD>33</TD>
+      <RNG><D>1</D><H>100</H></RNG>
+      <FA>2026-10-04</FA>
+      <RSAPK><M>va9p4DPaAwUfzK4wMykmENxkc+VDD+S2UtHz01IKpYEbt8VwhIW/cWFOXJ3Assec7qnXRw7rHP8UzBKPFq1TWqQUxTh/t1SSJ7LjG0Jo4WhtLBBDYV3Ep+39kOfozqQVfbPTQWyY5N1zEm1bzmFRn4T0MHxtCC2QztSH//O/2ck=</M><E>AQAB</E></RSAPK>
+      <IDK>100</IDK>
+    </DA>
+    <FRMA algoritmo="SHA1withRSA">U0lNVUxBQ0lPTi1OTy1FUy1VTkEtRklSTUEtREVMLVNJSQ==</FRMA>
+  </CAF>
+  
+<TSTED>2026-01-15T10:30:00</TSTED>
+</DD>
+<FRMT algoritmo="SHA1withRSA">dKaHqT9Wds0sPB3RVzr5K91YyWvnHHRGUDu/peSwcMy1Aw9l4bsBxVeCrOF9MyRSs0lrBAfX0ImZdhzjEu/UXJ5887chK0J3QPqkCw1riqcww7lq0nnIPDka0L04uz3KPdmP8/Zvp1ktA9QuqsOvA+YSFrYf/osu21Ky1tG0Sec=</FRMT>
+</TED>

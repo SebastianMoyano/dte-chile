@@ -164,3 +164,16 @@ El código se publica bajo licencia MIT en GitHub. Lo que se commitea lo lee cua
   limpieza de 5 archivos (2026-10-04) escritos con datos del cliente de Auxin en los tests.
 - Las capturas de la extensión `tools/captura-sii` tachan claves y omiten cookies, pero traen
   RUT y razones sociales: se guardan en `storage/`, no en el repo.
+
+## L15 — La salida del motor es reproducible byte a byte, y eso se prueba
+
+La firma depende de los bytes exactos (L1). Por eso la salida de la capa de firma es
+determinista: toda hora sale de `core/reloj.py`, y `test_dorado.py` compara TED, DTE firmado
+y sobre contra `tests/dorado/esperado/` ([`DORADO.md`](DORADO.md)).
+
+- Un cambio que mueva un byte de la salida **tiene que ser intencional**: se regenera el
+  corpus a propósito y el commit dice por qué. Regenerar para que pase es esconder un bug.
+- Un `datetime.now()` nuevo en el camino de firma está prohibido: usa `reloj.marca()`.
+- **Cualquier port o reescritura** (otro lenguaje, otra librería XML) se iguala primero al
+  corpus en local, caso por caso, y recién después se prueba contra el SII de certificación.
+

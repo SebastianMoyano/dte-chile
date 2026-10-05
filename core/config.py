@@ -137,6 +137,8 @@ class Settings(BaseSettings):
     # misma arranca. Autentica como el usuario dueño de la cuenta. NO va en .env: la genera
     # la app en cada arranque y muere con el proceso. Ver docs/APP.md.
     app_shell_key: Optional[str] = Field(default=None, description="Clave efímera de la app de escritorio (solo por entorno)")
+    # Hora fija para salida reproducible byte a byte (corpus dorado). NUNCA en producción.
+    reloj_fijo: Optional[str] = Field(default=None, description="Hora fija ISO para pruebas reproducibles (RELOJ_FIJO)")
 
     # ---- Exposición pública acotada ----
     # Host público que SOLO puede ver el buscador de boletas (ej. "boletas.tu-dominio.cl").

@@ -1,0 +1,4 @@
+{"descripcion": "Boleta exenta: una clase particular",
+ "tipo_dte": 41, "folio": 3, "fecha_emision": "2026-01-20",
+ "receptor": {"rut": "66666666-6", "razon_social": "CONSUMIDOR FINAL", "es_contribuyente": false},
+ "items": [{"numero_linea": 1, "nombre": "Clase particular de matemáticas", "cantidad": 1, "precio_unitario": 15000, "exento": true}]}

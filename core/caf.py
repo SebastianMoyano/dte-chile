@@ -228,9 +228,9 @@ class ManejadorCAF:
         return ted_xml
 
     def _timestamp_actual(self) -> str:
-        """Retorna el timestamp actual en formato ISO 8601."""
-        from datetime import datetime
-        return datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        """Retorna el timestamp actual en formato ISO 8601 (del reloj único, ver core/reloj.py)."""
+        from core.reloj import marca
+        return marca()
 
     def folio_info(self) -> dict:
         """Retorna información del CAF como diccionario."""

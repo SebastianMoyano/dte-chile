@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import base64
 import io
+from core.reloj import marca
 from datetime import date, datetime
 from decimal import Decimal, ROUND_HALF_UP
 from enum import IntEnum
@@ -290,7 +291,7 @@ class GeneradorDTE:
 
         # --- Timestamp de timbre ---
         tmstamp = etree.SubElement(documento, "TmstFirma")
-        tmstamp.text = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        tmstamp.text = marca()
 
         return dte
 
@@ -343,7 +344,7 @@ class GeneradorDTE:
         self._texto(caratula, "RutReceptor", rut_receptor)
         self._texto(caratula, "FchResol", fecha_resolucion)
         self._texto(caratula, "NroResol", str(numero_resolucion))
-        self._texto(caratula, "TmstFirmaEnv", datetime.now().strftime("%Y-%m-%dT%H:%M:%S"))
+        self._texto(caratula, "TmstFirmaEnv", marca())
 
         # Subsets de DTEs por tipo
         subsets: dict[int, list] = {}
@@ -476,7 +477,7 @@ class GeneradorDTE:
             f"<F>{d.folio}</F><FE>{d.fecha_emision.isoformat()}</FE>"
             f"<RR>{d.receptor.rut}</RR><RSR>{d.emisor.razon_social[:40]}</RSR>"
             f"<MNT>{t.monto_total}</MNT><IT1>{d.items[0].nombre[:40]}</IT1>"
-            f"<CAF></CAF><TSTED>{datetime.now().strftime('%Y-%m-%dT%H:%M:%S')}</TSTED>"
+            f"<CAF></CAF><TSTED>{marca()}</TSTED>"
             f"</DD><FRMT algoritmo=\"SHA1withRSA\">FIRMA_PLACEHOLDER</FRMT></TED>"
         )
 

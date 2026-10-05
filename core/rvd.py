@@ -43,6 +43,7 @@ from core.database import get_db
 from core.dte import SII_NAMESPACE
 from core.errors import ValidacionError
 from core.schema_validator import validar_xml_dte_strict
+from core.reloj import marca
 
 if TYPE_CHECKING:  # solo para el type hint; evita el ciclo rvd <-> sii
     from core.sii import ClienteSII
@@ -251,7 +252,7 @@ def generar_consumo_folios(
     if correlativo is not None:
         _txt(car, "Correlativo", correlativo)
     _txt(car, "SecEnvio", sec_envio)
-    _txt(car, "TmstFirmaEnv", datetime.now().strftime("%Y-%m-%dT%H:%M:%S"))
+    _txt(car, "TmstFirmaEnv", marca())
 
     # --- Un Resumen por tipo, incluidos los que no tuvieron movimiento ---
     for tipo in tipos:

@@ -1,0 +1,30 @@
+{
+ "descripcion": "Factura exenta: taller de pastelería 30.000, dos líneas",
+ "tipo_dte": 34,
+ "folio": 7,
+ "fecha_emision": "2026-01-16",
+ "receptor": {
+  "rut": "76111111-6",
+  "razon_social": "CLIENTE DEMO SPA",
+  "giro": "Oficina",
+  "direccion": "Avenida Imaginaria 456",
+  "comuna": "Providencia",
+  "ciudad": "Santiago"
+ },
+ "items": [
+  {
+   "numero_linea": 1,
+   "nombre": "Taller de pastelería",
+   "cantidad": 1,
+   "precio_unitario": 30000,
+   "exento": true
+  },
+  {
+   "numero_linea": 2,
+   "nombre": "Material del taller",
+   "cantidad": 2,
+   "precio_unitario": 2500,
+   "exento": true
+  }
+ ]
+}

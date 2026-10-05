@@ -21,7 +21,7 @@ when signed"* + *"do not reformat after signing"*. Es el mismo enfoque de LibreD
 """
 from __future__ import annotations
 
-from datetime import datetime
+from core.reloj import marca
 from typing import List, Sequence
 
 from lxml import etree
@@ -55,7 +55,7 @@ def _caratula(rut_emisor: str, rut_envia: str, fecha_resolucion: str,
               numero_resolucion: int, subtotales: Sequence[tuple[int, int]]) -> str:
     sub = "".join(f"<SubTotDTE><TpoDTE>{t}</TpoDTE><NroDTE>{n}</NroDTE></SubTotDTE>"
                   for t, n in subtotales)
-    ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+    ts = marca()  # reloj único (core/reloj.py): fijable para salida reproducible
     return (f'<Caratula version="1.0"><RutEmisor>{rut_emisor}</RutEmisor>'
             f'<RutEnvia>{rut_envia}</RutEnvia><RutReceptor>{RUT_SII}</RutReceptor>'
             f'<FchResol>{fecha_resolucion}</FchResol><NroResol>{numero_resolucion}</NroResol>'

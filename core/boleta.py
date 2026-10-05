@@ -18,6 +18,7 @@ from typing import List, Optional
 from lxml import etree
 
 from core.dte import SII_NAMESPACE, DTEInput, calcular_totales
+from core.reloj import marca
 
 _XSD_BOLETA = "http://www.sii.cl/SiiDte EnvioBOLETA_v11.xsd"
 
@@ -146,7 +147,7 @@ def generar_documento_boleta(dte_input: DTEInput, ted_xml: str,
     # ---- TED + timestamp ----
     doc.append(etree.fromstring(
         ted_xml.encode("utf-8") if isinstance(ted_xml, str) else ted_xml))
-    _txt(doc, "TmstFirma", datetime.now().strftime("%Y-%m-%dT%H:%M:%S"))
+    _txt(doc, "TmstFirma", marca())
     return dte
 
 
@@ -169,7 +170,7 @@ def generar_envio_boleta(documentos: List[etree._Element], rut_emisor: str, rut_
     _txt(car, "RutReceptor", rut_receptor)
     _txt(car, "FchResol", fecha_resolucion)
     _txt(car, "NroResol", str(numero_resolucion))
-    _txt(car, "TmstFirmaEnv", datetime.now().strftime("%Y-%m-%dT%H:%M:%S"))
+    _txt(car, "TmstFirmaEnv", marca())
 
     subsets: dict = {}
     for doc in documentos:
