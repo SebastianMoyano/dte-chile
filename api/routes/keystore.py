@@ -8,8 +8,12 @@ autenticado) puede tener VARIOS certificados. Todo protegido con JWT.
 Los .p12 y sus claves se guardan CIFRADOS (core/keystore.py); estos endpoints
 nunca devuelven secretos, sólo metadatos.
 """
+from typing import Optional
+
 from fastapi import APIRouter, Depends, File, Form, Query, UploadFile, status
 from api.util import leer_upload
+
+from pydantic import BaseModel, Field
 
 from core import keystore, negocios
 from core.auth import requerir_autenticacion
@@ -152,6 +156,32 @@ async def timbraje_negocio(
     docs = [{"tipo": t, "nombre": _TIPOS_PANEL[t], "autorizado": t in autorizados,
              "bloqueado": bool(sit.get(t, {}).get("bloqueado"))} for t in tipos]
     return {"rut": neg["rut"], "razon_social": neg.get("razon_social"), "documentos": docs}
+
+
+class ClavesSIIIn(BaseModel):
+    rut_empresa: str
+    rut_usuario: Optional[str] = Field(None, description="RUT (con DV) de la persona autorizada que entra al SII")
+    clave_tributaria: Optional[str] = Field(None, description="Clave tributaria de esa persona (vacía = no cambiar)")
+    clave_certificado: Optional[str] = Field(None, description="Clave del certificado para la firma central (vacía = no cambiar)")
+
+
+@router.put("/claves-sii", summary="Recordar (cifradas) las claves del SII de una empresa del gratuito")
+async def guardar_claves_sii(body: ClavesSIIIn, usuario: dict = Depends(requerir_autenticacion)) -> dict:
+    """Solo cuando la persona marcó 'recordar en este equipo'. Se cifran con la clave maestra
+    del keystore (la misma del certificado). Nunca se devuelven en claro: la respuesta dice
+    solo qué hay guardado. Por defecto las claves viven en memoria de la app y mueren con ella."""
+    return keystore.guardar_claves_sii(usuario["id"], body.rut_empresa, body.rut_usuario,
+                                       body.clave_tributaria or None, body.clave_certificado or None)
+
+
+@router.get("/claves-sii/{rut_empresa}", summary="Qué claves del SII hay recordadas para la empresa (sin valores)")
+async def estado_claves_sii(rut_empresa: str, usuario: dict = Depends(requerir_autenticacion)) -> dict:
+    return keystore.estado_claves_sii(usuario["id"], rut_empresa)
+
+
+@router.delete("/claves-sii/{rut_empresa}", summary="Olvidar las claves del SII de la empresa")
+async def olvidar_claves_sii(rut_empresa: str, usuario: dict = Depends(requerir_autenticacion)) -> dict:
+    return {"olvidadas": keystore.eliminar_claves_sii(usuario["id"], rut_empresa)}
 
 
 @router.get("/negocios/{negocio_id}/contexto-emision",

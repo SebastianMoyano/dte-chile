@@ -81,10 +81,82 @@ def _p12_a_pem(p12_bytes: bytes, password: str):
     return cert_pem, key_pem
 
 
+SCHEMA_CLAVES_SII = """
+CREATE TABLE IF NOT EXISTS claves_sii (
+    id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+    cuenta_id            INTEGER NOT NULL,
+    rut_empresa          TEXT NOT NULL,
+    rut_usuario          TEXT,
+    tributaria_cifrada   BLOB,
+    certificado_cifrada  BLOB,
+    actualizado          TEXT NOT NULL,
+    UNIQUE(cuenta_id, rut_empresa)
+);
+"""
+
+
 def init_keystore() -> None:
-    """Crea la tabla de certificados si no existe."""
+    """Crea las tablas del keystore si no existen."""
     with database.get_db() as conn:
         conn.execute(SCHEMA_CERTIFICADOS)
+        conn.execute(SCHEMA_CLAVES_SII)
+
+
+# ---------------------------------------------------------------------------
+# Claves del SII (canal MIPYME / gratuito): clave tributaria de la persona autorizada y clave
+# del certificado para la firma central. Solo se guardan si la persona marca "recordar";
+# cifradas con la misma clave maestra que el certificado. Nunca se devuelven a la API en
+# claro: `estado_claves_sii` dice solo si existen.
+# ---------------------------------------------------------------------------
+def guardar_claves_sii(cuenta_id: int, rut_empresa: str, rut_usuario: Optional[str] = None,
+                       clave_tributaria: Optional[str] = None, clave_certificado: Optional[str] = None) -> dict:
+    """Guarda (o actualiza) lo que venga: una clave vacía/None deja la que había."""
+    init_keystore()
+    f = _fernet()
+    ahora = datetime.now(timezone.utc).isoformat()
+    with database.get_db() as conn:
+        fila = conn.execute("SELECT rut_usuario, tributaria_cifrada, certificado_cifrada FROM claves_sii "
+                            "WHERE cuenta_id=? AND rut_empresa=?", (cuenta_id, rut_empresa)).fetchone()
+        trib = f.encrypt(clave_tributaria.encode()) if clave_tributaria else (fila["tributaria_cifrada"] if fila else None)
+        cert = f.encrypt(clave_certificado.encode()) if clave_certificado else (fila["certificado_cifrada"] if fila else None)
+        usuario = rut_usuario or (fila["rut_usuario"] if fila else None)
+        conn.execute("INSERT INTO claves_sii (cuenta_id, rut_empresa, rut_usuario, tributaria_cifrada, certificado_cifrada, actualizado) "
+                     "VALUES (?,?,?,?,?,?) ON CONFLICT(cuenta_id, rut_empresa) DO UPDATE SET rut_usuario=excluded.rut_usuario, "
+                     "tributaria_cifrada=excluded.tributaria_cifrada, certificado_cifrada=excluded.certificado_cifrada, "
+                     "actualizado=excluded.actualizado",
+                     (cuenta_id, rut_empresa, usuario, trib, cert, ahora))
+    return estado_claves_sii(cuenta_id, rut_empresa)
+
+
+def estado_claves_sii(cuenta_id: int, rut_empresa: str) -> dict:
+    """Qué hay guardado, sin los valores."""
+    init_keystore()
+    fila = database.obtenerUno("SELECT rut_usuario, tributaria_cifrada, certificado_cifrada, actualizado FROM claves_sii "
+                               "WHERE cuenta_id=? AND rut_empresa=?", (cuenta_id, rut_empresa))
+    return {"rut_empresa": rut_empresa, "rut_usuario": fila["rut_usuario"] if fila else None,
+            "tiene_tributaria": bool(fila and fila["tributaria_cifrada"]),
+            "tiene_certificado": bool(fila and fila["certificado_cifrada"]),
+            "actualizado": fila["actualizado"] if fila else None}
+
+
+def obtener_claves_sii(cuenta_id: int, rut_empresa: str) -> dict:
+    """Descifra para USO INTERNO (los endpoints MIPYME). Devuelve rut_usuario/tributaria/certificado
+    (cadenas vacías si no hay). Nunca exponer esto por la API."""
+    init_keystore()
+    fila = database.obtenerUno("SELECT rut_usuario, tributaria_cifrada, certificado_cifrada FROM claves_sii "
+                               "WHERE cuenta_id=? AND rut_empresa=?", (cuenta_id, rut_empresa))
+    if not fila:
+        return {"rut_usuario": "", "tributaria": "", "certificado": ""}
+    f = _fernet()
+    return {"rut_usuario": fila["rut_usuario"] or "",
+            "tributaria": f.decrypt(fila["tributaria_cifrada"]).decode() if fila["tributaria_cifrada"] else "",
+            "certificado": f.decrypt(fila["certificado_cifrada"]).decode() if fila["certificado_cifrada"] else ""}
+
+
+def eliminar_claves_sii(cuenta_id: int, rut_empresa: str) -> bool:
+    init_keystore()
+    with database.get_db() as conn:
+        return conn.execute("DELETE FROM claves_sii WHERE cuenta_id=? AND rut_empresa=?", (cuenta_id, rut_empresa)).rowcount > 0
 
 
 def guardar_certificado(cuenta_id: int, p12_bytes: bytes, password: str,

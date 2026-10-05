@@ -90,6 +90,15 @@ IDENTIDAD="Developer ID Application: …" ./firmar-mac.sh   # firma y notarizaci
 - Verificado 2026-10-05: la app empaquetada arrancó desde una carpeta de datos vacía, creó
   `.env`, base y logs, y la simulación completa (firma, XSD, PDF con timbre) funcionó.
 
+## Claves del SII en la app (canal gratuito)
+
+La primera acción real del gratuito en la app es **"Traer lo emitido en el SII"** (Inicio,
+empresas que no emiten con motor propio). Antes de hacerla, un diálogo pide el RUT de la
+persona autorizada, su clave tributaria y, para bajar el XML, la del certificado, y explica
+para qué se usan. Viven en memoria de la app (`clavesSesion`) hasta cerrarla. Con la casilla
+"Recordar en este equipo" se mandan con `recordar: true` y el motor las cifra en el keystore
+(ver `docs/MIPYME.md`, sección Claves). Nunca se muestran de vuelta.
+
 ## Pantallas (v0.1)
 
 | Pantalla | Qué hace hoy | Endpoints |

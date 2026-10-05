@@ -28,9 +28,31 @@ router = APIRouter(prefix="/api/v1/mipyme", tags=["Canal MIPYME (gratuito del SI
 
 
 class DiagnosticoIn(BaseModel):
-    rut_usuario: str = Field(description="RUT (con DV) de quien entra al SII; debe estar autorizado para la empresa")
     rut_empresa: str = Field(description="RUT (con DV) de la empresa a operar")
-    clave_tributaria: str = Field(description="Clave tributaria del usuario. No se guarda.")
+    rut_usuario: str = Field(default="", description="RUT (con DV) de quien entra al SII; debe estar autorizado para la empresa. Vacío = el recordado.")
+    clave_tributaria: str = Field(default="", description="Clave tributaria del usuario. Vacía = la recordada en el keystore (si la hay).")
+    recordar: bool = Field(default=False, description="Guardar cifradas en el keystore las claves que vienen en esta petición (solo si la persona lo pidió)")
+
+
+def _resolver_claves(d: "DiagnosticoIn", usuario: dict) -> None:
+    """Claves por petición o recordadas: lo que viene en el cuerpo manda; lo que falta se toma
+    del keystore (cifrado con la clave maestra). Con `recordar`, lo que vino se guarda. Nada
+    de esto se registra en logs ni en evidencias (las evidencias ya tachan claves)."""
+    from core import keystore
+    from core.errors import ValidacionError
+    guardadas = keystore.obtener_claves_sii(usuario["id"], d.rut_empresa)
+    if d.recordar and (d.clave_tributaria or getattr(d, "clave_certificado", "") or d.rut_usuario):
+        keystore.guardar_claves_sii(usuario["id"], d.rut_empresa, d.rut_usuario or None,
+                                    d.clave_tributaria or None, getattr(d, "clave_certificado", "") or None)
+    d.rut_usuario = d.rut_usuario or guardadas["rut_usuario"]
+    d.clave_tributaria = d.clave_tributaria or guardadas["tributaria"]
+    if hasattr(d, "clave_certificado") and not d.clave_certificado:
+        d.clave_certificado = guardadas["certificado"]
+    if not d.rut_usuario or not d.clave_tributaria:
+        raise ValidacionError("Faltan el RUT de la persona autorizada y/o su clave tributaria "
+                              "(no vienen en la petición ni están recordadas para esta empresa)",
+                              detalle={"rut_empresa": d.rut_empresa, "faltan": [k for k, v in
+                                       (("rut_usuario", d.rut_usuario), ("clave_tributaria", d.clave_tributaria)) if not v]})
 
 
 _RECEPTOR_PRUEBA = ReceptorMipyme(rut="11111111-1", razon_social="PRUEBA", giro="PRUEBA",
@@ -74,6 +96,7 @@ async def diagnostico(d: DiagnosticoIn) -> dict:
     """Login + selección de empresa + lectura del form y del menú. **Producción**, sin
     efecto: no gasta folio. Errores de dominio (`AutenticacionError`, `SIIRechazoError`)
     salen por el manejador global con su código."""
+    _resolver_claves(d, usuario)
     return await run_in_threadpool(_diagnosticar, d)
 
 
@@ -97,10 +120,11 @@ def _importar(d: ImportarIn) -> dict:
 
 
 @router.post("/importar", summary="Importar el historial de emitidos del gratuito (con PDF)")
-async def importar(d: ImportarIn) -> dict:
+async def importar(d: ImportarIn, usuario: dict = Depends(requerir_autenticacion)) -> dict:
     """Lista `mipeAdminDocsEmi` (paginado), registra cada documento en `dtes` con canal
     MIPYME (idempotente por rut/tipo/folio) y baja su PDF a `storage/pdfs/mipyme/<rut>/`.
     **Producción**, solo lectura: no emite ni gasta folio."""
+    _resolver_claves(d, usuario)
     return await run_in_threadpool(_importar, d)
 
 
@@ -129,7 +153,8 @@ def _sincronizar(d: ImportarIn) -> dict:
 
 
 @router.post("/sincronizar", summary="Entrar al gratuito del SII e importar lo emitido (una sola sesión)")
-async def sincronizar(d: ImportarIn) -> dict:
+async def sincronizar(d: ImportarIn, usuario: dict = Depends(requerir_autenticacion)) -> dict:
     """Lo que usa la página: login + empresa + lectura del form (emisor, drift) + historial +
     importación a `dtes` con PDF. **Producción**, solo lectura: no emite ni gasta folio."""
+    _resolver_claves(d, usuario)
     return await run_in_threadpool(_sincronizar, d)

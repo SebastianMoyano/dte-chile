@@ -243,3 +243,28 @@ en `track_id` va el **`DHDR_CODIGO`** (el id que el portal usa para el PDF y par
 - Guardar las dos claves en el keystore cifrado (hoy se piden en cada corrida: por consola, Llavero de macOS o el formulario de la página).
 - Emitir y anular desde la página (hoy solo el diagnóstico de lectura tiene endpoint).
 - Ruteo automático por empresa en `emitir_documento` (gratuito → MIPYME, software propio → motor).
+
+## Claves: qué se pide, dónde viven, cuándo se recuerdan
+
+Operar el gratuito "como la persona" necesita dos claves con papeles distintos:
+
+| clave | para qué | de quién |
+|---|---|---|
+| **tributaria** | entrar al SII y actuar por la empresa | la persona autorizada (`rut_usuario`) |
+| **del certificado** | la firma central (`postFirmaDigital`): emitir, Obtener Envío (XML) | el titular del certificado |
+
+Reglas (implementadas en `api/routes/mipyme.py::_resolver_claves` y `core/keystore.py`):
+
+1. **Se piden cuando hacen falta y se dice para qué.** Los endpoints las aceptan en el cuerpo
+   (`clave_tributaria`, `clave_certificado`, `rut_usuario`); nunca en la URL ni en argumentos.
+2. **Por defecto no se guardan.** La app las mantiene en memoria mientras está abierta.
+3. **Se recuerdan solo con `recordar: true`** (la casilla "recordar en este equipo"): entonces se
+   cifran en la tabla `claves_sii` del keystore con la **misma clave maestra** (`DTE_MASTER_KEY`)
+   que protege el certificado. Quien tenga la base y el `.env` de esa máquina puede
+   descifrarlas: es el mismo nivel que el `.p12`, ni más ni menos.
+4. Lo que falta en la petición se toma de lo recordado; lo que viene manda. `GET
+   /api/v1/keystore/claves-sii/{rut}` dice **qué** hay guardado, nunca los valores;
+   `DELETE` las olvida.
+5. **Tenerlas no autoriza a gastar folios**: cada emisión real pasa por su confirmación.
+6. Nunca a logs ni a evidencias (`_guardar_evidencia` ya tacha claves en todas sus formas).
+

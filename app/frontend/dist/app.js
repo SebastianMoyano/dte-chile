@@ -88,10 +88,12 @@ vistas.inicio = async (el) => {
     cab = `<div class="banner ${mundo() === "real" ? "rojo" : ""}"><b>${esc(e.razon_social || e.rut)}</b> · ${esc(e.rut)} · <span class="pill ${e.usa_sw_propio ? "p-ok" : "p-mut"}">${esc(e.estado_etiqueta || "sin diagnóstico")}</span>
       ${mundo() === "real" ? "<br>Esta empresa está en <b>producción</b>: lo que emitas cuenta ante el SII." : "<br>Esta empresa está en el <b>ambiente de pruebas</b> del SII: el SII responde, pero sin efecto tributario."}</div>`;
   }
+  const sinc = (!e.demo && !e.usa_sw_propio) ? `<div class="card accion" onclick="sincronizarGratuito()"><div class="ico">🔄</div><h3>Traer lo emitido en el SII</h3><p>Esta empresa emite en el sistema gratuito del SII. Entra como tú, lista lo emitido y guarda PDF y XML aquí. Solo lectura.</p></div>` : "";
   el.innerHTML = `
     <h1>¿Qué quieres hacer?</h1>
     <p class="sub">Tres cosas cubren casi todo. Lo demás está arriba.</p>
     ${cab}
+    ${sinc ? `<div class="grid">${sinc}</div>` : ""}
     <div class="grid">
       <div class="card accion" onclick="ir('cobrar')"><div class="ico">🧾</div><h3>Cobrarle a alguien</h3><p>Una boleta o una factura. Te muestro el neto, el IVA y el total antes de emitir.</p></div>
       <div class="card accion" onclick="ir('mes')"><div class="ico">📅</div><h3>Mi mes</h3><p>Cuánto vendiste, cuánto IVA cobraste y qué va a pedir el F29.</p></div>
@@ -106,6 +108,51 @@ window.reiniciarDemo = async () => {
   if (!confirm("¿Borrar todos los documentos de práctica y volver a la boleta N° 1?")) return;
   const r = await api("POST", "/api/v1/simulacion/reiniciar");
   aviso(`Listo: ${r.documentos_borrados} documento(s) de práctica borrados.`); render();
+};
+
+// ---------- claves del SII (canal gratuito) ----------
+// Viven en memoria del proceso mientras la app está abierta. Solo se recuerdan (cifradas en
+// el keystore del motor) si la persona marca la casilla. Nunca van a logs ni a URLs.
+const clavesSesion = {};
+async function pedirClaves(rut, necesitaCert) {
+  const est = await api("GET", `/api/v1/keystore/claves-sii/${encodeURIComponent(rut)}`).catch(() => ({}));
+  const ya = clavesSesion[rut] || {};
+  const tieneTrib = ya.tributaria || est.tiene_tributaria, tieneCert = ya.certificado || est.tiene_certificado;
+  if (tieneTrib && (!necesitaCert || tieneCert) && (ya.rut_usuario || est.rut_usuario)) return { ...ya, rut_usuario: ya.rut_usuario || est.rut_usuario, recordar: false };
+  return new Promise((resolve) => {
+    const m = document.createElement("div");
+    m.className = "modal";
+    m.innerHTML = `<div class="card" style="max-width:460px;width:92%">
+      <h2 style="margin-top:0">Claves del SII</h2>
+      <p class="mut">Para operar el sistema gratuito del SII por <b>${esc(rut)}</b>, la app entra al SII <b>como tú</b>. Las claves se usan solo para eso y se borran al cerrar la app, salvo que marques recordarlas.</p>
+      <label>Tu RUT (persona autorizada en el SII)</label><input id="k_rut" value="${esc(ya.rut_usuario || est.rut_usuario || "")}" placeholder="12345678-5">
+      <label>Clave tributaria ${tieneTrib ? '<span class="mut">(ya recordada; deja vacío para usarla)</span>' : ""}</label><input id="k_trib" type="password" autocomplete="off">
+      ${necesitaCert ? `<label>Clave del certificado digital (para firmar) ${tieneCert ? '<span class="mut">(ya recordada; deja vacío para usarla)</span>' : ""}</label><input id="k_cert" type="password" autocomplete="off">` : ""}
+      <div class="chk"><input type="checkbox" id="k_rec"><label for="k_rec" style="margin:0;font-weight:500">Recordar en este equipo (cifradas con la clave maestra del motor)</label></div>
+      <div class="row"><button class="sec" id="k_no">Cancelar</button><button id="k_ok">Continuar</button></div></div>`;
+    document.body.appendChild(m);
+    m.querySelector("#k_no").onclick = () => { m.remove(); resolve(null); };
+    m.querySelector("#k_ok").onclick = () => {
+      const r = { rut_usuario: m.querySelector("#k_rut").value.trim(), tributaria: m.querySelector("#k_trib").value,
+                  certificado: necesitaCert ? m.querySelector("#k_cert").value : "", recordar: m.querySelector("#k_rec").checked };
+      if (!r.rut_usuario) return aviso("Falta tu RUT.");
+      if (!r.tributaria && !tieneTrib) return aviso("Falta la clave tributaria.");
+      clavesSesion[rut] = { rut_usuario: r.rut_usuario, tributaria: r.tributaria || ya.tributaria || "", certificado: r.certificado || ya.certificado || "" };
+      m.remove(); resolve(r);
+    };
+  });
+}
+window.sincronizarGratuito = async () => {
+  const e = empresa();
+  const k = await pedirClaves(e.rut, true);
+  if (!k) return;
+  aviso("Entrando al SII y listando lo emitido… puede tardar un minuto.", 8000);
+  try {
+    const r = await api("POST", "/api/v1/mipyme/sincronizar", { rut_empresa: e.rut, rut_usuario: k.rut_usuario, clave_tributaria: k.tributaria,
+      clave_certificado: k.certificado, con_xml: !!k.certificado, con_pdf: true, recordar: !!k.recordar });
+    aviso(`Listo: ${r.listados ?? 0} listados, ${r.importados ?? 0} nuevos, ${r.ya_existian ?? 0} ya estaban, ${r.pdf_ok ?? 0} PDF${r.xml_ok ? `, ${r.xml_ok} XML` : ""}.`, 8000);
+    ir("documentos");
+  } catch (err) { aviso("No se pudo: " + err.message, 9000); }
 };
 
 // ---------- cobrar ----------

@@ -60,3 +60,4 @@ code { background:var(--bg); border:1px solid var(--bd); border-radius:6px; padd
 .radio label:has(input:checked) { border-color:var(--acc); background:color-mix(in srgb,var(--acc) 8%,transparent); }
 .radio input { width:auto; margin:0; }
 .chk { display:flex; gap:8px; align-items:center; font-weight:500; margin-top:12px; } .chk input { width:auto; }
+.modal { position:fixed; inset:0; background:rgba(0,0,0,.45); display:flex; align-items:center; justify-content:center; z-index:20; }
