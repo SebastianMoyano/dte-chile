@@ -26,7 +26,7 @@ from core.crypto import CertificadoDigital
 from core.dte import DTEInput
 from core.errors import ValidacionError
 from core.models import crear_dte, guardar_pdf_dte
-from core.orchestrator import OrquestadorDTE
+from core.orchestrator import OrquestadorDTE, ruta_para_bd
 from core.pdf_gen import generar_boleta_80mm
 from core.schema_validator import validar_xml_dte_strict
 from core.resolucion import resolucion_emisor
@@ -127,7 +127,7 @@ class OrquestadorBoleta(OrquestadorDTE):
             xml_firmado=xml_doc_bytes.decode("ISO-8859-1"),
             ambiente=self.ambiente,
         )
-        guardar_pdf_dte(dte_id, str(path_pdf.relative_to(Path(settings.storage_path).parent)))
+        guardar_pdf_dte(dte_id, ruta_para_bd(path_pdf))
 
         return {
             "dte_id": dte_id,

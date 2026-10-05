@@ -40,6 +40,16 @@ from core.resolucion import resolucion_emisor
 from core.sobre import armar_sobre_firmado, firmar_documento_standalone
 
 
+def ruta_para_bd(path: Path) -> str:
+    """Ruta que se guarda en `dtes.pdf_path`: relativa a la raíz del repo si el archivo cuelga
+    de ella (`storage/pdfs/…`, lo que el endpoint de PDF resuelve desde el cwd); si el storage
+    es una carpeta absoluta fuera del repo (pruebas), la ruta absoluta tal cual."""
+    try:
+        return str(path.relative_to(Path(settings.storage_path).parent))
+    except ValueError:
+        return str(path)
+
+
 class OrquestadorDTE:
     """
     Orquesta todo el flujo de emisión de un DTE.
@@ -273,7 +283,7 @@ class OrquestadorDTE:
         )
 
         # Ruta relativa a la raíz del repo (el endpoint de PDF la resuelve desde el cwd).
-        guardar_pdf_dte(dte_id, str(path_dte_pdf.relative_to(Path(settings.storage_path).parent)))
+        guardar_pdf_dte(dte_id, ruta_para_bd(path_dte_pdf))
 
         # Retornar detalles
         xml_envio_b64 = base64.b64encode(xml_envio_bytes).decode("ascii")

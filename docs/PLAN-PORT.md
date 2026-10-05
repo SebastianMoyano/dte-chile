@@ -76,14 +76,21 @@ primera); en el sobre, el `xmlns:xsi` redeclarado en la `<Signature>` (54 bytes)
 (C14N con ápice reparseado, escapes, ISO-8859-1, KeyInfo envuelto a 64) coincidió al primer
 intento porque estaba escrito en la especificación de bytes antes de programar.
 
-### Fase 2 — Estado: CAF, folios y persistencia (1 semana)
+### Fase 2 — Estado: CAF, folios y persistencia (1 semana) ✅
+
+> Estado 2026-10-04: **cerrada.** `nucleo/almacen` (SQLite, `BEGIN IMMEDIATE`) y
+> `nucleo/emision` (orquestador) con `nucleo/bin/nucleo-emitir`. `test_fase2.py` (21
+> comprobaciones): Go → Python → Go → Python dan folios 1-4 sin repetir; lo que Go deja en
+> disco y en `dtes.xml_firmado` es byte a byte lo del pipeline Python con ese folio; 3
+> procesos Go + 3 hilos Python emitiendo a la vez → 94 boletas, sin duplicados ni huecos;
+> los sobres de Go validan XSD. Go **no genera PDF** (sigue en Python) ni envía.
 
 - Lectura de CAF desde la BD SQLite existente (mismo esquema, mismo archivo).
 - Folio atómico con `BEGIN IMMEDIATE` (reproducir exactamente `consumir_siguiente_folio`).
 - Guardar DTE/PDF/sobre con las mismas rutas y filas que hoy, para que la API Python y la app
   sigan viendo lo mismo.
 - Prueba: emitir con el port y con Python alternadamente sobre la misma BD de prueba; los
-  folios no se repiten ni se saltan.
+  folios no se repiten ni se saltan. (`test_fase2.py`, hecho.)
 
 ### Fase 3 — Contra el SII de certificación (1 semana, con folios de Maullín)
 
