@@ -11,9 +11,16 @@ página: cada página con su HTML y su **texto visible**, cada llamada AJAX/fetc
   para ver qué recibe un agente de tu propia página). Se puede desactivar y el permiso se devuelve.
 - Ignora imágenes, fuentes, CSS, analítica y el script anti-bot del F5. Guarda el JS como
   petición (URL y estado) pero no su contenido.
-- **Tacha secretos** antes de guardar: `clave`, `contraseña`, `password`, `token`, `api_key`,
-  `secret`, `otp`, campos `type=password`, `Bearer …` quedan como `***`; las cookies y las
-  cabeceras `Authorization`/`X-API-Key`/`X-CSRF-Token` se omiten. El JSON se puede pegar en un chat.
+- **Tacha secretos en dos capas** (`tachar.js`): por **nombre** (cualquier parámetro, campo de
+  formulario, clave JSON, atributo HTML o cabecera cuyo nombre *contenga* clave, contraseña,
+  password, token, secret, api_key, auth, csrf, session, sid, jwt…) y por **valor**, aunque el
+  nombre sea inocente: JWT (`eyJ….eyJ….firma`), `Bearer …`, hex de 32+ caracteres, uuid junto a
+  un nombre sensible, inputs `type=password`. Se aplica a cuerpos, respuestas, HTML, texto
+  visible, URLs y cabeceras; las cookies y las cabeceras de autorización se omiten. Al detener,
+  el **JSON entero pasa otra vez** por el tachado y se audita: el archivo trae `auditoria` con
+  cuántas cadenas aún parecen secretos, y el popup lo muestra. **Si no es todo 0, revisa antes
+  de compartir.** Un tachado por patrones nunca es una garantía: es una red con agujeros
+  conocidos (un token con nombre raro y forma inocente puede pasar).
 - Guarda, en orden: cada petición de red (método, URL, cabeceras, cuerpo enviado, estado), el
   **HTML y el texto visible de cada página** que llega (también en apps de una sola página, por
   cambio de ruta) y cada llamada **AJAX/fetch con su respuesta**. No usa el depurador de Chrome:
@@ -45,6 +52,22 @@ Si recargas la extensión en `chrome://extensions` (tras cambios), vuelve a abri
 .venv/bin/python tools/captura-sii/comparar_captura.py ~/Downloads/sii_captura_....json \
     --evidencia storage/mipyme_fallidos/777777777/T61_F58_20261002T212520
 ```
+
+## Limpiar una captura ya descargada
+
+Las capturas de la v2 y la v3.0 tachaban solo por nombre exacto (`token` no calzaba con
+`api_token`) y no miraban valores: un JWT en una respuesta se guardaba entero. Para esos
+archivos, o como segunda pasada antes de compartir cualquiera:
+
+```bash
+python3 tools/captura-sii/limpiar_captura.py ~/Downloads/captura_….json      # escribe ….limpio.json
+python3 tools/captura-sii/limpiar_captura.py ~/Downloads/captura_….json --en-sitio
+```
+
+Imprime cuántos JWT y uuid junto a nombres sensibles había antes y quedan después, y lista los
+uuid que se repiten 3 o más veces (pueden ser ids inocentes o un token con un nombre que las
+reglas no conocen: míralos). Sale con código 1 si queda algo. Un token que ya se compartió
+está comprometido aunque después se tache: **revócalo** (cierra sesión, regenera la api key).
 
 ## Qué hay en el JSON (para alimentar a un agente)
 

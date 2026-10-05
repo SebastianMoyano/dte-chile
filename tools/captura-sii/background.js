@@ -12,25 +12,18 @@ const ES_SII = url => { try { return /(^|\.)sii\.cl$/i.test(new URL(url).hostnam
 const RUIDO = /\.(png|jpe?g|gif|svg|ico|webp|avif|woff2?|ttf|otf|css|map)(\?|$)|\/JS\/|qualtrics|google-analytics|googletagmanager|doubleclick|facebook\.net|hotjar|sentry\.io|\/TSbd\/|AutTknData/i;
 const MAX_HTML = 2_000_000, MAX_TEXTO = 300_000, MAX_RESP = 1_000_000;
 
-// Secretos: nombres de campo/parámetro que se tachan en cuerpos, HTML y JSON, y cabeceras que se omiten.
-const NOMBRES_SECRETO = "clave|contrase[nñ]a|password|passwd|pwd|pass|myPass|SII_PASSWORD|SII_CERT_PASS|token|access_token|refresh_token|id_token|secret|api_?key|csrf|xsrf|otp|pin";
-const SECRETO = new RegExp(`^(${NOMBRES_SECRETO})$`, "i");
+importScripts("tachar.js");
+const { tachar: tacharBase, auditar, esNombreSensible } = self.CapturaTachar;
 function tachar(texto) {
   if (texto == null) return texto;
   let s = String(texto);
   if (s.length > MAX_RESP) s = s.slice(0, MAX_RESP) + `\n…(recortado, ${texto.length} caracteres)`;
-  return s
-    .replace(new RegExp(`((?:^|[&?])(?:${NOMBRES_SECRETO})=)[^&\\s]*`, "gi"), "$1***")
-    .replace(new RegExp(`("(?:${NOMBRES_SECRETO})"\\s*:\\s*")[^"]*(")`, "gi"), "$1***$2")
-    .replace(new RegExp(`(name=["'](?:${NOMBRES_SECRETO})["'][^>]*value=["'])[^"']*(["'])`, "gi"), "$1***$2")
-    .replace(/(<input[^>]*type=["']password["'][^>]*value=["'])[^"']*(["'])/gi, "$1***$2")
-    .replace(/(Bearer\s+)[A-Za-z0-9._\-]{8,}/g, "$1***")
-    .replace(/(NETSCAPE_LIVEWIRE\.mac=)[^;\s"]*/g, "$1***")
-    .replace(/((?:TOKEN|CSESSIONID)=)[^;\s"]*/g, "$1***");
+  return tacharBase(s);
 }
+const SECRETO = { test: n => esNombreSensible(n) };
 function cabecerasLimpias(lista) {
   const out = {};
-  for (const h of lista || []) out[h.name] = /^(cookie|set-cookie|authorization|x-api-key|x-auth-token|x-csrf-token)$/i.test(h.name) ? "(omitida)" : (h.value ?? "(binario)");
+  for (const h of lista || []) out[h.name] = (/^(cookie|set-cookie|authorization)$/i.test(h.name) || esNombreSensible(h.name)) ? "(omitida)" : tachar(h.value ?? "(binario)");
   return out;
 }
 function cuerpoDe(requestBody) {
@@ -91,7 +84,7 @@ chrome.runtime.onInstalled.addListener(async () => { if (await modo() === "todo"
 const FILTRO = { urls: ["<all_urls>"] };
 chrome.webRequest.onBeforeRequest.addListener(d => {
   if (d.tabId < 0 || RUIDO.test(d.url)) return;
-  pendientes.set(d.requestId, { tipo: "red", tabId: d.tabId, metodo: d.method, url: d.url, marco: d.frameId === 0 ? "top" : "iframe",
+  pendientes.set(d.requestId, { tipo: "red", tabId: d.tabId, metodo: d.method, url: tachar(d.url), marco: d.frameId === 0 ? "top" : "iframe",
                                 recurso: d.type, t: d.timeStamp, cuerpo: cuerpoDe(d.requestBody) });
 }, FILTRO, ["requestBody"]);
 async function cerrar(d, extra) {
@@ -105,7 +98,7 @@ chrome.webRequest.onSendHeaders.addListener(d => {
   const e = pendientes.get(d.requestId); if (e) e.cabeceras = cabecerasLimpias(d.requestHeaders);
 }, FILTRO, ["requestHeaders"]);
 chrome.webRequest.onCompleted.addListener(d => cerrar(d, { estado: d.statusCode, cabeceras_respuesta: cabecerasLimpias(d.responseHeaders), desde_cache: d.fromCache }), FILTRO, ["responseHeaders"]);
-chrome.webRequest.onBeforeRedirect.addListener(d => cerrar(d, { estado: d.statusCode, redirige_a: d.redirectUrl, cabeceras_respuesta: cabecerasLimpias(d.responseHeaders) }), FILTRO, ["responseHeaders"]);
+chrome.webRequest.onBeforeRedirect.addListener(d => cerrar(d, { estado: d.statusCode, redirige_a: tachar(d.redirectUrl), cabeceras_respuesta: cabecerasLimpias(d.responseHeaders) }), FILTRO, ["responseHeaders"]);
 chrome.webRequest.onErrorOccurred.addListener(d => cerrar(d, { error: d.error }), FILTRO);
 
 // ---- lo que manda la página (HTML, texto y AJAX) ----
@@ -118,11 +111,11 @@ chrome.runtime.onMessage.addListener((msg, remitente, responder) => {
         if (msg.momento === "domcontentloaded" && msg.marco === "iframe") return;   // con el load basta
         if (cap.modo === "sii" && !ES_SII(msg.url)) return;
         const html = (msg.html || "").length > MAX_HTML ? msg.html.slice(0, MAX_HTML) + "\n…(recortado)" : msg.html;
-        await agregar({ tipo: "pagina", momento: msg.momento, marco: msg.marco, url: msg.url, titulo: msg.titulo, t: msg.t,
-                        texto: (msg.texto || "").slice(0, MAX_TEXTO), html: tachar(html) });
+        await agregar({ tipo: "pagina", momento: msg.momento, marco: msg.marco, url: tachar(msg.url), titulo: msg.titulo, t: msg.t,
+                        texto: tachar((msg.texto || "").slice(0, MAX_TEXTO)), html: tachar(html) });
       } else {
         if (cap.modo === "sii" && !ES_SII(msg.url) && !msg.url.startsWith("/")) return;
-        await agregar({ tipo: "xhr", metodo: msg.metodo, url: msg.url, pagina: msg.pagina, t: msg.t, cuerpo: tachar(msg.cuerpo),
+        await agregar({ tipo: "xhr", metodo: msg.metodo, url: tachar(msg.url), pagina: tachar(msg.pagina), t: msg.t, cuerpo: tachar(msg.cuerpo),
                         estado: msg.estado, respuesta: tachar(msg.respuesta) });
       }
       return;
@@ -158,14 +151,20 @@ async function detener() {
   const indice = entradas.map(e => e.tipo === "pagina" ? `${String(e.n).padStart(3)} [página ${e.momento}${e.marco === "iframe" ? " iframe" : ""}] ${e.url}`
     : e.tipo === "xhr" ? `${String(e.n).padStart(3)} [ajax] ${e.metodo} ${e.estado} ${e.url}`
     : `${String(e.n).padStart(3)} ${(e.metodo || "").padEnd(4)} ${e.estado ?? e.error ?? "---"} ${e.url}`);
-  const salida = { herramienta: "captura-web/3.0", modo: cap.modo, sitio: cap.host, inicio: cap.inicio, fin: new Date().toISOString(), pestaña: cap.tabId,
-                   nota: (cap.modo === "sii" ? "Solo sii.cl. " : "Cualquier sitio. ") + "Claves y tokens tachados (***), cookies y Authorization omitidas. 'red' = petición vista por la extensión; 'pagina' = HTML y texto visible resultantes; 'xhr' = llamada AJAX/fetch con su respuesta.",
+  const salida = { herramienta: "captura-web/3.1", modo: cap.modo, sitio: cap.host, inicio: cap.inicio, fin: new Date().toISOString(), pestaña: cap.tabId,
+                   nota: (cap.modo === "sii" ? "Solo sii.cl. " : "Cualquier sitio. ") + "Secretos tachados por nombre y por patrón (JWT, Bearer, hex largo, uuid junto a nombres sensibles); cookies y cabeceras de autorización omitidas; pasada final sobre el JSON entero y auditoría en 'auditoria'. 'red' = petición vista por la extensión; 'pagina' = HTML y texto visible resultantes; 'xhr' = llamada AJAX/fetch con su respuesta.",
                    indice, entradas };
-  const json = JSON.stringify(salida, null, 1);
+  // Segunda capa: el JSON ENTERO pasa otra vez por el tachado (atrapa lo que se coló por un
+  // campo no previsto) y se audita lo que queda. La auditoría va dentro del archivo y al popup:
+  // el archivo dice la verdad sobre sí mismo.
+  const auditoria = auditar(tacharBase(JSON.stringify(salida)));
+  salida.auditoria = { ...auditoria, nota: "Conteo de cadenas que aún parecen secretos tras el tachado. Si no es todo 0, revisa antes de compartir." };
+  const json = tacharBase(JSON.stringify(salida, null, 1));
   const nombre = `captura_${(cap.host || "web").replace(/[^a-z0-9.-]/gi, "_")}_${cap.inicio.replace(/[:.]/g, "-")}.json`;
   const url = "data:application/json;base64," + btoa(unescape(encodeURIComponent(json)));
   await chrome.downloads.download({ url, filename: nombre, saveAs: false });
   await E.remove(["cap", ...Object.keys(todo).filter(k => /^e\d{6}$/.test(k))]);
-  await E.set({ ultimo: `${nombre} (${entradas.length} entradas)` });
-  return { ok: true, nombre };
+  const resto = auditoria.jwt_sin_tachar + auditoria.uuid_tras_nombre_sensible;
+  await E.set({ ultimo: `${nombre} (${entradas.length} entradas${resto ? `; ⚠ ${resto} posible(s) secreto(s) sin tachar` : "; tachado verificado"})` });
+  return { ok: true, nombre, auditoria };
 }
