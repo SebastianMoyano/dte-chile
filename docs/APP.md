@@ -104,11 +104,12 @@ para qué se usan. Viven en memoria de la app (`clavesSesion`) hasta cerrarla. C
 | Pantalla | Qué hace hoy | Endpoints |
 |---|---|---|
 | Inicio | estado del motor, la empresa activa (práctica o real) con su etiqueta, tres acciones, 'empezar de nuevo' en práctica | `/`, `keystore/negocios`, `simulacion/estado` |
-| Cobrarle a alguien | boleta/factura, afecta/exenta, monto con o sin IVA, cálculo en vivo, aviso verde/amarillo/rojo según el mundo; emite en práctica (Python) o con el **núcleo Go** (empresa real) y abre el visor | `simulacion/emitir`, `dte/emisor`, `keystore/…/contexto-emision`, `dte/documentos/{id}/pdf` |
+| Cobrarle a alguien | boleta/factura, afecta/exenta, monto con o sin IVA **o en UF** (convertido con la UF del día), cálculo en vivo, aviso verde/amarillo/rojo según el mundo; emite en práctica (Python) o con el **núcleo Go** (empresa real) y abre el visor | `simulacion/emitir`, `dte/emisor`, `keystore/…/contexto-emision`, `dte/documentos/{id}/pdf` |
 | Mi mes | suma neto/IVA/total del mes por empresa (las NC restan), recordatorio de "sin movimiento" | `dte/documentos` |
 | Corregir | lista documentos corregibles; en práctica anula con NC; en empresas reales, próxima versión | `dte/documentos`, `simulacion/anular` |
 | Ver | visor de PDF embebido con las partes explicadas, guardar PDF/XML, anular (práctica) | `dte/documentos/{id}/pdf` |
 | Documentos | todas las empresas, filtro, guardar PDF/XML con diálogo del sistema | `dte/documentos`, `/pdf`, `/xml` |
+| Valores | UF, UTM y dólar a cualquier fecha desde 2015 y tabla mensual por año (inicio y fin de mes); el histórico se carga una vez al arrancar, el año en curso cada día | `valores`, `valores/historico` |
 | Aprender | los cinco tramos del curso (solo índice) | — |
 
 Si la empresa elegida no emite con el motor propio (gratuito del SII u otro software), "Cobrar"

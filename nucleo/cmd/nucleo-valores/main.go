@@ -5,6 +5,7 @@
 //	nucleo-valores get        --indicador uf --fecha 2026-10-08 --db dte_database.db
 //	nucleo-valores vigente    --indicador uf --fecha 2026-10-08 --db dte_database.db
 //	nucleo-valores demonio    --cada 24h --db dte_database.db
+//	nucleo-valores historico  --desde 2015 --db dte_database.db     (una sola vez)
 //
 // actualizar/demonio bajan de la red y escriben en el cache; get/vigente solo leen. demonio es
 // el refresco diario in-process (sin cron): refresca al arrancar y cada `--cada`, no muere ante
@@ -47,7 +48,7 @@ func refrescar(dbPath string, anio int, inds []string, logf func(string, ...any)
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Fprintln(os.Stderr, "uso: nucleo-valores actualizar|get|vigente [opciones]")
+		fmt.Fprintln(os.Stderr, "uso: nucleo-valores actualizar|historico|get|vigente|demonio [opciones]")
 		os.Exit(2)
 	}
 	fs := flag.NewFlagSet(os.Args[1], flag.ExitOnError)
@@ -56,6 +57,7 @@ func main() {
 	fecha := fs.String("fecha", time.Now().Format("2006-01-02"), "fecha YYYY-MM-DD (get/vigente)")
 	dbPath := fs.String("db", "dte_database.db", "ruta del SQLite del motor")
 	cada := fs.Duration("cada", 24*time.Hour, "intervalo de refresco (demonio)")
+	desde := fs.Int("desde", 2015, "primer año a cargar (historico)")
 	_ = fs.Parse(os.Args[2:])
 
 	resolverInds := func() []string {
@@ -68,6 +70,16 @@ func main() {
 	switch os.Args[1] {
 	case "actualizar":
 		refrescar(*dbPath, *anio, resolverInds(), func(f string, a ...any) { fmt.Printf(f+"\n", a...) })
+
+	case "historico":
+		// Una sola vez: todos los años desde --desde hasta el actual. El histórico no cambia.
+		c, err := valores.AbrirCache(*dbPath)
+		if err != nil {
+			fatal(err)
+		}
+		defer c.Cerrar()
+		tot := valores.CargarHistorico(c, *desde, time.Now().Year(), func(f string, a ...any) { fmt.Printf(f+"\n", a...) })
+		fmt.Printf("histórico %d-%d guardado: %v\n", *desde, time.Now().Year(), tot)
 
 	case "demonio":
 		inds := []string{"uf", "utm", "dolar"}

@@ -66,6 +66,10 @@ func (a *App) refrescarValores() {
 			db := filepath.Join(a.motor.Raiz, "dte_database.db")
 			if c, err := valores.AbrirCache(db); err == nil {
 				anio := time.Now().Year()
+				// Histórico: una sola vez (si el primer año con UF es posterior a 2015, falta).
+				if min, _ := c.AnioMinimo("uf"); min == 0 || min > 2015 {
+					valores.CargarHistorico(c, 2015, anio-1, nil)
+				}
 				for _, ind := range []string{"uf", "utm", "dolar"} {
 					if vs, _, err := valores.Fetch(ind, anio); err == nil {
 						_, _ = c.Guardar(vs)

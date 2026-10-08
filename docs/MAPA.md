@@ -24,7 +24,7 @@ Código y comentarios **en español**.
 | Entender la **certificación** (postular, proveedor, boleta vs factura) | [`CERTIFICACION.md`](CERTIFICACION.md) |
 | Entender un **término** (CAF, TED, folio, RVD, voucher…) | [`GLOSARIO.md`](GLOSARIO.md) |
 | Saber **con qué RUT/clave entrar a cada trámite del SII** (el rebote clásico) | [`IDENTIDADES-SII.md`](IDENTIDADES-SII.md) |
-| **UF, UTM y dólar del día** (páginas oficiales del SII, caché en la tabla `valores`; el dólar oficial llega con rezago) | `nucleo/valores/` → `nucleo-valores actualizar|get|vigente|demonio`; lectura `GET /api/v1/valores`; la app los refresca al arrancar |
+| **UF, UTM y dólar del día** (páginas oficiales del SII, caché en la tabla `valores`; el dólar oficial llega con rezago) | `nucleo/valores/` → `nucleo-valores actualizar|get|vigente|demonio`; lectura `GET /api/v1/valores` (+ `/historico?anio=`, `/{ind}/serie`); histórico desde 2015 cargado una vez (`nucleo-valores historico`), la app refresca el año en curso |
 | **Endpoints internos del portal SII** (facade SDI/AA, auth por clave, verificación de actividades, TIBVS) | [`SII-ENDPOINTS.md`](SII-ENDPOINTS.md) → `tools/captura-sii/` |
 | **Anular una boleta** (NC de anulación, portal MIPYME, trámites SII) | [`ANULAR-BOLETA.md`](ANULAR-BOLETA.md) |
 | **Modelo de emisión** (voucher vs boleta, tarjetas, código 48, convivir con un POS) | [`MODELO-EMISION.md`](MODELO-EMISION.md) |

@@ -48,6 +48,33 @@ async def valores_vigentes(fecha: Optional[str] = Query(None, description="YYYY-
     return {"fecha": f, **out}
 
 
+@router.get("/historico", summary="Tabla mensual de un año: UF y dólar al día 1 (vigentes) y UTM del mes")
+async def historico(anio: int = Query(..., ge=2000, le=2100)) -> dict:
+    meses = []
+    for m in range(1, 13):
+        f = f"{anio:04d}-{m:02d}-01"
+        fila = {"mes": f[:7]}
+        for k in INDICADORES:
+            v = _vigente(k, f)
+            # al día 1 el valor vigente puede ser de fin del mes anterior (incluso del año anterior)
+            fila[k] = v["valor"] if v and v["rezago_dias"] <= 7 else None
+        # cierre de mes para UF y dólar: último valor del mes
+        for k in ("uf", "dolar"):
+            fin = database.obtenerUno("SELECT valor, fecha FROM valores WHERE indicador=? AND fecha LIKE ? ORDER BY fecha DESC LIMIT 1", (k, f[:7] + "%"))
+            fila[k + "_fin"] = fin["valor"] if fin else None
+        meses.append(fila)
+    anios = database.obtener_todos("SELECT DISTINCT substr(fecha,1,4) AS a FROM valores ORDER BY a")
+    return {"anio": anio, "meses": meses, "anios_disponibles": [r["a"] for r in anios]}
+
+
+@router.get("/{indicador}/serie", summary="Serie diaria/mensual de un indicador entre dos fechas")
+async def serie(indicador: str, desde: str = Query(...), hasta: str = Query(...)) -> dict:
+    if indicador not in INDICADORES:
+        raise ValidacionError(f"Indicador desconocido: {indicador}")
+    filas = database.obtener_todos("SELECT fecha, valor FROM valores WHERE indicador=? AND fecha BETWEEN ? AND ? ORDER BY fecha", (indicador, desde, hasta))
+    return {"indicador": indicador, "desde": desde, "hasta": hasta, "serie": [{"fecha": r["fecha"], "valor": r["valor"]} for r in filas]}
+
+
 @router.get("/{indicador}", summary="Un indicador vigente a una fecha, con la fecha real del valor")
 async def valor_vigente(indicador: str, fecha: Optional[str] = Query(None)) -> dict:
     if indicador not in INDICADORES:

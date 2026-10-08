@@ -185,7 +185,9 @@ vistas.cobrar = async (el) => {
       </div>
       <label>Qué le vendes</label><input id="c_que" placeholder="${e.demo ? "Café" : "Servicio"}">
       <div class="row"><div><label>Monto</label><input id="c_monto" type="number" min="0" step="1" placeholder="${e.demo ? "1190" : ""}"></div>
-        <div><label>Ese monto es…</label><select id="c_modo"><option value="total">con IVA incluido (lo que paga)</option><option value="neto">neto (sin IVA)</option></select></div></div>
+        <div><label>Ese monto es…</label><select id="c_modo"><option value="total">con IVA incluido (lo que paga)</option><option value="neto">neto (sin IVA)</option></select></div>
+        <div><label>…o en UF</label><input id="c_uf" type="number" min="0" step="0.01" placeholder="80"></div></div>
+      <p class="mut" id="c_uf_nota"></p>
       <div class="chk"><input type="checkbox" id="c_exento"><label for="c_exento" style="margin:0;font-weight:500">No lleva IVA (educación, salud, arriendo sin muebles…)</label></div>
       <div class="totales"><div><span>Neto</span><b id="t_neto">—</b></div><div><span>IVA 19%</span><b id="t_iva">—</b></div><div><span>Total</span><b id="t_total">—</b></div></div>
       <p class="mut" id="c_tipo"></p>
@@ -210,6 +212,17 @@ vistas.cobrar = async (el) => {
     return { neto, iva, tipo, aEmpresa, ex };
   };
   el.querySelectorAll("input,select").forEach((i) => i.addEventListener("input", rec));
+  // Monto en UF: se convierte con la UF vigente a la fecha de emisión (hoy) y se escribe en Monto.
+  let ufHoy = null;
+  api("GET", "/api/v1/valores/uf").then((v) => { ufHoy = v; $("c_uf_nota").textContent = `UF de hoy: ${num(v.valor, 2)}${v.rezago_dias > 0 ? " (del " + v.fecha_valor + ")" : ""}`; }).catch(() => { $("c_uf_nota").textContent = "Sin UF cacheada: abre Valores o corre nucleo-valores actualizar."; });
+  $("c_uf").addEventListener("input", () => {
+    const uf = Number($("c_uf").value || 0);
+    if (!uf || !ufHoy) return;
+    const pesos = Math.round(uf * ufHoy.valor);
+    $("c_monto").value = pesos; $("c_modo").value = "neto";
+    $("c_uf_nota").textContent = `${num(uf, 2)} UF × ${num(ufHoy.valor, 2)} (UF del ${ufHoy.fecha_valor}) = $ ${num(pesos, 0)}`;
+    rec();
+  });
   rec();
   window.emitir = async () => {
     const { neto, iva, tipo, aEmpresa, ex } = rec();
@@ -356,6 +369,43 @@ function tabla(docs, elegir = false) {
 window.bajar = async (id, que, tipo, folio) => {
   try { const p = await window.go.main.App.Guardar(`/api/v1/dte/documentos/${id}/${que}`, `T${tipo}_F${folio}.${que}`); if (p) aviso("Guardado en " + p, 5000); }
   catch (e) { aviso("No se pudo guardar: " + e, 6000); }
+};
+
+// ---------- valores (UF, UTM, dólar): del día, a una fecha, y el histórico mensual ----------
+const num = (x, dec) => (x == null ? "—" : Number(x).toLocaleString("es-CL", { minimumFractionDigits: dec, maximumFractionDigits: dec }));
+vistas.valores = async (el) => {
+  const hoy = new Date().toISOString().slice(0, 10);
+  el.innerHTML = `
+    <h1>Valores</h1>
+    <p class="sub">UF, UTM y dólar de las páginas oficiales del SII. El histórico se cargó una vez; el año en curso se refresca cada día.</p>
+    <div class="card"><div class="row">
+      <div><label>¿Cuánto valía el…?</label><input id="v_fecha" type="date" value="${hoy}" max="${hoy}"></div>
+      <div><button class="sec" onclick="valoresFecha()">Ver</button></div></div>
+      <div class="totales" id="v_tres"></div>
+      <p class="mut" id="v_nota"></p></div>
+    <div class="card"><div class="row">
+      <div><label>Histórico mensual</label><select id="v_anio" onchange="valoresAnio()"></select></div></div>
+      <div id="v_tabla"></div></div>`;
+  window.valoresFecha = async () => {
+    try {
+      const v = await api("GET", "/api/v1/valores?fecha=" + $("v_fecha").value);
+      const c = (x, dec) => `<div><span>${x ? "" : ""}</span><b>${x ? num(x.valor, dec) : "—"}</b><span>${x && x.rezago_dias > 0 ? "del " + x.fecha_valor : ""}</span></div>`;
+      $("v_tres").innerHTML = `<div><span>UF</span><b>${v.uf ? num(v.uf.valor, 2) : "—"}</b><span>${v.uf && v.uf.rezago_dias > 0 ? "del " + v.uf.fecha_valor : ""}</span></div>
+        <div><span>UTM</span><b>${v.utm ? num(v.utm.valor, 0) : "—"}</b><span>${v.utm ? "mes " + v.utm.fecha_valor.slice(0, 7) : ""}</span></div>
+        <div><span>Dólar</span><b>${v.dolar ? num(v.dolar.valor, 2) : "—"}</b><span>${v.dolar && v.dolar.rezago_dias > 0 ? "del " + v.dolar.fecha_valor : ""}</span></div>`;
+      $("v_nota").textContent = (v.dolar && v.dolar.rezago_dias > 3) ? "El dólar de la página oficial del SII llega con rezago: se muestra el último publicado y su fecha." : "";
+    } catch (e) { $("v_tres").innerHTML = `<div><span>${esc(e.message)}</span></div>`; }
+  };
+  window.valoresAnio = async () => {
+    const a = $("v_anio").value || hoy.slice(0, 4);
+    const h = await api("GET", "/api/v1/valores/historico?anio=" + a);
+    if (!$("v_anio").options.length) {
+      $("v_anio").innerHTML = h.anios_disponibles.slice().reverse().map((x) => `<option value="${x}" ${x === a ? "selected" : ""}>${x}</option>`).join("");
+    }
+    $("v_tabla").innerHTML = `<div class="tablewrap"><table><tr><th>Mes</th><th class="num">UF día 1</th><th class="num">UF fin de mes</th><th class="num">UTM</th><th class="num">Dólar día 1</th><th class="num">Dólar fin de mes</th></tr>
+      ${h.meses.map((m) => `<tr><td>${m.mes}</td><td class="num">${num(m.uf, 2)}</td><td class="num">${num(m.uf_fin, 2)}</td><td class="num">${num(m.utm, 0)}</td><td class="num">${num(m.dolar, 2)}</td><td class="num">${num(m.dolar_fin, 2)}</td></tr>`).join("")}</table></div>`;
+  };
+  valoresFecha(); valoresAnio();
 };
 
 // ---------- aprender ----------

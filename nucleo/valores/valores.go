@@ -9,6 +9,7 @@
 //     OJO: la UF usa coma decimal ("41.065,38"); el dólar usa punto ("972.6").
 //   - UTM: una sola tabla, una fila por mes (<th>Mes</th><td>UTM</td><td>UTA</td>...). Mensual
 //     (se guarda en el día 1 del mes; Cache.Vigente devuelve la del mes en curso).
+//
 // mindicador.cl (JSON) se usa solo si la oficial falla.
 package valores
 
@@ -41,8 +42,8 @@ var meses = map[string]int{
 var (
 	// UF usa <h2>Mes</h2>; dólar usa <h3>Mes</h3> (con o sin atributos). El título "Dólar
 	// Observado" no matchea: el captador es una sola palabra y "Dólar Observado" lleva espacio.
-	reMes    = regexp.MustCompile(`(?i)<h[23][^>]*>\s*([a-záéíóúñ]+)\s*</h[23]>`)
-	rePar    = regexp.MustCompile(`(?is)<th[^>]*>\s*(?:<strong>)?\s*(\d{1,2})\s*(?:</strong>)?\s*</th>\s*<td[^>]*>([^<]*)</td>`)
+	reMes     = regexp.MustCompile(`(?i)<h[23][^>]*>\s*([a-záéíóúñ]+)\s*</h[23]>`)
+	rePar     = regexp.MustCompile(`(?is)<th[^>]*>\s*(?:<strong>)?\s*(\d{1,2})\s*(?:</strong>)?\s*</th>\s*<td[^>]*>([^<]*)</td>`)
 	reFilaMes = regexp.MustCompile(`(?is)<tr>\s*<th[^>]*>\s*([a-záéíóúñ]+)\s*</th>\s*<td[^>]*>([^<]*)</td>`)
 )
 

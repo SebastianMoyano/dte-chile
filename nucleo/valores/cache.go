@@ -87,3 +87,47 @@ func (c *Cache) Vigente(indicador, fecha string) (Valor, error) {
 	}
 	return out, err
 }
+
+// AnioMinimo devuelve el primer año con datos del indicador (0 si no hay).
+func (c *Cache) AnioMinimo(indicador string) (int, error) {
+	var f sql.NullString
+	if err := c.db.QueryRow("SELECT MIN(fecha) FROM valores WHERE indicador=?", indicador).Scan(&f); err != nil {
+		return 0, err
+	}
+	if !f.Valid || len(f.String) < 4 {
+		return 0, nil
+	}
+	var a int
+	fmt.Sscan(f.String[:4], &a)
+	return a, nil
+}
+
+// CargarHistorico trae y guarda todos los años [desde, hasta] de los tres indicadores. Se
+// usa UNA vez (el histórico no cambia); el refresco diario solo toca el año en curso. Devuelve
+// cuántos valores guardó por indicador y los errores por año (no se detiene en el primero).
+func CargarHistorico(c *Cache, desde, hasta int, logf func(string, ...any)) map[string]int {
+	tot := map[string]int{}
+	for anio := desde; anio <= hasta; anio++ {
+		for _, ind := range []string{"uf", "utm", "dolar"} {
+			vs, fuente, err := Fetch(ind, anio)
+			if err != nil {
+				if logf != nil {
+					logf("valores: %s %d falló: %v", ind, anio, err)
+				}
+				continue
+			}
+			n, err := c.Guardar(vs)
+			if err != nil {
+				if logf != nil {
+					logf("valores: %s %d no se guardó: %v", ind, anio, err)
+				}
+				continue
+			}
+			tot[ind] += n
+			if logf != nil {
+				logf("valores: %s %d → %d (fuente: %s)", ind, anio, n, fuente)
+			}
+		}
+	}
+	return tot
+}
