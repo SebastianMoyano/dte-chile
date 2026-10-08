@@ -407,9 +407,10 @@ cualquier ruta, incluso inventada.
 > portal. **Solo existe en producción**: cada corrida es un documento real y **gasta un folio**.
 > Las facturas de septiembre y la NC 56 salieron de la herramienta del repo Auxin **reutilizando la
 > sesión del navegador**; la NC 59, la ND 1 y la factura 62 se emitieron **a mano** en el portal.
-> **Desde este repo**: lectura, importación (PDF + XML) y firma central verificadas; la emisión
-> perdió tres folios en `mipeSendXML` (57, 58 y 61) y la corrección del envío (2026-10-08, calcada
-> de la captura de la 62) aún no se corre. Ver "Folio perdido" y "Tercer folio" abajo.
+> **Desde este repo**: lectura, importación (PDF + XML), firma central y **emisión** verificadas.
+> La emisión costó tres folios en `mipeSendXML` (57, 58 y 61) hasta calcar el envío de la captura
+> de la 62; con eso salieron la factura 63 y la NC 60 (2026-10-08). Ver "Folio perdido" y "Tercer
+> folio" abajo.
 > Implementado en `core/sii_mipyme.py` (guía: [`MIPYME.md`](MIPYME.md), test en seco: `test_mipyme.py`).
 
 **La cadena** (`www1.sii.cl/cgi-bin/Portal001/`, CGI legacy):
@@ -498,7 +499,10 @@ de forma: el navegador manda **todos los inputs del frmSign, con el duplicado `E
 más los de firma, ordenados por nombre en ASCII**, y los dos XML con saltos **CRLF** (son valores
 de `<textarea>`). El módulo mandaba otro orden y LF; para facturas además reconstruía el cuerpo
 desde el schema. Corregido (`armar_send_xml_desde_form`, único camino para todos los tipos) y
-verificado en seco: secuencia de 250 campos idéntica a la del navegador. **Sin corrida real aún.**
+verificado en seco (secuencia de 250 campos idéntica a la del navegador) y luego **en real, el
+mismo día: factura 63 (DHDR 2881744181) y la NC 60 que la anula (DHDR 2881747811), prueba
+Auxin → Moyoli por $1.000**. Primera emisión completa desde este repo; `CADENAS_VERIFICADAS` ya
+tiene 34 y 61.
 Dos lecciones más del mismo día: el `cerrar()` del módulo no cerraba la sesión (herculesr sin
 seguir el 302) y cada corrida dejaba una viva ~2 h hasta el tope por RUT; y el comparador leía la
 evidencia partida por líneas e inventaba nombres de campo desde el base64 de la firma. Ambos

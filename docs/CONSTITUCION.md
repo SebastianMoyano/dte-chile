@@ -119,6 +119,8 @@ ninguno, y se afirmó en falso que *"ningún DTE fue aceptado jamás"*.
   portal MIPYME se lanzó sin leer la implementación que ya funcionaba en otro repo, y la factura
   sin una captura completa del navegador como referencia. El gate es `CADENAS_VERIFICADAS` en
   `core/sii_mipyme.py` (+ `--acepto-riesgo-folio`); ver `LECCIONES-SII.md` → "Folio perdido".
+  Con la captura de la 62 como referencia, la primera corrida real pasó a la primera (factura 63
+  y NC 60, 2026-10-08): la regla funciona cuando se respeta.
 
 ## L11 — Documentación desactualizada es un bug, y arreglarla incluye el encabezado
 

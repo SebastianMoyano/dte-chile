@@ -20,7 +20,7 @@ import sys
 
 from core.errors import ValidacionError
 from core.sii_mipyme import (CAMPOS_HELPER, CAMPOS_MONTO_TOTAL, SCHEMA_CAMPOS, ClienteMipyme,
-                             ItemMipyme, ReceptorMipyme, TIPO_FACTURA_EXENTA, TIPO_NOTA_CREDITO,
+                             ItemMipyme, ReceptorMipyme, TIPO_FACTURA_EXENTA, TIPO_NOTA_CREDITO, TIPO_NOTA_DEBITO,
                              armar_payload, extraer_xml_dte, parsear_form)
 
 FALLOS = 0
@@ -145,7 +145,8 @@ def test_cliente_sin_red():
         check(True, "emitir() sin confirmar=True no toca el SII")
     cli.empresa = "77777777-7"
     try:
-        cli.emitir(armar_payload({}, TIPO_NOTA_CREDITO, RECEPTOR, [ItemMipyme("A", 1)]), confirmar=True)
+        # La nota de débito (56) sigue sin corrida real desde el repo (34 y 61 ya están verificadas).
+        cli.emitir(armar_payload({}, TIPO_NOTA_DEBITO, RECEPTOR, [ItemMipyme("A", 1)]), confirmar=True)
         check(False, "emitir una cadena no verificada sin aceptar el riesgo debe fallar")
     except ValidacionError as e:
         check("NO está verificada" in e.mensaje, "tipo fuera de CADENAS_VERIFICADAS → exige aceptar_riesgo_folio")

@@ -58,14 +58,16 @@ por HTTP en vez de a mano.
   referencia byte a byte del envío de una factura. Lo que mostró, comparado con el intento del folio
   61 (mismo frmSign, mismos 249 nombres): el navegador manda a `mipeSendXML` **todos los inputs del
   frmSign, con duplicados (`EFXP_FMA_PAGO` ×2), más los de firma, ordenados por nombre en ASCII**;
-  el módulo mandaba firma-antes-de-txtPlainText y el resto en orden del HTML. Ya corregido en
-  `armar_send_xml_desde_form`. Sin verificar todavía con una corrida real.
+  el módulo mandaba firma-antes-de-txtPlainText y el resto en orden del HTML. Corregido en
+  `armar_send_xml_desde_form` y **verificado con la factura 63 y la NC 60 (2026-10-08)**.
 - **Datos del emisor en el portal:** el formulario exige también la **ciudad de origen** (p. ej.
   Buchupureo); el módulo la toma del propio form (`EFXP_CIUDAD_ORIGEN`).
 - **Folios perdidos en `mipeSendXML`: 57 y 58 (NC, 2026-10-02) y 61 (factura, 2026-10-08).** En los
   tres casos GenXMLFirma y la firma central funcionaron y el envío final fue rechazado por el WAF
-  (246 B). La evidencia del 61 está completa (`storage/mipyme_fallidos/…/T34_F61_…`). Hasta tener una
-  captura de un envío de FACTURA exitoso desde el navegador, no se reintenta este paso desde el módulo.
+  (246 B). La evidencia del 61 está completa (`storage/mipyme_fallidos/…/T34_F61_…`). La causa era el
+  cuerpo del envío (orden, duplicado, CRLF); con el envío calcado de la captura de la 62 el módulo
+  emitió solo la **factura 63** y la **NC 60** que la anula (prueba Auxin → Moyoli por $1.000,
+  2026-10-08, BD id 118 y 119).
 - **Forma de pago: contado (1) por defecto** desde 2026-10-08. Las facturas de la primera prueba en
   vivo (septiembre 2026) salieron a crédito (2) porque ese era el default del CLI, no por decisión
   del usuario; no tiene efecto tributario, solo la condición de pago registrada.
@@ -76,11 +78,12 @@ por HTTP en vez de a mano.
   real (2026-09-06): factura 57 con línea 3.270.323 y total 3.068.005; la NC 56 salió por la línea →
   `REF-2-780` y una corrección con nota de débito + NC nueva. El test `test_guardarrail_nc` usa los
   PDF reales de `storage/pdfs/mipyme/` y **se omite si no están**.
-- **Ninguna cadena está verificada desde este repo (`CADENAS_VERIFICADAS` vacía).** `emitir()` exige
-  `aceptar_riesgo_folio=True` (CLI: `--acepto-riesgo-folio`) para cualquier tipo. Un fallo después
-  de `GenXMLFirma` deja un folio gastado; la evidencia (respuesta, XML firmado, body, con claves
-  tachadas) queda en `storage/mipyme_fallidos/<rut>/`. Cuando una corrida real pase, se agrega el
-  tipo a la lista con su evidencia.
+- **Cadenas verificadas desde este repo (`CADENAS_VERIFICADAS`): factura exenta (34) y NC de
+  anulación (61)**, ambas el 2026-10-08 (factura 63 → NC 60). Para un tipo que no esté en la lista
+  (nota de débito 56, NC de corrección de montos, boletas) `emitir()` exige `aceptar_riesgo_folio=True`
+  (CLI: `--acepto-riesgo-folio`). Un fallo después de `GenXMLFirma` deja un folio gastado; la
+  evidencia (respuesta, XML firmado, body, con claves tachadas) queda en
+  `storage/mipyme_fallidos/<rut>/`. Cuando una corrida real pase, se agrega el tipo con su evidencia.
 - **Sin reintentos automáticos.** El cliente usa `httpx.Client` a secas, no `ClienteReintentos`:
   reintentar `GenXMLFirma` en un 502 gastaría dos folios.
 - **Cerrar la sesión.** Tope de ~10 sesiones concurrentes por RUT. `ClienteMipyme` es un context
@@ -258,16 +261,10 @@ en `track_id` va el **`DHDR_CODIGO`** (el id que el portal usa para el PDF y par
 
 ## Pendiente / no verificado
 
-- **Emisión desde este repo (cualquier tipo):** sin verificar. Tres folios perdidos en
-  `mipeSendXML` (NC 57 y 58, 2026-10-02; factura 61, 2026-10-08). En el 61 todo lo anterior
-  funcionó: previsualización, GenXMLFirma, firma central. El envío quedó calcado del navegador
-  (factura 62, captura completa) y **no se ha vuelto a correr**: la próxima factura que de verdad
-  se necesite es la prueba, con `--acepto-riesgo-folio` y la captura de la 62 como respaldo.
-- **Nota de crédito desde este repo**: misma situación que la factura. Verificado en seco el
-  2026-10-08 con la captura de la NC 59: tomando la página de firma que vio el navegador, el módulo
-  arma hoy un `mipeSendXML` con los **mismos 250 campos, en el mismo orden y con los mismos
-  valores** que el navegador (la única diferencia era un artefacto de la captura, corregido en la
-  extensión 3.5). La próxima nota real es la prueba (`--anular-dhdr` o `--corregir-dhdr`).
+- **Factura exenta y NC de anulación: VERIFICADAS** (2026-10-08, factura 63 y NC 60, prueba
+  Auxin → Moyoli por $1.000, emitidas por `emitir_mipyme.py` sin navegador). La **NC de corrección
+  de montos** (`--corregir-dhdr`, otro form de 60 campos) solo está verificada en seco contra la
+  captura de la NC 59: la próxima real es la prueba, con `--acepto-riesgo-folio`.
 - **Nota de débito (T56)**: form capturado, sin `preparar_nota_debito`; la ND 1 se emitió a mano.
 - NC de anulación de **boletas** (`mipeSelEmpresaBol.cgi`): ni cableada ni verificada.
 - Los documentos importados sin clave del certificado no tienen XML (`xml_firmado=None`):

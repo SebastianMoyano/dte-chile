@@ -3,10 +3,11 @@ emitir_mipyme.py — Emite una factura exenta (T34) o la NC de anulación (T61) 
 MIPYME (Sistema de Facturación Gratuito del SII), sin navegador. Ver `docs/MIPYME.md`.
 
 ⚠️ PRODUCCIÓN. No hay sandbox. Por defecto es DRY-RUN: abre sesión, lee el form pre-llenado,
-arma el payload y muestra el resumen. Solo con `--emitir` gasta el folio y emite, y como ninguna
-cadena está verificada desde este repo (`CADENAS_VERIFICADAS` vacía) exige además
-`--acepto-riesgo-folio`: si falla después de GenXMLFirma se pierde el folio (ya pasó: NC 57,
-2026-10-02). La evidencia de un fallo queda en storage/mipyme_fallidos/.
+arma el payload y muestra el resumen. Solo con `--emitir` gasta el folio y emite. La factura exenta
+y la NC de anulación están verificadas desde este repo (factura 63 y NC 60, 2026-10-08); para un
+tipo que no esté en `CADENAS_VERIFICADAS` (p. ej. `--corregir-dhdr`) exige además
+`--acepto-riesgo-folio`: si falla después de GenXMLFirma se pierde el folio (pasó tres veces: NC 57
+y 58, factura 61). La evidencia de un fallo queda en storage/mipyme_fallidos/.
 
 Las dos claves salen del Llavero de macOS o se piden por consola (nunca por argumento ni .env):
   - clave tributaria      → login              (Llavero: servicio sii-clave-tributaria, cuenta <rut>)

@@ -105,12 +105,16 @@ def preparar_dato_firma(xml: str) -> str:
     return dato
 
 # Cadenas de emisión VERIFICADAS de punta a punta contra el SII DESDE ESTE REPO, con evidencia
-# (tipo → DHDR/folio/fecha). Hoy está VACÍA: tres folios se perdieron en `mipeSendXML` (NC 57 y
-# 58 el 2026-10-02, factura 61 el 2026-10-08) y la corrección del cuerpo del envío (orden ASCII,
-# duplicados, CRLF; calcada de la captura de la factura 62) no se ha corrido todavía. Emitir
-# cualquier tipo exige `aceptar_riesgo_folio=True` hasta que una corrida real lo agregue aquí.
+# (tipo → DHDR/folio/fecha). Antes de la primera entrada se perdieron tres folios en `mipeSendXML`
+# (NC 57 y 58 el 2026-10-02, factura 61 el 2026-10-08); la corrección del cuerpo del envío (orden
+# ASCII, duplicados, CRLF; calcada de la captura de la factura 62) pasó el 2026-10-08 con la
+# factura 63 y la NC 60 que la anuló. Emitir un tipo que NO esté aquí (p. ej. la nota de débito 56
+# o la NC de corrección de montos, que es otro form) exige `aceptar_riesgo_folio=True`.
 CADENAS_VERIFICADAS: dict = {
-    # TIPO_FACTURA_EXENTA: "pendiente: primera factura emitida desde este repo",
+    TIPO_FACTURA_EXENTA: "factura 63 del 2026-10-08, DHDR 2881744181 (prueba Auxin → Moyoli, $1.000; "
+                         "BD id 118); cadena DisplayPreView → PreView → GenXMLFirma → SendXML",
+    TIPO_NOTA_CREDITO: "NC 60 del 2026-10-08, DHDR 2881747811, anula (código 1) la factura 63 "
+                       "(BD id 119); misma cadena vía preparar_nc_anulacion",
 }
 CODIGO_REF_ANULA = "1"
 RAZON_REF_ANULA = "ANULA DOCUMENTO DE LA REFERENCIA"
@@ -238,6 +242,7 @@ SCHEMA_CAMPOS: Tuple[str, ...] = (
 CAMPOS_HELPER = frozenset({
     "CANT_DET", "COD_SI_NO", "REF_SI_NO", "PAGO_SI_NO", "IVA_TEMP", "MNT_NETO_TEMP",
     "btnSign", "btnVolver",   # botones de la página de revisión de notas (2026-10-02)
+    "btnCorregir",            # botón del form de factura, apareció el 2026-10-08 (factura 63)
 })
 
 
