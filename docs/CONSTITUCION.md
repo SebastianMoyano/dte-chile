@@ -115,8 +115,9 @@ ninguno, y se afirmó en falso que *"ningún DTE fue aceptado jamás"*.
 - **Si el usuario te contradice con evidencia suya, él suele tener razón**: investiga por qué,
   no defiendas tu hipótesis.
 - **Una cadena que gasta recursos no se corre en producción sin estar verificada desde este
-  repo.** Costó un folio (2026-10-02): la NC por el portal MIPYME se lanzó sin leer la
-  implementación que ya funcionaba en otro repo. El gate es `CADENAS_VERIFICADAS` en
+  repo.** Costó tres folios (NC 57 y 58 el 2026-10-02, factura 61 el 2026-10-08): la NC por el
+  portal MIPYME se lanzó sin leer la implementación que ya funcionaba en otro repo, y la factura
+  sin una captura completa del navegador como referencia. El gate es `CADENAS_VERIFICADAS` en
   `core/sii_mipyme.py` (+ `--acepto-riesgo-folio`); ver `LECCIONES-SII.md` → "Folio perdido".
 
 ## L11 — Documentación desactualizada es un bug, y arreglarla incluye el encabezado

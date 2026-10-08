@@ -19,30 +19,38 @@ llega a `mipeGenXMLFirma` gasta un folio real aunque después no se envíe. Por 
   - `emitir()` exige `confirmar=True` y avisa que va a producción.
   - Este cliente NO usa `ClienteReintentos`: reintentar `GenXMLFirma` en un 502 gastaría dos folios.
 
-La cadena. Estado de verificación (ver `docs/LECCIONES-SII.md` → "Portal MIPYME"):
-  - Factura (T34): verificada con el TOOL EXTERNO del repo Auxin (folio 59 sin reparos,
-    2026-09-06). Desde este repo: solo lectura verificada (login, empresa, form, historial, PDF);
-    ninguna factura emitida aún.
-  - Notas (56/61): la NC por httpx desde este repo FALLÓ el 2026-10-02 (WAF rechazó
-    `mipeSendXML`, NC folio 57 perdida). El envío se reescribió con el `frmSign` real y NO se ha
-    vuelto a correr. La NC 56 del 2026-09-06 salió del repo Auxin, no de aquí.
+La cadena (la que hace el navegador; captura completa de una factura emitida el 2026-10-08):
 
     login   POST zeusr.sii.cl/cgi_AUT2000/CAutInicio.cgi  → cookies NETSCAPE_LIVEWIRE.*
     1. mipeLaunchPage / mipeSelEmpresa (GET) / mipeSelEmpresa (POST RUT_EMP **con DV**)
     2. mipeGenFacEx?IGUAL=ULT_FAC&PTDC_CODIGO=34     → form pre-llenado "igual al último"
-    3. mipeGenXMLFirma                (243 campos)   → XML con Folio + CAF   ⚠️ gasta el folio
+    2b. mipeDisplayPreView (POST, 54 campos)        → página PreViewDTE (243 campos)  ← OBLIGATORIO, gratis
+    3. mipeGenXMLFirma                (243 campos)   → página de firma (frmSign)  ⚠️ gasta el folio
     4. postFirmaDigital               (clave del CERTIFICADO, no la tributaria) → XML firmado
-    5. mipeSendXML                    (txtPlainText sin firma + txtSignText con firma + form)
+    5. mipeSendXML                    (todo el frmSign + firma, orden ASCII, XML con CRLF)
     6. mipeDisplayPDF?DHDR_CODIGO=…
+    logout  GET zeusr.sii.cl/cgi_AUT2000/autTermino.cgi siguiendo la redirección (si no, la sesión
+            sigue viva ~2 h y se llega al tope de ~10 por RUT)
+
+Estado de verificación DESDE ESTE REPO (`CADENAS_VERIFICADAS` sigue vacía; detalle en
+`docs/LECCIONES-SII.md` → "Portal MIPYME" y `docs/MIPYME.md`):
+  - Lectura, importación (PDF + XML por "Obtener Envío") y firma central: verificadas.
+  - Emisión: tres folios perdidos en `mipeSendXML` (NC 57 y 58 el 2026-10-02; factura 61 el
+    2026-10-08). En el 61 todo lo anterior funcionó (previsualización, GenXMLFirma, firma). La
+    comparación fiel contra el envío real del navegador (factura 62, a mano) mostró solo
+    diferencias de forma, ya corregidas: orden ASCII de los campos, el input duplicado
+    `EFXP_FMA_PAGO`, saltos CRLF en los XML. Sin corrida real después de esa corrección.
+  - Las facturas 48/57/59 de septiembre y la NC 56 salieron de la herramienta del repo Auxin
+    (sesión del navegador), no de aquí. La NC 59 y la ND 1 se emitieron a mano en el portal.
 
 Dos claves distintas (Ley L6: son credenciales, nunca a logs ni a disco en claro):
   - clave tributaria → login (`CAutInicio`)
   - clave del certificado → firma central (`postFirmaDigital` y `mipeSendXML`)
 
-El `Request Rejected` del WAF F5 NO era fingerprinting: era `RUT_EMP` sin dígito verificador.
-El F5 valida formato de parámetros. Con requests bien formados httpx puro pasa. Los headers
-de navegador de abajo son los que el diff byte a byte contra la captura mostró como diferencia;
-se replican para no volver a investigar lo mismo.
+Sobre el `Request Rejected` del WAF F5: no es fingerprinting. En 2026-09 fue `RUT_EMP` sin dígito
+verificador; en los envíos rechazados de octubre la única diferencia frente al navegador era la
+forma del cuerpo (ver arriba). Los headers de navegador de abajo son los que el diff byte a byte
+contra las capturas mostró como diferencia; se replican para no volver a investigar lo mismo.
 """
 from __future__ import annotations
 
@@ -97,11 +105,10 @@ def preparar_dato_firma(xml: str) -> str:
     return dato
 
 # Cadenas de emisión VERIFICADAS de punta a punta contra el SII DESDE ESTE REPO, con evidencia
-# (tipo → TrackID/folio/fecha). Hoy está VACÍA: la factura se verificó con el tool externo del
-# repo Auxin (T34 folio 59, 2026-09-06), no con este código, y la NC por httpx desde aquí FALLÓ
-# (2026-10-02: WAF rechazó mipeSendXML, NC folio 57 perdida). Emitir cualquier tipo exige
-# `aceptar_riesgo_folio=True` hasta que una corrida real lo agregue aquí. Lección L10: la
-# implementación que sí funcionaba estaba en otro repo y no se leyó antes de experimentar.
+# (tipo → DHDR/folio/fecha). Hoy está VACÍA: tres folios se perdieron en `mipeSendXML` (NC 57 y
+# 58 el 2026-10-02, factura 61 el 2026-10-08) y la corrección del cuerpo del envío (orden ASCII,
+# duplicados, CRLF; calcada de la captura de la factura 62) no se ha corrido todavía. Emitir
+# cualquier tipo exige `aceptar_riesgo_folio=True` hasta que una corrida real lo agregue aquí.
 CADENAS_VERIFICADAS: dict = {
     # TIPO_FACTURA_EXENTA: "pendiente: primera factura emitida desde este repo",
 }
@@ -654,28 +661,6 @@ def armar_payload(campos_html: dict, tipo: int, receptor: ReceptorMipyme,
     return PayloadMipyme(tipo=tipo, pares=pares, campos_nuevos=nuevos)
 
 
-def armar_send_xml(payload: PayloadMipyme, folio: int, xml_firmado: str, clave_cert: str,
-                   tmst_firma: str) -> List[Tuple[str, str]]:
-    """Body de `mipeSendXML`, con la estructura exacta del navegador: firma + XML sin firma +
-    XML firmado + el form sin `INDICA_PRIMERA_EJECUCION` y con `EFXP_FOLIO` detrás de
-    `PTDC_CODIGO`. `txtSignText` DEBE llevar la <Signature> completa (sin ella el WAF rechaza)."""
-    sin_firma = re.sub(r"<!--[^>]*central[^>]*-->\n?", "", xml_firmado)
-    sin_firma = re.sub(r"<Signature xmlns=[^>]*>.*?</Signature>\n?", "", sin_firma, flags=re.S)
-    pares: List[Tuple[str, str]] = [
-        ("TMST_SIGN", tmst_firma), ("nombre", "1"), ("clave", clave_cert),
-        ("nodo", "dte:DTE"), ("nodoId", "dte:Documento"),
-        ("nameSpace", "http://www.sii.cl/SiiDte"),
-        ("txtPlainText", sin_firma), ("txtSignText", xml_firmado),
-    ]
-    for nombre, valor in payload.pares:
-        if nombre == "INDICA_PRIMERA_EJECUCION":
-            continue
-        pares.append((nombre, valor))
-        if nombre == "PTDC_CODIGO":
-            pares.append(("EFXP_FOLIO", str(folio)))
-    return pares
-
-
 def armar_send_xml_desde_form(form_firma: dict, xml_firmado: str, clave_cert: str,
                               tmst_firma: str) -> List[Tuple[str, str]]:
     """Body de `mipeSendXML` tal como lo manda el navegador (captura completa del 2026-10-08,
@@ -1174,26 +1159,22 @@ class ClienteMipyme:
         m = re.search(r"<TmstFirma>([^<]+)</TmstFirma>", firmado)
         tmst = m.group(1) if m else ""
 
-        # 5. Envío. Notas (56/61): SOLO con el frmSign real (lo que hace la implementación que sí
-        # emitió la NC 56); sin frmSign no hay camino alternativo: se guarda evidencia y se aborta.
-        # Facturas: reconstrucción por schema (el tool externo emitió así la factura 59).
-        es_nota = payload.tipo in (TIPO_NOTA_CREDITO, TIPO_NOTA_DEBITO)
-        if es_nota:
-            if not (form_firma and form_firma["campos"].get("txtPlainText")):
-                carpeta = _guardar_evidencia(self.empresa, payload.tipo, folio, "sin_frmsign", html, firmado,
-                                             payload.pares, (self._clave_cert, self._clave_trib),
-                                             extras=getattr(self, "_evidencia_extra", None))
-                raise SIIError(f"mipeGenXMLFirma no devolvió el formulario de firma (frmSign) para la nota; "
-                               f"folio {folio} firmado y NO enviado. Evidencia guardada.",
-                               detalle={"folio": folio, "evidencia": carpeta})
-            pares = armar_send_xml_desde_form(form_firma, firmado, self._clave_cert, tmst)
-            from html import unescape as _unescape
-            from urllib.parse import urljoin
-            url_envio = urljoin(f"{BASE}/mipeGenXMLFirma.cgi", _unescape(form_firma["action"] or "mipeSendXML.cgi"))
-            logger.info("Portal MIPYME: envío con frmSign (%d campos) → %s", len(pares), url_envio)
-        else:
-            pares = armar_send_xml(payload, folio, firmado, self._clave_cert, tmst)
-            url_envio = f"{BASE}/mipeSendXML.cgi"
+        # 5. Envío, para TODOS los tipos, SOLO con el frmSign real que devolvió la página de firma:
+        # es lo único que el navegador manda (captura completa de la factura 62, 2026-10-08). La
+        # reconstrucción por schema que se usaba para facturas fue el envío rechazado del folio 61
+        # y se eliminó. Sin frmSign no hay camino alternativo: evidencia y abortar.
+        if not (form_firma and form_firma["campos"].get("txtPlainText")):
+            carpeta = _guardar_evidencia(self.empresa, payload.tipo, folio, "sin_frmsign", html, firmado,
+                                         payload.pares, (self._clave_cert, self._clave_trib),
+                                         extras=getattr(self, "_evidencia_extra", None))
+            raise SIIError(f"mipeGenXMLFirma no devolvió el formulario de firma (frmSign); "
+                           f"folio {folio} firmado y NO enviado. Evidencia guardada.",
+                           detalle={"folio": folio, "evidencia": carpeta})
+        pares = armar_send_xml_desde_form(form_firma, firmado, self._clave_cert, tmst)
+        from html import unescape as _unescape
+        from urllib.parse import urljoin
+        url_envio = urljoin(f"{BASE}/mipeGenXMLFirma.cgi", _unescape(form_firma["action"] or "mipeSendXML.cgi"))
+        logger.info("Portal MIPYME: envío con frmSign (%d campos) → %s", len(pares), url_envio)
         r = self._req("POST", url_envio, content=_body(pares),
                       referer=f"{BASE}/mipeGenXMLFirma.cgi", origin="https://www1.sii.cl")
         out = self._texto(r)

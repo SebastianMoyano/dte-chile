@@ -405,10 +405,11 @@ cualquier ruta, incluso inventada.
 > empresas que están en el gratuito para facturas (el motor no puede timbrarles CAF) y para la
 > **NC de anulación de boletas** que [`ANULAR-BOLETA.md`](ANULAR-BOLETA.md) manda hacer por el
 > portal. **Solo existe en producción**: cada corrida es un documento real y **gasta un folio**.
-> Verificado 2026-09 **con httpx puro, sin navegador, por el tool externo del repo Auxin**: factura
-> exenta (T34) folio 59 sin reparos; la NC 56 (que anuló la factura 57) salió de ese mismo repo.
-> **Desde este repo**: lectura e importación verificadas (46 documentos); la NC por httpx **FALLÓ**
-> el 2026-10-02 (ver "Folio perdido" abajo); ninguna factura emitida aún.
+> Las facturas de septiembre y la NC 56 salieron de la herramienta del repo Auxin **reutilizando la
+> sesión del navegador**; la NC 59, la ND 1 y la factura 62 se emitieron **a mano** en el portal.
+> **Desde este repo**: lectura, importación (PDF + XML) y firma central verificadas; la emisión
+> perdió tres folios en `mipeSendXML` (57, 58 y 61) y la corrección del envío (2026-10-08, calcada
+> de la captura de la 62) aún no se corre. Ver "Folio perdido" y "Tercer folio" abajo.
 > Implementado en `core/sii_mipyme.py` (guía: [`MIPYME.md`](MIPYME.md), test en seco: `test_mipyme.py`).
 
 **La cadena** (`www1.sii.cl/cgi-bin/Portal001/`, CGI legacy):
@@ -418,10 +419,12 @@ login  POST zeusr.sii.cl/cgi_AUT2000/CAutInicio.cgi   (rut, dv, rutcntr, clave, 
        → cookies NETSCAPE_LIVEWIRE.*  (~2 h, máx ~10 sesiones concurrentes)
 1. mipeSelEmpresa.cgi         POST RUT_EMP
 2. mipeGenFacEx?IGUAL=ULT_FAC&PTDC_CODIGO=34   → form pre-llenado "igual al último"
+2b. mipeDisplayPreView.cgi    POST 54 campos ("Validar y visualizar") → página PreViewDTE  ← OBLIGATORIO (sin esto, GenXMLFirma: "No se pudo generar XML")
 3. mipeGenXMLFirma.cgi        243 params → XML con FOLIO + CAF   ⚠️ AQUÍ se consume el folio
 4. postFirmaDigital.cgi       clave del CERTIFICADO + XML → XML con <Signature>
-5. mipeSendXML.cgi            txtPlainText (sin firma) + txtSignText (CON firma) + form + FOLIO
+5. mipeSendXML.cgi            TODO el frmSign (con duplicados) + firma, ordenado ASCII; XML con CRLF
 6. mipeDisplayPDF.cgi?DHDR_CODIGO=<id>
+logout: zeusr.sii.cl/cgi_AUT2000/autTermino.cgi SIGUIENDO la redirección (si no, la sesión no muere)
 NC de anulación: mipeDisplayPreView.cgi?EHDR_CODIGO=<DHDR>&TIPO_NOTA=61 y la misma cadena con
 PTDC_CODIGO=61, TPO_DOC_REF=34, FOLIO_REF, CODIGO_REF=1.
 ```
@@ -481,8 +484,26 @@ campos, en otro orden que el schema, con `EFXP_RUT_RUT_EMP` y SIN `ES_BORR`/`IND
 Lo que falta para resolverlo es la **página de firma** (`mipeGenXMLFirma`) con su JS inline, que
 arma el envío real: desde ahora el módulo la guarda siempre (`respuesta_genxmlfirma.html`) junto a
 la respuesta cruda de `postFirmaDigital`. Un GET a `mipeGenXMLFirma.cgi` sin cuerpo NO recupera el
-documento pendiente ("requerimiento no bien recepcionado"). **No gastar un tercer folio sin ese
-artefacto**: pedirle al usuario el código fuente de esa página al emitir una nota a mano.
+documento pendiente ("requerimiento no bien recepcionado"). Ese artefacto (la página de firma con su frmSign) quedó guardado en el tercer intento, ver abajo.
+
+**Tercer folio (2026-10-08, factura 61) y la referencia completa.** Primer intento del módulo:
+`GenXMLFirma` respondió "No se pudo generar XML para firmar" (código 02.35.209.44…) porque el
+módulo saltaba `mipeDisplayPreView` ("Validar y visualizar", 54 campos): el portal necesita ese
+paso antes de generar el XML. Sin folio perdido (se asigna en GenXMLFirma). Segundo intento, con
+el paso agregado: previsualización OK, folio 61 asignado, firma central OK, y `mipeSendXML`
+rechazado por el WAF (246 B). La factura se emitió a mano (folio 62) **con la extensión grabando
+el flujo completo**, y esa captura es la referencia byte a byte de un envío de factura. Comparada
+con el intento del 61 (mismo frmSign, mismos 249 nombres de campo), las únicas diferencias eran
+de forma: el navegador manda **todos los inputs del frmSign, con el duplicado `EFXP_FMA_PAGO`,
+más los de firma, ordenados por nombre en ASCII**, y los dos XML con saltos **CRLF** (son valores
+de `<textarea>`). El módulo mandaba otro orden y LF; para facturas además reconstruía el cuerpo
+desde el schema. Corregido (`armar_send_xml_desde_form`, único camino para todos los tipos) y
+verificado en seco: secuencia de 250 campos idéntica a la del navegador. **Sin corrida real aún.**
+Dos lecciones más del mismo día: el `cerrar()` del módulo no cerraba la sesión (herculesr sin
+seguir el 302) y cada corrida dejaba una viva ~2 h hasta el tope por RUT; y el comparador leía la
+evidencia partida por líneas e inventaba nombres de campo desde el base64 de la firma. Ambos
+corregidos. Con una captura completa del navegador, el diff fiel tarda minutos; sin ella, se
+pierden folios adivinando.
 
 **Lo que hace de verdad el navegador al firmar (leído del JS del portal, `pluginsii-1.2.js` y la
 página de firma guardada en abril por una sonda, sin gastar folio):** el botón Firmar de la vista

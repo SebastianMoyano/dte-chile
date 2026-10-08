@@ -21,7 +21,7 @@ import sys
 from core.errors import ValidacionError
 from core.sii_mipyme import (CAMPOS_HELPER, CAMPOS_MONTO_TOTAL, SCHEMA_CAMPOS, ClienteMipyme,
                              ItemMipyme, ReceptorMipyme, TIPO_FACTURA_EXENTA, TIPO_NOTA_CREDITO,
-                             armar_payload, armar_send_xml, extraer_xml_dte, parsear_form)
+                             armar_payload, extraer_xml_dte, parsear_form)
 
 FALLOS = 0
 logging.getLogger("core.sii_mipyme").setLevel(logging.ERROR)   # el drift sintético no es ruido útil aquí
@@ -118,28 +118,6 @@ def test_payload():
           and nc.valor("EFXP_FOLIO_REF_001") == "57" and nc.valor("EFXP_CODIGO_REF_001") == "1"
           and nc.valor("EFXP_RAZON_REF_001") == "ANULA DOCUMENTO DE LA REFERENCIA",
           "NC de anulación: PTDC_CODIGO=61 + referencia CODIGO_REF=1")
-
-
-def test_send_xml():
-    print("armar_send_xml")
-    campos = parsear_form(HTML_FORM)
-    p = armar_payload(campos, TIPO_FACTURA_EXENTA, RECEPTOR, [ItemMipyme("Arriendo", 100)])
-    firmado = ('<?xml version="1.0" encoding="ISO-8859-1"?><DTE version="1.0"><Documento ID="F59T34">'
-               '<Folio>59</Folio><TmstFirma>2026-09-06T12:00:00</TmstFirma></Documento>'
-               '<!-- firma central --><Signature xmlns="http://www.w3.org/2000/09/xmldsig#">'
-               '<SignedInfo/><SignatureValue>abc</SignatureValue></Signature></DTE>')
-    pares = armar_send_xml(p, 59, firmado, "clave-cert", "2026-09-06T12:00:00")
-    d = dict(pares)
-    nombres = [n for n, _ in pares]
-    check(nombres[:8] == ["TMST_SIGN", "nombre", "clave", "nodo", "nodoId", "nameSpace",
-                          "txtPlainText", "txtSignText"], "cabecera de firma en el orden del navegador")
-    check("<Signature" in d["txtSignText"], "txtSignText lleva la <Signature> completa (sin ella el WAF rechaza)")
-    check("<Signature" not in d["txtPlainText"] and "<Folio>59" in d["txtPlainText"],
-          "txtPlainText es el mismo XML sin la firma")
-    check("INDICA_PRIMERA_EJECUCION" not in nombres, "sin INDICA_PRIMERA_EJECUCION en el envío")
-    i = nombres.index("PTDC_CODIGO")
-    check(nombres[i + 1] == "EFXP_FOLIO" and d["EFXP_FOLIO"] == "59", "EFXP_FOLIO justo detrás de PTDC_CODIGO")
-    check(len(nombres) == 8 + 243 - 1 + 1, "8 de firma + 242 del form + EFXP_FOLIO")
 
 
 def test_extraer_xml():
@@ -318,7 +296,7 @@ def test_form_firma():
     check(pares["txtSignText"] == "<DTE><Signature/></DTE>" and pares["TMST_SIGN"] == "2026-10-02T10:00:00"
           and pares["clave"] == "clave" and pares["nodo"] == "dte:DTE" and "btnSign" not in pares and pares["PTDC_CODIGO"] == "61",
           "body = campos del form + firma, sin los botones")
-    check(nombres.index("clave") < nombres.index("txtPlainText"), "nombre/clave/nodo van antes de txtPlainText, como el JS del portal")
+    check(nombres == sorted(nombres), "los campos van ordenados por nombre (ASCII), como el navegador (captura 2026-10-08)")
     f2 = extraer_form_firma(html.replace('name="txtPlainText"', 'name="TMST_SIGN" value="2026-04-07T21:28:49"><input type="hidden" name="txtPlainText"'))
     check(dict(armar_send_xml_desde_form(f2, "x", "c", "2026-10-02T10:00:00"))["TMST_SIGN"] == "2026-04-07T21:28:49",
           "TMST_SIGN conserva el valor de la página de firma")
@@ -464,7 +442,7 @@ def main() -> int:
     ap.add_argument("--usuario", help="RUT del usuario que entra (con DV)")
     ap.add_argument("--empresa", help="RUT de la empresa a operar (con DV)")
     a = ap.parse_args()
-    for t in (test_schema, test_parser, test_payload, test_send_xml, test_extraer_xml, test_cliente_sin_red,
+    for t in (test_schema, test_parser, test_payload, test_extraer_xml, test_cliente_sin_red,
               test_encoding_body, test_registrar_en_bd, test_listado, test_guardarrail_nc, test_form_firma, test_hallazgos_revision, test_total_pdf_subtotal, test_firma_navegador, test_correccion_montos, test_rcv_csv):
         t()
     if a.live:
