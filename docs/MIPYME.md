@@ -48,6 +48,12 @@ por HTTP en vez de a mano.
   "No se pudo generar XML para firmar" (código 02.35.209.44…; 2026-10-08, sin folio perdido). La
   cadena de septiembre funcionó porque reutilizaba la sesión del navegador, que ya había
   previsualizado (contrato de Auxin, §3). Un fallo en GenXMLFirma ahora también deja evidencia.
+- **Una sesión por corrida, y cerrada de verdad.** `cerrar()` (el `with`) llama a
+  `zeusr.sii.cl/cgi_AUT2000/autTermino.cgi` **siguiendo la redirección**; verificado 2026-10-08:
+  tras cerrar, `mipeSelEmpresa` manda al login. El cierre anterior (`herculesr`, sin seguir el 302)
+  no cerraba nada: cada corrida dejaba una sesión viva ~2 h, se llegó al tope (~10 por RUT) y el
+  navegador del usuario recibió `ayudas/900.html` ("no lo podemos atender"). Si cerrar() avisa
+  "autTermino no cerró la sesión", el SII cambió algo: mirar antes de seguir corriendo.
 - **Folios perdidos en `mipeSendXML`: 57 y 58 (NC, 2026-10-02) y 61 (factura, 2026-10-08).** En los
   tres casos GenXMLFirma y la firma central funcionaron y el envío final fue rechazado por el WAF
   (246 B). La evidencia del 61 está completa (`storage/mipyme_fallidos/…/T34_F61_…`). Hasta tener una

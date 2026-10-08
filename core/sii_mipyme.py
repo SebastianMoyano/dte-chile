@@ -66,7 +66,11 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 BASE = "https://www1.sii.cl/cgi-bin/Portal001"
 URL_LOGIN = "https://zeusr.sii.cl/cgi_AUT2000/CAutInicio.cgi"
-URL_LOGOUT = "https://herculesr.sii.cl/cgi_AUT2000/autTermino.cgi"
+# Cierre de sesión: el que invoca "Cerrar Sesión" de la barra del SII (zeus.sii.cl/admin/barranav.js).
+# OJO: hay que SEGUIR la redirección; el GET a secas devuelve 302 y la sesión sigue viva en el
+# servidor (así se acumularon sesiones hasta el tope el 2026-10-08). La variante herculesr sin
+# seguir redirects no cerraba nada.
+URL_LOGOUT = "https://zeusr.sii.cl/cgi_AUT2000/autTermino.cgi"
 URL_SIIHOME = "https://misiir.sii.cl/cgi_misii/siihome.cgi"
 REFERER_LOGIN = "https://zeusr.sii.cl/AUT2000/InicioAutenticacion/IngresoRutClave.html"
 OPCION_EMISION = "OPCION=34&TIPO=4"   # menú "emisión de DTE" del portal (el tipo va en PTDC_CODIGO)
@@ -879,7 +883,11 @@ class ClienteMipyme:
         sesiones y el SII niega el siguiente login."""
         try:
             if self._autenticado:
-                self._s.get(URL_LOGOUT, timeout=15)
+                self._s.get(URL_LOGOUT, timeout=20, follow_redirects=True,
+                            headers={"Referer": f"{BASE}/mipeSelEmpresa.cgi"})
+                # Si el SII no borró las cookies de sesión, el cierre no surtió efecto: avisar.
+                if any(c.name.startswith("NETSCAPE_LIVEWIRE") for c in self._s.cookies.jar):
+                    logger.warning("Portal MIPYME: autTermino no cerró la sesión (cookies de sesión siguen vivas)")
         except Exception:
             pass
         finally:
