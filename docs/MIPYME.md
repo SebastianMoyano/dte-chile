@@ -54,6 +54,14 @@ por HTTP en vez de a mano.
   no cerraba nada: cada corrida dejaba una sesión viva ~2 h, se llegó al tope (~10 por RUT) y el
   navegador del usuario recibió `ayudas/900.html` ("no lo podemos atender"). Si cerrar() avisa
   "autTermino no cerró la sesión", el SII cambió algo: mirar antes de seguir corriendo.
+- **Factura 62 (2026-10-08) emitida a mano con captura completa** (`captura_zeusr…17-00-03`): es la
+  referencia byte a byte del envío de una factura. Lo que mostró, comparado con el intento del folio
+  61 (mismo frmSign, mismos 249 nombres): el navegador manda a `mipeSendXML` **todos los inputs del
+  frmSign, con duplicados (`EFXP_FMA_PAGO` ×2), más los de firma, ordenados por nombre en ASCII**;
+  el módulo mandaba firma-antes-de-txtPlainText y el resto en orden del HTML. Ya corregido en
+  `armar_send_xml_desde_form`. Sin verificar todavía con una corrida real.
+- **Datos del emisor en el portal:** el formulario exige también la **ciudad de origen** (p. ej.
+  Buchupureo); el módulo la toma del propio form (`EFXP_CIUDAD_ORIGEN`).
 - **Folios perdidos en `mipeSendXML`: 57 y 58 (NC, 2026-10-02) y 61 (factura, 2026-10-08).** En los
   tres casos GenXMLFirma y la firma central funcionaron y el envío final fue rechazado por el WAF
   (246 B). La evidencia del 61 está completa (`storage/mipyme_fallidos/…/T34_F61_…`). Hasta tener una

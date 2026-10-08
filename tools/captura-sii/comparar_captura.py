@@ -18,6 +18,22 @@ CLAVES = ("mipeGenFacEx", "mipeDisplayPreView", "mipePreView", "mipeGenXMLFirma"
           "mipeSendXML", "mipeGenDLNewEnvio", "mipeDisplayPDF", "CAutInicio", "mipeSelEmpresa")
 
 
+def _pares_evidencia(body: str):
+    """Pares del body guardado en la evidencia: desde 2026-10-08 es una sola línea
+    x-www-form-urlencoded (como viaja); antes era "k=v" por línea, que partía los valores
+    multilínea (el base64 de la firma aparecía como nombres falsos)."""
+    if "\n" not in body.strip():
+        return parse_qsl(body, keep_blank_values=True, encoding="latin-1", errors="replace")
+    pares, actual = [], None
+    for ln in body.split("\n"):
+        m = re.match(r"^([A-Za-z_][A-Za-z0-9_]*)=(.*)$", ln)
+        if m:
+            actual = [m.group(1), m.group(2)]; pares.append(actual)
+        elif actual is not None:
+            actual[1] += "\n" + ln
+    return [tuple(p) for p in pares]
+
+
 def campos_de(cuerpo: str | None, tipo_contenido: str = "") -> list[tuple[str, str]]:
     if not cuerpo:
         return []
@@ -109,7 +125,7 @@ def main() -> int:
 
     if a.evidencia:
         ev = Path(a.evidencia)
-        body = (ev / "body_envio.txt").read_text(encoding="utf-8") if (ev / "body_envio.txt").exists() else ""
+        body = (ev / "body_envio.txt").read_text(encoding="latin-1") if (ev / "body_envio.txt").exists() else ""
         mios = re.findall(r"^([A-Za-z_][A-Za-z0-9_]*)=", body, re.M)
         nav = [k for k, _ in por_cgi.get("mipeSendXML", [])]
         if not nav or not mios:
@@ -128,11 +144,7 @@ def main() -> int:
                     break
         # valores que difieren (sin los secretos ni los XML)
         vn = dict(por_cgi["mipeSendXML"])
-        vm = {}
-        for ln in body.split("\n"):
-            m = re.match(r"^([A-Za-z_][A-Za-z0-9_]*)=(.*)$", ln)
-            if m:
-                vm[m.group(1)] = m.group(2)
+        vm = dict(_pares_evidencia(body))
         difs = [k for k in comunes_nav if k not in ("txtPlainText", "txtSignText", "clave") and vn.get(k, "") != vm.get(k, "")]
         print("  valores distintos (sin XML ni clave):", difs or "—")
         for k in difs[:25]:

@@ -47,6 +47,7 @@ se replican para no volver a investigar lo mismo.
 from __future__ import annotations
 
 import logging
+import html as html_mod
 import re
 from dataclasses import dataclass, field
 from datetime import date
@@ -394,7 +395,22 @@ def extraer_form_firma(html: str) -> Optional[dict]:
             continue
         accion = re.search(r'action=["\']([^"\']*)', attrs, re.I)
         campos = parsear_form("<form>" + inner + "</form>")
-        return {"action": accion.group(1) if accion else "", "campos": campos}
+        # Lista cruda (orden del HTML, con duplicados): el frmSign real trae EFXP_FMA_PAGO dos
+        # veces y el navegador manda las dos (captura 2026-10-08, factura 62).
+        # inputs y textareas por separado (un solo regex con el contenido opcional del textarea
+        # se tragaba el textarea siguiente a un input: perdía txtPlainText), fusionados por posición.
+        encontrados = []
+        for m2 in re.finditer(r"<input\b([^>]*)>", inner, re.I):
+            n = re.search(r'name=["\']([^"\']+)', m2.group(1), re.I)
+            vm = re.search(r'value=["\']([^"\']*)', m2.group(1), re.I)
+            if n:
+                encontrados.append((m2.start(), n.group(1), html_mod.unescape(vm.group(1)) if vm else ""))
+        for m2 in re.finditer(r"<textarea\b([^>]*)>([\s\S]*?)</textarea>", inner, re.I):
+            n = re.search(r'name=["\']([^"\']+)', m2.group(1), re.I)
+            if n:
+                encontrados.append((m2.start(), n.group(1), html_mod.unescape(m2.group(2))))
+        crudos = [(k, v) for _, k, v in sorted(encontrados)]
+        return {"action": accion.group(1) if accion else "", "campos": campos, "crudos": crudos}
     return None
 
 
@@ -662,27 +678,29 @@ def armar_send_xml(payload: PayloadMipyme, folio: int, xml_firmado: str, clave_c
 
 def armar_send_xml_desde_form(form_firma: dict, xml_firmado: str, clave_cert: str,
                               tmst_firma: str) -> List[Tuple[str, str]]:
-    """Body de `mipeSendXML` tal como lo arma el navegador: los campos del `frmSign` que
-    devolvió `mipeGenXMLFirma` + lo que su JS rellena antes de enviar (txtSignText, TMST_SIGN,
-    nombre, clave, nodo, nodoId, nameSpace). `txtPlainText` ya viene en el form."""
+    """Body de `mipeSendXML` tal como lo manda el navegador (captura completa del 2026-10-08,
+    factura 62 emitida): TODOS los inputs del `frmSign` que devolvió `mipeGenXMLFirma`
+    (incluidos los duplicados, p. ej. `EFXP_FMA_PAGO` dos veces) más lo que el JS rellena
+    (txtSignText, nombre, clave, nodo, nodoId, nameSpace; TMST_SIGN viaja como venga en la
+    página), y el conjunto **ordenado por nombre en orden ASCII** (mayúsculas antes que
+    minúsculas): así quedan `clave`, `nameSpace`, `nodo`, `nodoId`, `nombre`, `txtPlainText`,
+    `txtSignText` al final. El orden anterior (firma antes de txtPlainText, resto en orden del
+    HTML) fue la única diferencia estructural frente al navegador en el envío rechazado del
+    folio 61; `txtPlainText` ya viene en el form."""
+    crudos = list(form_firma.get("crudos") or form_firma["campos"].items())
+    omitir = {"btnSign", "btnVolver", "txtSignText", "nombre", "clave", "nodo", "nodoId", "nameSpace"}
+    pares: List[Tuple[str, str]] = [(k, v) for k, v in crudos if k not in omitir]
+    if not any(k == "TMST_SIGN" and v for k, v in pares):
+        pares = [(k, v) for k, v in pares if k != "TMST_SIGN"] + [("TMST_SIGN", tmst_firma)]
     campos = dict(form_firma["campos"])
-    campos.pop("btnSign", None); campos.pop("btnVolver", None)
-    campos["txtSignText"] = xml_firmado
-    # El navegador NO toca TMST_SIGN: viaja con el valor que trae la página de firma. Solo si
-    # la página no lo trajera se usa el TmstFirma del XML firmado.
-    campos.setdefault("TMST_SIGN", tmst_firma)
-    if not campos.get("TMST_SIGN"):
-        campos["TMST_SIGN"] = tmst_firma
-    firma = {"nombre": campos.pop("nombre", "1"), "clave": clave_cert, "nodo": campos.pop("nodo", "dte:DTE"),
-             "nodoId": campos.pop("nodoId", "dte:Documento"), "nameSpace": campos.pop("nameSpace", "http://www.sii.cl/SiiDte")}
-    campos.pop("clave", None)
-    pares: List[Tuple[str, str]] = []
-    for k, v in campos.items():
-        if k == "txtPlainText":   # firmaCertCentralizado los inserta justo antes de txtPlainText
-            pares.extend(firma.items())
-        pares.append((k, v))
-    if not any(k == "clave" for k, _ in pares):
-        pares.extend(firma.items())
+    pares += [("txtSignText", xml_firmado), ("nombre", campos.get("nombre") or "1"), ("clave", clave_cert),
+              ("nodo", campos.get("nodo") or "dte:DTE"), ("nodoId", campos.get("nodoId") or "dte:Documento"),
+              ("nameSpace", campos.get("nameSpace") or "http://www.sii.cl/SiiDte")]
+    # Los dos XML viajan como valores de <textarea>: el navegador normaliza sus saltos de línea a
+    # CRLF al enviar el formulario (captura 2026-10-08: 0 LF sueltos). El módulo mandaba LF.
+    crlf = lambda t: t.replace("\r\n", "\n").replace("\n", "\r\n")
+    pares = [(k, crlf(v) if k in ("txtPlainText", "txtSignText") else v) for k, v in pares]
+    pares.sort(key=lambda kv: kv[0])   # sort es estable: los duplicados conservan su orden relativo
     return pares
 
 
@@ -724,8 +742,11 @@ def _guardar_evidencia(rut_empresa: Optional[str], tipo: int, folio: int, paso: 
         (carpeta / f"respuesta_{paso}.html").write_text(limpiar(respuesta), encoding="iso-8859-1", errors="replace")
         if xml_firmado:
             (carpeta / "dte_firmado.xml").write_text(xml_firmado, encoding="iso-8859-1", errors="replace")
-        (carpeta / f"body_{paso}.txt").write_text(
-            "\n".join(f"{k}={limpiar(v)}" for k, v in pares), encoding="utf-8", errors="replace")
+        # Una sola línea x-www-form-urlencoded (como viaja), parseable con parse_qsl. El formato
+        # anterior ("k=v" por línea) partía los valores multilínea y el comparador leía nombres
+        # falsos sacados del base64 de la firma.
+        (carpeta / f"body_{paso}.txt").write_bytes(
+            _body([(k, limpiar(v) if isinstance(v, str) else v) for k, v in pares]))
         for nombre, contenido in (extras or {}).items():
             (carpeta / nombre).write_text(limpiar(contenido or ""), encoding="iso-8859-1", errors="replace")
         return str(carpeta)
