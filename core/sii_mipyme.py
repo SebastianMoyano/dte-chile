@@ -108,6 +108,25 @@ RAZON_REF_CORRIGE_MONTO = "CORRIGE MONTO"
 # "Validar y visualizar" del formulario de NC para corregir montos (`mipeGenFacEx.cgi?IGUAL=
 # CORR_MNT&VALOR=<DHDR>&PTDC_CODIGO=61`): el navegador manda EXACTAMENTE estos 60 campos a
 # `mipeDisplayPreView.cgi` (capturado 2026-10-04 con la extensión, NC 59 emitida con éxito).
+# POST "Validar y visualizar" de una FACTURA (`mipeDisplayPreView.cgi`): los 54 campos que manda
+# el navegador, en su orden (captura con la extensión, 2026-10-04, formulario `VIEW_EFXP`).
+# Este paso es OBLIGATORIO antes de `mipeGenXMLFirma`: sin él el portal responde "No se pudo
+# generar XML para firmar" (código de mesa de ayuda 02.35.209.44…). Costó el intento del
+# 2026-10-08 (sin folio perdido: el folio se asigna recién en GenXMLFirma).
+CAMPOS_VALIDAR_FACTURA: Tuple[str, ...] = (
+    "CANT_DET", "DESCRIP_01", "EFXP_ACTECO", "EFXP_ACTECO_SELECT", "EFXP_CDG_SII_SUCUR",
+    "EFXP_CIUDAD_ORIGEN", "EFXP_CIUDAD_RECEP", "EFXP_CMNA_ORIGEN", "EFXP_CMNA_RECEP", "EFXP_CONTACTO",
+    "EFXP_DIR_ORIGEN", "EFXP_DIR_ORIGEN_DEFUALT", "EFXP_DIR_RECEP", "EFXP_DIR_RECEP_DEFUALT",
+    "EFXP_DSC_ITEM_01", "EFXP_DV_CHOFER", "EFXP_DV_RECEP", "EFXP_DV_SOLICITA", "EFXP_DV_TRANSPORTE",
+    "EFXP_EMAIL_EMISOR", "EFXP_FCH_EMIS", "EFXP_FMA_PAGO", "EFXP_FONO_EMISOR", "EFXP_GIRO_EMIS",
+    "EFXP_GIRO_RECEP", "EFXP_GIRO_RECEP_DEFUALT", "EFXP_MNT_DESC", "EFXP_MNT_NETO", "EFXP_MNT_TOTAL",
+    "EFXP_NMB_01", "EFXP_NOMBRE_CHOFER", "EFXP_PATENTE", "EFXP_PCTD_01", "EFXP_PCT_DESC", "EFXP_PRC_01",
+    "EFXP_QTY_01", "EFXP_RUT_CHOFER", "EFXP_RUT_RECEP", "EFXP_RUT_SOLICITA", "EFXP_RUT_TRANSPORTE",
+    "EFXP_RZN_SOC", "EFXP_RZN_SOC_RECEP", "EFXP_SUBTOTAL", "EFXP_SUBT_01", "EFXP_TIPOCOMPRA_SELECT",
+    "EFXP_TIPOVENTA_SELECT", "EFXP_UNMD_01", "EHDR_CODIGO", "ES_BORR", "IVA_TEMP", "MNT_NETO_TEMP",
+    "PTDC_CODIGO", "esCRED_EC", "esFACT_TUR",
+)
+
 CAMPOS_VALIDAR_CORR_MNT: Tuple[str, ...] = (
     "CANT_DET", "DESCRIP_01", "EFXP_ACTECO", "EFXP_CDG_SII_SUCUR", "EFXP_CIUDAD_ORIGEN", "EFXP_CIUDAD_RECEP",
     "EFXP_CMNA_ORIGEN", "EFXP_CMNA_RECEP", "EFXP_CODIGO_REF_001", "EFXP_CONTACTO", "EFXP_DIR_ORIGEN", "EFXP_DIR_RECEP",
@@ -881,9 +900,58 @@ class ClienteMipyme:
         return parsear_form(self._texto(r))
 
     def preparar(self, tipo: int, receptor: ReceptorMipyme, items: Sequence[ItemMipyme],
-                 fecha: Optional[str] = None, forma_pago: str = "2") -> PayloadMipyme:
-        """Dry-run: lee el form y arma el payload. NO gasta folio ni emite nada."""
-        return armar_payload(self.leer_form(tipo), tipo, receptor, items, fecha, forma_pago)
+                 fecha: Optional[str] = None, forma_pago: str = "1") -> PayloadMipyme:
+        """Dry-run de una factura: lee el form, hace el POST "Validar y visualizar"
+        (`mipeDisplayPreView`, 54 campos, como el navegador) y arma el payload desde la página
+        PreViewDTE que devuelve. NO gasta folio: el folio se asigna recién en GenXMLFirma.
+
+        Por qué el paso previo: la cadena verificada en septiembre (contrato de Auxin) fue
+        PreView → DisplayPreView → GenXMLFirma; la sesión del navegador ya traía la
+        previsualización hecha. Ir directo a GenXMLFirma desde una sesión httpx limpia devuelve
+        "No se pudo generar XML para firmar" (2026-10-08). Mismo esquema que
+        `preparar_nc_correccion_montos`."""
+        if tipo in (TIPO_NOTA_CREDITO, 56):
+            return armar_payload(self.leer_form(tipo), tipo, receptor, items, fecha, forma_pago)
+        if len(items) != 1:
+            raise ValidacionError("El paso 'Validar y visualizar' de factura está calcado para 1 línea "
+                                  "(el navegador manda EFXP_*_01); con más líneas hay que capturar ese flujo")
+        self._requiere_empresa()
+        base = self.leer_form(tipo)
+        it = items[0]
+        total = it.subtotal
+        rut_n, dv = separar_rut(receptor.rut)
+        nuestros = {
+            "CANT_DET": "1", "DESCRIP_01": "DESCRIP_01", "EHDR_CODIGO": "", "ES_BORR": "FALSE",
+            "PTDC_CODIGO": str(tipo), "esCRED_EC": "FALSE", "esFACT_TUR": "FALSE",
+            "EFXP_ACTECO_SELECT": base.get("EFXP_ACTECO", ""), "EFXP_TIPOCOMPRA_SELECT": "1", "EFXP_TIPOVENTA_SELECT": "1",
+            "EFXP_FCH_EMIS": fecha or date.today().isoformat(), "EFXP_FMA_PAGO": str(forma_pago),
+            "EFXP_RUT_RECEP": rut_n, "EFXP_DV_RECEP": dv, "EFXP_RZN_SOC_RECEP": receptor.razon_social,
+            "EFXP_GIRO_RECEP": receptor.giro, "EFXP_GIRO_RECEP_DEFUALT": receptor.giro,
+            # El JS del portal copia la dirección del campo auxiliar (_DEFUALT) al real y le deja
+            # cuatro espacios al final (captura 2026-10-04); vacío → "Debe ingresar el campo:
+            # Direccion del contribuyente emisor" (2026-10-08).
+            "EFXP_DIR_ORIGEN": (base.get("EFXP_DIR_ORIGEN") or base.get("EFXP_DIR_ORIGEN_DEFUALT", "")).rstrip() + "    ",
+            "EFXP_DIR_RECEP": receptor.direccion.rstrip() + "    ", "EFXP_DIR_RECEP_DEFUALT": receptor.direccion,
+            "EFXP_CIUDAD_RECEP": receptor.ciudad, "EFXP_CMNA_RECEP": receptor.comuna, "EFXP_CONTACTO": "",
+            "EFXP_NMB_01": it.nombre, "EFXP_QTY_01": str(it.cantidad), "EFXP_PRC_01": str(it.precio),
+            "EFXP_SUBT_01": str(it.subtotal), "EFXP_DSC_ITEM_01": it.descripcion, "EFXP_UNMD_01": "", "EFXP_PCTD_01": "",
+            "EFXP_PCT_DESC": "0", "EFXP_MNT_DESC": "0", "IVA_TEMP": "", "MNT_NETO_TEMP": str(total),
+            "EFXP_SUBTOTAL": str(total), "EFXP_MNT_NETO": str(total), "EFXP_MNT_TOTAL": str(total),
+        }
+        pares = [(k, nuestros.get(k, base.get(k, ""))) for k in CAMPOS_VALIDAR_FACTURA]
+        url_form = f"{BASE}/mipeGenFacEx.cgi?IGUAL=ULT_FAC&PTDC_CODIGO={tipo}&ES_BORR=FALSE&esCRED_EC=FALSE&esFACT_TUR=FALSE"
+        r = self._req("POST", f"{BASE}/mipeDisplayPreView.cgi", content=_body(pares), referer=url_form,
+                      origin="https://www1.sii.cl")
+        vista = self._texto(r)
+        if _esta_rechazado(r) or "PreViewDTE" not in vista:
+            _guardar_evidencia(self.empresa, tipo, 0, "validar", vista, None, pares,
+                               (self._clave_cert, self._clave_trib))
+            raise SIIRechazoError("El portal no aceptó 'Validar y visualizar' de la factura",
+                                  detalle={"http": r.status_code, "largo": len(vista),
+                                           "error_sii": (re.search(r"CODIGO:\s*([\d.]+)", vista) or [None, None])[1]})
+        self._referer_emision = f"{BASE}/mipeDisplayPreView.cgi"
+        return armar_payload(parsear_form(vista), tipo, receptor, items, fecha, forma_pago,
+                             respetar_html=("ES_BORR", "INDICA_PRIMERA_EJECUCION"))
 
     def total_registrado(self, dhdr: str) -> int:
         """El TOTAL del documento tal como el SII lo registró: se lee del PDF que el propio SII
@@ -1037,7 +1105,12 @@ class ClienteMipyme:
         # por el parser); la regex sobre la página es el respaldo.
         xml = (form_firma or {}).get("campos", {}).get("txtPlainText") or extraer_xml_dte(html)
         if not xml or "<DTE" not in xml:
-            raise SIIError("mipeGenXMLFirma no devolvió el XML del DTE", detalle={"inicio": html[:300]})
+            # Antes del folio, pero igual hay que poder diagnosticarlo: respuesta + payload.
+            _guardar_evidencia(self.empresa, payload.tipo, 0, "genxml", html, None, payload.pares,
+                               (self._clave_cert, self._clave_trib))
+            raise SIIError("mipeGenXMLFirma no devolvió el XML del DTE",
+                           detalle={"inicio": html[:300],
+                                    "error_sii": (re.search(r"CODIGO:\s*([\d.]+)", html) or [None, None])[1]})
         folio = _folio_de(xml)
         logger.info("Portal MIPYME: folio %d asignado (tipo %d); frmSign %s", folio, payload.tipo,
                     "encontrado" if form_firma else "NO encontrado (reconstrucción)")

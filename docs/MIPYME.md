@@ -42,6 +42,16 @@ por HTTP en vez de a mano.
   WAF. En el motor el RUT viaja entero (`12345678-9`); no lo partas en dos variables.
 - **Los 5 montos alineados.** `PRC_nn`, `SUBT_nn`, `SUBTOTAL`, `MNT_NETO`, `MNT_TOTAL` salen del
   mismo número (`armar_payload` lo hace). Sustituir solo dos → reparo `HED-2-220`.
+- **La factura pasa por "Validar y visualizar" antes de firmar.** `preparar()` hace el POST a
+  `mipeDisplayPreView` con los 54 campos del navegador (`CAMPOS_VALIDAR_FACTURA`) y arma el payload
+  desde la página PreViewDTE. Ir directo a `mipeGenXMLFirma` desde una sesión httpx limpia devuelve
+  "No se pudo generar XML para firmar" (código 02.35.209.44…; 2026-10-08, sin folio perdido). La
+  cadena de septiembre funcionó porque reutilizaba la sesión del navegador, que ya había
+  previsualizado (contrato de Auxin, §3). Un fallo en GenXMLFirma ahora también deja evidencia.
+- **Folios perdidos en `mipeSendXML`: 57 y 58 (NC, 2026-10-02) y 61 (factura, 2026-10-08).** En los
+  tres casos GenXMLFirma y la firma central funcionaron y el envío final fue rechazado por el WAF
+  (246 B). La evidencia del 61 está completa (`storage/mipyme_fallidos/…/T34_F61_…`). Hasta tener una
+  captura de un envío de FACTURA exitoso desde el navegador, no se reintenta este paso desde el módulo.
 - **Forma de pago: contado (1) por defecto** desde 2026-10-08. Las facturas de la primera prueba en
   vivo (septiembre 2026) salieron a crédito (2) porque ese era el default del CLI, no por decisión
   del usuario; no tiene efecto tributario, solo la condición de pago registrada.
@@ -72,6 +82,7 @@ login   POST zeusr.sii.cl/cgi_AUT2000/CAutInicio.cgi   rut, dv, rutcntr (con pun
         → cookies NETSCAPE_LIVEWIRE.*   (~2 h)
 1.  GET  mipeLaunchPage.cgi?OPCION=34&TIPO=4  →  GET mipeSelEmpresa.cgi  →  POST mipeSelEmpresa.cgi (RUT_EMP con DV)
 2.  GET  mipeGenFacEx.cgi?IGUAL=ULT_FAC&PTDC_CODIGO=34   form pre-llenado "igual al último"   ← gratis
+2b. POST mipeDisplayPreView.cgi  54 campos ("Validar y visualizar") → página PreViewDTE (243 campos)  ← OBLIGATORIO, gratis
 3.  POST mipeGenXMLFirma.cgi   243 campos, ISO-8859-1    → XML con <Folio> y CAF               ← GASTA EL FOLIO
 4.  POST postFirmaDigital.cgi  nombre=1, dato=<xml>, rut, dv, clave=<cert>, nodo=dte:DTE,
                                nodoId=dte:Documento, nameSpace=http://www.sii.cl/SiiDte
