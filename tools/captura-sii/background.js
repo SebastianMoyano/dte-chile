@@ -30,7 +30,10 @@ function cuerpoDe(requestBody) {
   if (!requestBody) return null;
   if (requestBody.formData) {
     const partes = [];
-    for (const [k, vs] of Object.entries(requestBody.formData)) for (const v of vs) partes.push(`${k}=${SECRETO.test(k) ? "***" : v}`);
+    // Chrome entrega formData ya DECODIFICADO; se vuelve a codificar (encodeURIComponent) para que
+    // `texto` sea un cuerpo x-www-form-urlencoded fiel: sin esto un "+" literal (p. ej. en el
+    // base64 de un timbre) se relee como espacio al parsearlo (artefacto visto el 2026-10-08).
+    for (const [k, vs] of Object.entries(requestBody.formData)) for (const v of vs) partes.push(`${encodeURIComponent(k)}=${SECRETO.test(k) ? "***" : encodeURIComponent(v)}`);
     return { forma: "formData", campos: Object.keys(requestBody.formData), texto: partes.join("&") };
   }
   if (requestBody.raw) {
@@ -167,7 +170,7 @@ async function detener() {
   const indice = entradas.map(e => e.tipo === "pagina" ? `${String(e.n).padStart(3)} [página ${e.momento}${e.marco === "iframe" ? " iframe" : ""}] ${e.url}`
     : e.tipo === "xhr" ? `${String(e.n).padStart(3)} [ajax] ${e.metodo} ${e.estado} ${e.url}`
     : `${String(e.n).padStart(3)} ${(e.metodo || "").padEnd(4)} ${e.estado ?? e.error ?? "---"} ${e.url}`);
-  let salida = { herramienta: "captura-web/3.4", modo: cap.modo, sitio: cap.host, inicio: cap.inicio, fin: new Date().toISOString(), pestaña: cap.tabId,
+  let salida = { herramienta: "captura-web/3.5", modo: cap.modo, sitio: cap.host, inicio: cap.inicio, fin: new Date().toISOString(), pestaña: cap.tabId,
                    nota: (cap.modo === "sii" ? "Solo sii.cl. " : "Cualquier sitio. ") + "Secretos tachados por nombre y por patrón (JWT, Bearer, hex largo, uuid junto a nombres sensibles); cookies y cabeceras de autorización omitidas; segunda pasada de tachado y reemplazo de datos personales SOBRE LOS VALORES del objeto (nunca sobre el JSON serializado) y auditoría en 'auditoria'. 'red' = petición vista por la extensión; 'pagina' = HTML y texto visible resultantes; 'xhr' = llamada AJAX/fetch con su respuesta.",
                    indice, entradas };
   // Segunda capa, SOBRE LOS VALORES del objeto (recorriéndolo), nunca sobre el JSON serializado.

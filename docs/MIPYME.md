@@ -263,6 +263,11 @@ en `track_id` va el **`DHDR_CODIGO`** (el id que el portal usa para el PDF y par
   funcionó: previsualización, GenXMLFirma, firma central. El envío quedó calcado del navegador
   (factura 62, captura completa) y **no se ha vuelto a correr**: la próxima factura que de verdad
   se necesite es la prueba, con `--acepto-riesgo-folio` y la captura de la 62 como respaldo.
+- **Nota de crédito desde este repo**: misma situación que la factura. Verificado en seco el
+  2026-10-08 con la captura de la NC 59: tomando la página de firma que vio el navegador, el módulo
+  arma hoy un `mipeSendXML` con los **mismos 250 campos, en el mismo orden y con los mismos
+  valores** que el navegador (la única diferencia era un artefacto de la captura, corregido en la
+  extensión 3.5). La próxima nota real es la prueba (`--anular-dhdr` o `--corregir-dhdr`).
 - **Nota de débito (T56)**: form capturado, sin `preparar_nota_debito`; la ND 1 se emitió a mano.
 - NC de anulación de **boletas** (`mipeSelEmpresaBol.cgi`): ni cableada ni verificada.
 - Los documentos importados sin clave del certificado no tienen XML (`xml_firmado=None`):
