@@ -18,7 +18,7 @@ por HTTP en vez de a mano.
 | ambiente | certificación o producción | **solo producción** |
 | quién puede | empresa con software propio certificado | empresa en el gratuito para facturas |
 | transporte | SOAP `DTEUpload` | CGI legacy `www1.sii.cl/cgi-bin/Portal001/` |
-| evidencia | TrackID 253113966 → `ACEPTADOS: 1` | factura: T34 folio 59 sin reparos (2026-09-06, **tool externo**, no este repo) · lectura/importación: verificada desde este repo (Auxin, 46 documentos, 2026-09-07) · NC por httpx desde este repo: **FALLÓ** (2026-10-02, folio perdido) |
+| evidencia | TrackID 253113966 → `ACEPTADOS: 1` | factura: T34 folio 59 (2026-09-06) y 62 (2026-10-08) sin reparos, **no emitidas por este repo** (herramienta Auxin / a mano) · lectura/importación: verificada desde este repo (Auxin, 46 documentos, 2026-09-07) · NC por httpx desde este repo: **FALLÓ** (2026-10-02, folio perdido) |
 
 ## Para qué sirve
 
@@ -258,18 +258,16 @@ en `track_id` va el **`DHDR_CODIGO`** (el id que el portal usa para el PDF y par
 
 ## Pendiente / no verificado
 
-- **Factura desde este repo**: el módulo replica el tool que emitió el folio 59, pero ninguna
-  factura se ha emitido desde `emitir_mipyme.py`. La firma central sí quedó probada desde aquí
-  (la NC fallida del 2026-10-02 firmó bien). Hacer la primera con un documento que de verdad se
-  necesite (gasta folio) y con `--acepto-riesgo-folio`.
-- **NC por httpx**: falló una vez (2026-10-02, folio perdido); la rama nueva con `frmSign` no se
-  ha corrido. Si vuelve a fallar, la evidencia queda en `storage/mipyme_fallidos/`.
+- **Emisión desde este repo (cualquier tipo):** sin verificar. Tres folios perdidos en
+  `mipeSendXML` (NC 57 y 58, 2026-10-02; factura 61, 2026-10-08). En el 61 todo lo anterior
+  funcionó: previsualización, GenXMLFirma, firma central. El envío quedó calcado del navegador
+  (factura 62, captura completa) y **no se ha vuelto a correr**: la próxima factura que de verdad
+  se necesite es la prueba, con `--acepto-riesgo-folio` y la captura de la 62 como respaldo.
 - **Nota de débito (T56)**: form capturado, sin `preparar_nota_debito`; la ND 1 se emitió a mano.
 - NC de anulación de **boletas** (`mipeSelEmpresaBol.cgi`): ni cableada ni verificada.
 - Los documentos importados sin clave del certificado no tienen XML (`xml_firmado=None`):
   `/documentos/{id}/xml` responde 404 para ellos. Con la clave, Sincronizar los trae.
-- Guardar las dos claves en el keystore cifrado (hoy se piden en cada corrida: por consola, Llavero de macOS o el formulario de la página).
-- Emitir y anular desde la página (hoy solo el diagnóstico de lectura tiene endpoint).
+- Emitir y anular desde la página y desde la app (hoy: diagnóstico, importar y sincronizar).
 - Ruteo automático por empresa en `emitir_documento` (gratuito → MIPYME, software propio → motor).
 
 ## Claves: qué se pide, dónde viven, cuándo se recuerdan
