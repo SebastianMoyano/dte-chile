@@ -52,7 +52,7 @@ def main() -> int:
     ap.add_argument("--precio", type=int, required=True)
     ap.add_argument("--detalle", default="", help="descripción del ítem")
     ap.add_argument("--fecha", default=date.today().isoformat())
-    ap.add_argument("--forma-pago", default="2", help="1 contado, 2 crédito")
+    ap.add_argument("--forma-pago", default="1", help="1 contado (lo habitual), 2 crédito")
     ap.add_argument("--anular-dhdr", help="DHDR_CODIGO del documento a anular (NC 61, código 1)")
     ap.add_argument("--corregir-dhdr", help="DHDR_CODIGO del documento cuyo monto se corrige (NC 61, código 3; por el total lo deja en cero)")
     ap.add_argument("--folio-ref", type=int, help="folio del documento a anular")

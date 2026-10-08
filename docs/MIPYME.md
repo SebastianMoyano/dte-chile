@@ -42,6 +42,9 @@ por HTTP en vez de a mano.
   WAF. En el motor el RUT viaja entero (`12345678-9`); no lo partas en dos variables.
 - **Los 5 montos alineados.** `PRC_nn`, `SUBT_nn`, `SUBTOTAL`, `MNT_NETO`, `MNT_TOTAL` salen del
   mismo número (`armar_payload` lo hace). Sustituir solo dos → reparo `HED-2-220`.
+- **Forma de pago: contado (1) por defecto** desde 2026-10-08. Las facturas de la primera prueba en
+  vivo (septiembre 2026) salieron a crédito (2) porque ese era el default del CLI, no por decisión
+  del usuario; no tiene efecto tributario, solo la condición de pago registrada.
 - **La NC de anulación lleva el TOTAL registrado del documento, no la línea.** `preparar_nc_anulacion`
   lee el total desde el PDF del SII (`total_registrado`, regex `TOTAL $` sobre el texto, necesita
   `pypdf`) y se niega si la NC no coincide (`verificar_monto=False` lo apaga; no protege facturas).
