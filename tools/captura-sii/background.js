@@ -13,7 +13,7 @@ const RUIDO = /\.(png|jpe?g|gif|svg|ico|webp|avif|woff2?|ttf|otf|css|map)(\?|$)|
 const MAX_HTML = 2_000_000, MAX_TEXTO = 300_000, MAX_RESP = 1_000_000;
 
 importScripts("tachar.js", "pii.js");
-const { tachar: tacharBase, auditar, esNombreSensible } = self.CapturaTachar;
+const { tachar: tacharBase, sobre: tacharValores, auditar, esNombreSensible } = self.CapturaTachar;
 function tachar(texto) {
   if (texto == null) return texto;
   let s = String(texto);
@@ -167,28 +167,28 @@ async function detener() {
   const indice = entradas.map(e => e.tipo === "pagina" ? `${String(e.n).padStart(3)} [página ${e.momento}${e.marco === "iframe" ? " iframe" : ""}] ${e.url}`
     : e.tipo === "xhr" ? `${String(e.n).padStart(3)} [ajax] ${e.metodo} ${e.estado} ${e.url}`
     : `${String(e.n).padStart(3)} ${(e.metodo || "").padEnd(4)} ${e.estado ?? e.error ?? "---"} ${e.url}`);
-  let salida = { herramienta: "captura-web/3.3", modo: cap.modo, sitio: cap.host, inicio: cap.inicio, fin: new Date().toISOString(), pestaña: cap.tabId,
-                   nota: (cap.modo === "sii" ? "Solo sii.cl. " : "Cualquier sitio. ") + "Secretos tachados por nombre y por patrón (JWT, Bearer, hex largo, uuid junto a nombres sensibles); cookies y cabeceras de autorización omitidas; pasada final sobre el JSON entero y auditoría en 'auditoria'. 'red' = petición vista por la extensión; 'pagina' = HTML y texto visible resultantes; 'xhr' = llamada AJAX/fetch con su respuesta.",
+  let salida = { herramienta: "captura-web/3.4", modo: cap.modo, sitio: cap.host, inicio: cap.inicio, fin: new Date().toISOString(), pestaña: cap.tabId,
+                   nota: (cap.modo === "sii" ? "Solo sii.cl. " : "Cualquier sitio. ") + "Secretos tachados por nombre y por patrón (JWT, Bearer, hex largo, uuid junto a nombres sensibles); cookies y cabeceras de autorización omitidas; segunda pasada de tachado y reemplazo de datos personales SOBRE LOS VALORES del objeto (nunca sobre el JSON serializado) y auditoría en 'auditoria'. 'red' = petición vista por la extensión; 'pagina' = HTML y texto visible resultantes; 'xhr' = llamada AJAX/fetch con su respuesta.",
                    indice, entradas };
-  // Segunda capa: el JSON ENTERO pasa otra vez por el tachado (atrapa lo que se coló por un
-  // campo no previsto) y se audita lo que queda. La auditoría va dentro del archivo y al popup:
-  // el archivo dice la verdad sobre sí mismo.
+  // Segunda capa, SOBRE LOS VALORES del objeto (recorriéndolo), nunca sobre el JSON serializado.
+  // Tanto el reemplazo de datos personales como el tachado de secretos corren así: una expresión
+  // aplicada al texto serializado podía empezar en la "n" de un "\n" escapado y dejar "\persona…",
+  // un escape inválido (bug de la 3.2/3.3). Al tachar valor por valor, los escapes nunca se tocan
+  // y JSON.stringify queda como ÚLTIMO paso → el archivo descargado es siempre JSON válido. (El
+  // tachado por campo ya corrió al capturar; esta pasada atrapa lo que se coló por un campo no previsto.)
   const pii = await piiDe(cap);
-  // El reemplazo de datos personales se aplica SOBRE LOS VALORES (objeto), nunca sobre el JSON
-  // serializado: ahí la expresión de correos podía empezar en la "n" de un "\n" escapado y
-  // dejar "\persona…", un escape inválido (bug de la 3.2). El tachado de secretos sí corre
-  // sobre el texto, porque sus reglas excluyen la barra invertida.
   let cuerpo = pii ? pii.sobre(salida) : salida;
-  const auditoria = auditar(tacharBase(JSON.stringify(cuerpo)));
+  cuerpo = tacharValores(cuerpo);
+  const auditoria = auditar(JSON.stringify(cuerpo));
   const personales = self.CapturaPII.auditar(JSON.stringify(cuerpo));
   cuerpo.datos_personales = pii ? { reemplazados: true, nota: "RUT, correos y celulares sustituidos por ficticios consistentes (mismo real → mismo ficticio en toda la captura). Los RUT ficticios son válidos pero no corresponden a nadie." }
                                 : { reemplazados: false, presentes: personales, nota: "Sin reemplazo (modo sii.cl o desactivado): hay RUT/correos/celulares reales." };
   cuerpo.auditoria = { ...auditoria, nota: "Conteo de cadenas que aún parecen secretos tras el tachado. Si no es todo 0, revisa antes de compartir." };
   salida = cuerpo;
-  let json = tacharBase(JSON.stringify(salida, null, 1));
-  // Garantía: lo que se descarga tiene que ser JSON válido. Si la pasada de texto lo rompió,
-  // se descarga sin esa pasada (los valores ya fueron tachados uno a uno) y se deja constancia.
-  try { JSON.parse(json); } catch { salida.auditoria.nota += " ADVERTENCIA: la pasada final sobre el texto produjo JSON inválido y se omitió."; json = JSON.stringify(salida, null, 1); }
+  // stringify es el último paso: el JSON es válido por construcción (no hay pasada de texto que
+  // pueda romper escapes). La verificación queda como red de seguridad, no como salvavidas.
+  const json = JSON.stringify(salida, null, 1);
+  try { JSON.parse(json); } catch { salida.auditoria.nota += " ADVERTENCIA: JSON inválido pese a serializar como último paso (no debería ocurrir)."; }
   const nombre = `captura_${(cap.host || "web").replace(/[^a-z0-9.-]/gi, "_")}_${cap.inicio.replace(/[:.]/g, "-")}.json`;
   const url = "data:application/json;base64," + btoa(unescape(encodeURIComponent(json)));
   await chrome.downloads.download({ url, filename: nombre, saveAs: false });

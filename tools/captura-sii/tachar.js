@@ -24,6 +24,14 @@
     cookie: /(NETSCAPE_LIVEWIRE\.mac=|(?:TOKEN|CSESSIONID|JSESSIONID|PHPSESSID)=)[^;\s"]*/g,
   };
   const NOMBRE_RE = new RegExp(`^${NOMBRE}$`, "i");
+  // Aplica el tachado a cada cadena de un objeto (recorriéndolo), NO al JSON serializado: así
+  // los escapes (\n, \", \uXXXX) nunca se parten y quien serialice después produce JSON válido.
+  function sobre(obj) {
+    if (typeof obj === "string") return tachar(obj);
+    if (Array.isArray(obj)) return obj.map(sobre);
+    if (obj && typeof obj === "object") { const o = {}; for (const [k, v] of Object.entries(obj)) o[k] = sobre(v); return o; }
+    return obj;
+  }
   function tachar(texto) {
     if (texto == null) return texto;
     return String(texto)
@@ -50,5 +58,5 @@
     const repetidos = Object.entries(conteo).filter(([, n]) => n >= 3).map(([u, n]) => `${u.slice(0, 8)}… ×${n}`);
     return { jwt_sin_tachar: jwt, uuid_tras_nombre_sensible: uuidTok, cadenas_largas: largos, uuids_repetidos_3_o_mas: repetidos };
   }
-  raiz.CapturaTachar = { tachar, auditar, esNombreSensible: n => NOMBRE_RE.test(n || "") };
+  raiz.CapturaTachar = { tachar, sobre, auditar, esNombreSensible: n => NOMBRE_RE.test(n || "") };
 })(typeof self !== "undefined" ? self : globalThis);

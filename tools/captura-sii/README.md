@@ -17,7 +17,8 @@ página: cada página con su HTML y su **texto visible**, cada llamada AJAX/fetc
   nombre sea inocente: JWT (`eyJ….eyJ….firma`), `Bearer …`, hex de 32+ caracteres, uuid junto a
   un nombre sensible, inputs `type=password`. Se aplica a cuerpos, respuestas, HTML, texto
   visible, URLs y cabeceras; las cookies y las cabeceras de autorización se omiten. Al detener,
-  el **JSON entero pasa otra vez** por el tachado y se audita: el archivo trae `auditoria` con
+  **cada valor pasa otra vez** por el tachado (recorriendo el objeto, nunca el JSON serializado,
+  para no romper escapes) y se audita: el archivo trae `auditoria` con
   cuántas cadenas aún parecen secretos, y el popup lo muestra. **Si no es todo 0, revisa antes
   de compartir.** Un tachado por patrones nunca es una garantía: es una red con agujeros
   conocidos (un token con nombre raro y forma inocente puede pasar).
@@ -69,9 +70,10 @@ tres páginas) sin saber quién es. No se tocan folios, totales, fechas, código
 - El archivo lo dice en `datos_personales` (`reemplazados: true/false`, y si no, cuántos hay).
 - `limpiar_captura.py` hace el mismo reemplazo (mismo algoritmo, mismos ficticios dada la misma
   semilla) por defecto; `--sin-pii` lo desactiva.
-- El reemplazo se hace sobre los valores, nunca sobre el JSON serializado (la 3.2 lo hacía
-  sobre el texto y podía dejar `\persona…`, un escape inválido; `limpiar_captura.py` repara
-  esos archivos). Antes de descargar se comprueba que el JSON sea válido.
+- Tanto el reemplazo de datos personales como el tachado de secretos se hacen sobre los valores
+  del objeto, nunca sobre el JSON serializado, y `JSON.stringify` es el último paso → el archivo
+  es siempre JSON válido por construcción. (La 3.2/3.3 corría el tachado sobre el texto y podía
+  dejar `\persona…`, un escape inválido; `limpiar_captura.py` repara esos archivos viejos.)
 - Límite honesto: reconoce RUT con guion, correos y celulares chilenos. Un nombre y apellido, una
   dirección o un RUT sin guion ni contexto `rut=` **no** se reemplazan.
 

@@ -24,6 +24,7 @@ fila que Python.
 | `firma` | PKCS#12, `firmar_xml_sii`, `firmar_documento_standalone`, `armar_sobre_firmado` |
 | `almacen` | la misma base SQLite del motor: CAF activo, folio atómico (`BEGIN IMMEDIATE`), fila en `dtes` |
 | `emision` | el orquestador: folio → TED → XML → firma → sobre → [XSD por gancho] → disco → BD (sin PDF) |
+| `valores` | UF desde la página oficial del SII (fallback mindicador.cl), caché en la tabla `valores` del SQLite; `get` (fecha exacta) y `vigente` (último valor hábil) |
 | `sii` | cliente SOAP del SII: semilla, token (firma byte a byte igual a Python), DTEUpload, estado por TrackID |
 
 **Contra el SII**: el 2026-10-05 un T34 de certificación emitido por `nucleo-emitir` fue
