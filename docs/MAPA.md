@@ -100,7 +100,7 @@ uvicorn main:app --reload --port 8000         # API (/docs, /redoc)
 | RCV / F29 | ✅ RCV **verificado en vivo** (2026-10-04, Auxin, sesión por clave: ventas y compras cuadran con la propuesta del SII) · F29: API de propuesta mapeada, envío (GWT-RPC) pendiente |
 | Certificación de facturas | 🔴 bloqueada: folios T33/T61 en anti-acaparamiento |
 | Certificación de boletas | ✅ **completa** — SOFTWARE DEMO SPA (78111111-2) autorizada en producción, emite boletas reales |
-| Canal MIPYME (gratuito por httpx) | ✅ lectura, importación (PDF+XML) y firma central verificadas desde el repo · ❌ emisión: 3 folios perdidos en mipeSendXML (57, 58, 61); envío calcado del navegador el 2026-10-08, sin corrida real · `CADENAS_VERIFICADAS` vacía |
+| Canal MIPYME (gratuito por httpx) | ✅ lectura, importación (PDF+XML), firma central y **emisión** verificadas desde el repo (2026-10-08: factura 63 + NC 60 de anulación, `CADENAS_VERIFICADAS` = {34, 61}) · NC de corrección de montos, ND y boletas siguen con `--acepto-riesgo-folio` |
 
 ⚠️ `task.md` es un **registro histórico** con partes obsoletas. Cuando discrepe con el código,
 **manda el código**.
