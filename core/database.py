@@ -168,6 +168,17 @@ CREATE TABLE IF NOT EXISTS rvd_envios (
     UNIQUE(rut_emisor, fecha, sec_envio)
 );
 
+-- Indicadores públicos del SII (UF, UTM, dólar), tabla de referencia que llena el núcleo Go
+-- (`nucleo-valores actualizar|demonio` o la app al arrancar). Python solo la LEE
+-- (api/routes/valores.py). Misma DDL que nucleo/valores/cache.go.
+CREATE TABLE IF NOT EXISTS valores (
+    indicador   TEXT NOT NULL,
+    fecha       TEXT NOT NULL,
+    valor       REAL NOT NULL,
+    actualizado TEXT NOT NULL,
+    PRIMARY KEY (indicador, fecha)
+);
+
 -- Índices para mejorar rendimiento
 CREATE INDEX IF NOT EXISTS idx_rvd_rut_fecha ON rvd_envios(rut_emisor, fecha);
 CREATE INDEX IF NOT EXISTS idx_dtes_tipo_folio ON dtes(tipo_dte, folio);

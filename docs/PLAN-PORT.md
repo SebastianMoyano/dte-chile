@@ -135,7 +135,8 @@ intento porque estaba escrito en la especificación de bytes antes de programar.
 > (byte a byte igual a Python, `tests/dorado/sii/`), token, envío por DTEUpload y estado por
 > TrackID con lectura de Aceptados/Rechazados/Reparos; reintentos ante 5xx. Probado en vivo
 > contra Maullín: token obtenido y el TrackID 261542052 leído como EPR, aceptados 1.
-> `nucleo/bin/nucleo-sii token|estado|enviar`. Con esto el núcleo puede emitir Y enviar sin
+> `nucleo/bin/nucleo-sii token|estado|enviar`. También `nucleo/valores` (UF/UTM/dólar oficiales,
+> caché compartida, refresco diario dentro de la app). Con esto el núcleo puede emitir Y enviar sin
 > Python; falta decidir si la app lo usa para enviar (hoy envía Python). PDF/PDF417 y
 > EnvioBOLETA (REST de boletas) siguen pendientes.
 

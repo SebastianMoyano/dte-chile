@@ -101,9 +101,19 @@ vistas.inicio = async (el) => {
     </div>
     ${negocios.length ? "" : `<div class="card"><b>Todavía no hay ninguna empresa real.</b><p class="mut">Practica con la demo todo lo que quieras. Cuando tengas tu certificado, agrega tu empresa desde el panel del motor y aparecerá en el selector de arriba.</p>
       <button class="sec" onclick="window.go.main.App.AbrirPanel('certificados')">Abrir el panel</button></div>`}
+    <p class="mut" id="valores_hoy"></p>
     <p class="mut">Motor v${esc(estado.version)} en <code>${esc(estado.url)}</code>${estado.externo ? " (externo)" : estado.empaquetado ? " (dentro de la app)" : " (desde el repo)"}.
       ${estado.empaquetado ? `Tus datos están en <code>${esc(estado.raiz)}</code>. Panel web: usuario <code>admin</code>, clave <code>${esc(estado.clave_admin)}</code>.` : ""}</p>`;
+  pintarValores();
 };
+// UF, UTM y dólar del día (los trae el núcleo Go a la base; Python los lee).
+async function pintarValores() {
+  try {
+    const v = await api("GET", "/api/v1/valores");
+    const f = (x, dec) => (x ? x.valor.toLocaleString("es-CL", { minimumFractionDigits: dec, maximumFractionDigits: dec }) + (x.rezago_dias > 2 ? ` <span class="mut">(del ${x.fecha_valor})</span>` : "") : "—");
+    const el = $("valores_hoy"); if (el) el.innerHTML = `Hoy: UF ${f(v.uf, 2)} · UTM ${f(v.utm, 0)} · dólar ${f(v.dolar, 2)}`;
+  } catch {}
+}
 window.reiniciarDemo = async () => {
   if (!confirm("¿Borrar todos los documentos de práctica y volver a la boleta N° 1?")) return;
   const r = await api("POST", "/api/v1/simulacion/reiniciar");

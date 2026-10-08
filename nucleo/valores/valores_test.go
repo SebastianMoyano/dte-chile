@@ -43,6 +43,53 @@ func TestParsearUF(t *testing.T) {
 	}
 }
 
+const fixtureDolar = `<table class='table'><tbody>
+<tr><th colspan='6'><h2>Octubre</h2></th></tr>
+<tr><th width='40'><strong>1</strong></th><td width='200'>972.6</td><th width='40'><strong>11</strong></th><td width='200'></td><th width='40'><strong>21</strong></th><td width='200'></td></tr>
+</tbody></table>`
+
+func TestParsearDolar(t *testing.T) {
+	vs, err := ParsearDolar([]byte(fixtureDolar), 2026)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(vs) != 1 || vs[0].Fecha != "2026-10-01" || vs[0].Valor != 972.6 || vs[0].Indicador != "dolar" {
+		t.Fatalf("dólar mal parseado: %+v", vs)
+	}
+}
+
+const fixtureUTM = `<table id='table_export'><thead>
+<tr><th rowspan='2'>2026</th><th>UTM (1)</th><th>UTA (2)</th></tr>
+<tr><th>Valor en puntos</th></tr></thead><tbody>
+<tr><th>Enero</th><td>69.751</td><td>837.012</td><td align='center'>109,71</td></tr>
+<tr><th>Febrero</th><td>69.611</td><td>835.332</td></tr>
+</tbody></table>`
+
+func TestParsearUTM(t *testing.T) {
+	vs, err := ParsearUTM([]byte(fixtureUTM), 2026)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(vs) != 2 {
+		t.Fatalf("esperaba 2 meses UTM, obtuve %d: %+v", len(vs), vs)
+	}
+	if vs[0].Fecha != "2026-01-01" || vs[0].Valor != 69751 {
+		t.Errorf("UTM enero mal: %+v", vs[0])
+	}
+	if vs[1].Fecha != "2026-02-01" || vs[1].Valor != 69611 {
+		t.Errorf("UTM febrero mal: %+v", vs[1])
+	}
+}
+
+func TestNumeroDolar(t *testing.T) {
+	if v, ok := numeroDolar("972.6"); !ok || v != 972.6 {
+		t.Errorf("972.6 → %v,%v", v, ok)
+	}
+	if v, ok := numeroDolar("1.013,50"); !ok || v != 1013.50 {
+		t.Errorf("1.013,50 → %v,%v", v, ok)
+	}
+}
+
 func TestNumeroCL(t *testing.T) {
 	casos := map[string]float64{"41.065,38": 41065.38, "1.234.567,00": 1234567, "0,50": 0.5}
 	for s, esperado := range casos {

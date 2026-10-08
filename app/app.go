@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -16,6 +17,7 @@ import (
 
 	"dtechile/nucleo/almacen"
 	"dtechile/nucleo/emision"
+	"dtechile/nucleo/valores"
 )
 
 // Estado es lo que la interfaz necesita saber del motor. Nunca incluye la clave.
@@ -55,6 +57,27 @@ func (a *App) startup(ctx context.Context) {
 	go a.arrancar()
 }
 
+// refrescarValores trae UF, UTM y dólar de las páginas oficiales del SII a la tabla `valores`
+// de la base del motor, al arrancar y cada 24 h. Es el "demonio" de nucleo-valores, pero
+// dentro de la app: la app ya es Go y así no hace falta otro proceso.
+func (a *App) refrescarValores() {
+	for {
+		if a.motor.Raiz != "" {
+			db := filepath.Join(a.motor.Raiz, "dte_database.db")
+			if c, err := valores.AbrirCache(db); err == nil {
+				anio := time.Now().Year()
+				for _, ind := range []string{"uf", "utm", "dolar"} {
+					if vs, _, err := valores.Fetch(ind, anio); err == nil {
+						_, _ = c.Guardar(vs)
+					}
+				}
+				c.Cerrar()
+			}
+		}
+		time.Sleep(24 * time.Hour)
+	}
+}
+
 func (a *App) shutdown(ctx context.Context) {
 	a.motor.Detener()
 }
@@ -81,6 +104,9 @@ func (a *App) arrancar() {
 	a.estado = e
 	a.mu.Unlock()
 	wruntime.EventsEmit(a.ctx, "motor", e)
+	if e.Listo && !e.Externo {
+		go a.refrescarValores()
+	}
 }
 
 // Estado devuelve el estado actual del motor (la interfaz lo consulta al abrir y escucha el

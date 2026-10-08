@@ -28,7 +28,7 @@ from core.scheduler import programador
 from core.models import obtener_usuario_por_username, crear_usuario, listar_usuarios
 from core.auth import hash_password, requerir_autenticacion
 
-from api.routes import certificado, caf, dte, status, auth, db, keystore, onboarding, monitoreo, consulta, apikeys, mipyme, simulacion
+from api.routes import certificado, caf, dte, status, auth, db, keystore, onboarding, monitoreo, consulta, apikeys, mipyme, simulacion, valores
 from api.errors import registrar_manejo_errores
 
 
@@ -235,6 +235,7 @@ app.include_router(monitoreo.router)
 app.include_router(consulta.router)
 app.include_router(mipyme.router)   # protegido en el propio router
 app.include_router(simulacion.router)   # protegido en el propio router; empresa de práctica
+app.include_router(valores.router)      # protegido en el propio router; UF/UTM/dólar (los llena el núcleo Go)
 
 
 # ---- Frontend (páginas estáticas) ----

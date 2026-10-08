@@ -24,12 +24,13 @@ fila que Python.
 | `firma` | PKCS#12, `firmar_xml_sii`, `firmar_documento_standalone`, `armar_sobre_firmado` |
 | `almacen` | la misma base SQLite del motor: CAF activo, folio atómico (`BEGIN IMMEDIATE`), fila en `dtes` |
 | `emision` | el orquestador: folio → TED → XML → firma → sobre → [XSD por gancho] → disco → BD (sin PDF) |
-| `valores` | UF desde la página oficial del SII (fallback mindicador.cl), caché en la tabla `valores` del SQLite; `get` (fecha exacta) y `vigente` (último valor hábil) |
+| `valores` | UF, UTM y dólar desde las páginas oficiales del SII (fallback mindicador.cl), caché en la tabla `valores` del SQLite; `get` (fecha exacta), `vigente` (último valor hábil) y `demonio` (refresco diario in-process) |
 | `sii` | cliente SOAP del SII: semilla, token (firma byte a byte igual a Python), DTEUpload, estado por TrackID |
 
 **Contra el SII**: el 2026-10-05 un T34 de certificación emitido por `nucleo-emitir` fue
 aceptado (ACEPTADOS=1, TrackID 261542052; script `fase3_envio.py`), y `nucleo-sii` obtuvo
-token y leyó ese estado desde Go. Binarios: `nucleo-dorado`, `nucleo-emitir`, `nucleo-sii`.
+token y leyó ese estado desde Go. Binarios: `nucleo-dorado`, `nucleo-emitir`, `nucleo-sii`,
+`nucleo-valores` (UF/UTM/dólar del SII; `actualizar`/`get`/`vigente`/`demonio`).
 
 Regla (L15): si un byte difiere del corpus, el error está aquí o en Python, y se averigua cuál
 contra el SII antes de tocar lo esperado. Plan y fases en `docs/PLAN-PORT.md`.
