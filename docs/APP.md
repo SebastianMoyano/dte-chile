@@ -133,9 +133,13 @@ etapas con su avance y el botón **Guía**), **cabecera** con la empresa activa 
 del mundo (práctica / pruebas del SII / real), y el contenido en tarjetas. Tokens de color en
 `app.css` (`:root`), modo oscuro automático, estados vacíos, foco visible. Sin dependencias.
 
-**Tour por etapas** (`app/frontend/dist/tour.js`): las etapas son los cinco tramos de
-`docs/aprender/00-plan.md`. Cada etapa tiene pasos que apuntan a algo de una pantalla (se
-ilumina con un recorte sobre la página y una tarjeta al lado) o explican un concepto. Es
+**Tour por etapas** (`app/frontend/dist/tour.js`), pensado como primera introducción para
+alumnos de colegio, al estilo de los tours de Google: bienvenida la primera vez ("Empezar el
+recorrido" / "Explorar por mi cuenta"), tarjeta con flecha hacia el elemento iluminado (recorte
+con anillo que late; la primera colocación es instantánea, entre pasos se desliza), puntos de
+progreso, teclado (Enter/→, ←, Esc) y tarjeta de cierre al completar una etapa. Las etapas son
+los cinco tramos de `docs/aprender/00-plan.md`. Cada etapa tiene pasos que apuntan a algo de
+una pantalla o explican un concepto. Es
 **progresivo**: al entrar por primera vez a una pantalla aparecen solo los pasos de esa
 pantalla de la etapa en curso; cuando se completan todos los de la etapa, pasa a la siguiente.
 Desde **Guía** se ve el camino completo y se puede recorrer o repetir cualquier etapa (el tour

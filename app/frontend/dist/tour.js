@@ -1,9 +1,11 @@
-// Tour guiado por etapas. Las cinco etapas son los tramos de docs/aprender/00-plan.md, en el
-// orden en que pasan en la vida real. Cada etapa tiene pasos; un paso apunta a algo de una
-// pantalla (se ilumina) o es una explicación. El tour es PROGRESIVO: cuando la persona entra
-// por primera vez a una pantalla, aparecen solo los pasos de esa pantalla de la etapa en curso;
-// desde "Guía" (barra lateral) se ve el camino entero y se puede repetir cualquier etapa.
-// El avance queda en localStorage de este equipo; nada sale de aquí.
+// Tour guiado por etapas, pensado como PRIMERA introducción (alumnos de colegio): bienvenida la
+// primera vez, una tarjeta con flecha que apunta al elemento iluminado, anillo que late, puntos
+// de progreso, teclado (Enter/→ siguiente, ← anterior, Esc saltar) y cierre de etapa.
+//
+// Las cinco etapas son los tramos de docs/aprender/00-plan.md, en el orden en que pasan en la
+// vida real. Cada paso apunta a algo de una pantalla o explica un concepto. Es PROGRESIVO: al
+// entrar por primera vez a una pantalla aparecen solo sus pasos de la etapa en curso; desde
+// "Guía" se ve el camino entero y se repite cualquier etapa. El avance queda en localStorage.
 (() => {
   const ETAPAS = [
     { id: "entender", n: 1, titulo: "Entender", mundo: "sim", resumen: "Qué es una boleta, el IVA, el folio y el SII. Todo en práctica: nada sale de tu computador.",
@@ -12,7 +14,7 @@
         { vista: "inicio", sel: "#empresa", t: "La empresa activa", p: "Aquí eliges por quién trabajas. EMPRESA DEMO SPA es la de práctica: úsala para aprender sin riesgo." },
         { vista: "inicio", sel: "[data-tour='cobrar']", t: "Lo primero: cobrar", p: "Una boleta es lo que le das a una persona; una factura, a otra empresa. Entra aquí y emite tu primera boleta de práctica." },
         { vista: "cobrar", sel: "#c_monto", t: "El monto y el IVA", p: "Escribe 1190 con IVA incluido: verás que el neto es 1.000 y el IVA 190. El IVA es el 19% que va al Estado; tú solo lo recaudas." },
-        { vista: "cobrar", sel: ".totales", t: "Neto, IVA y total", p: "Estos tres números son los que aparecen en todo documento. Si el monto es exento, el IVA es cero." },
+        { vista: "cobrar", sel: ".totales", t: "Neto, IVA y total", p: "Estos tres números aparecen en todo documento. Si el monto es exento, el IVA es cero." },
         { vista: "cobrar", sel: "#c_btn", t: "Revisar y emitir", p: "Al emitir, la app arma el documento, lo firma y le pone el timbre, igual que uno real. En práctica no sale de tu computador." },
         { vista: "ver", sel: "iframe", t: "Las partes del documento", p: "Quién vende y su RUT, el folio (un número que nunca se repite), la fecha, el detalle, neto, IVA y total, y abajo el timbre: el código de barras cuadrado." },
         { vista: "documentos", sel: "table", t: "Todo queda registrado", p: "Un documento emitido no se borra nunca. Aquí ves todos, con su estado." },
@@ -22,7 +24,7 @@
     { id: "crear", n: 2, titulo: "Crear la empresa", mundo: "sim", resumen: "Persona natural o empresa, Empresa en un Día, el RUT propio. La app te guía; el trámite lo haces tú.",
       pasos: [
         { vista: "aprender", sel: "[data-tour='etapa-2']", t: "¿Persona natural o empresa?", p: "Puedes emitir boletas como persona con tu propio RUT. Una empresa (SpA, EIRL, Ltda.) es otra persona ante la ley, con su propio RUT y su representante legal." },
-        { vista: "aprender", sel: "[data-tour='etapa-2']", t: "Empresa en un Día", p: "El portal del Estado para constituir la sociedad en línea. Sale con RUT y escritura. Esta etapa es una lista de verificación: márcala a medida que avances." },
+        { vista: "aprender", sel: "[data-tour='etapa-2'] .lista-check", t: "Empresa en un Día", p: "El portal del Estado para constituir la sociedad en línea. Sale con RUT y escritura. Esta etapa es una lista: márcala a medida que avances." },
       ] },
     { id: "iniciar", n: 3, titulo: "Iniciar actividades", mundo: "sim", resumen: "Giro, clave tributaria, certificado digital e inscripción como emisor. Solo lectura contra el SII.",
       pasos: [
@@ -44,15 +46,16 @@
   ];
 
   const CLAVE = "tour.v1";
-  let st = { vistos: {}, etapa: 0, checks: {}, apagado: false };
+  let st = { vistos: {}, etapa: 0, checks: {}, apagado: false, bienvenida: false };
   try { st = { ...st, ...(JSON.parse(localStorage.getItem(CLAVE) || "{}")) }; } catch {}
   const guardar = () => { try { localStorage.setItem(CLAVE, JSON.stringify(st)); } catch {} };
   const idPaso = (e, i) => `${e.id}:${i}`;
   const hecha = (e) => e.pasos.every((_, i) => st.vistos[idPaso(e, i)]);
   const progreso = (e) => e.pasos.filter((_, i) => st.vistos[idPaso(e, i)]).length;
   const etapaActual = () => ETAPAS[Math.min(st.etapa, ETAPAS.length - 1)];
+  const vistaActual = () => (location.hash || "#inicio").slice(1).split("?")[0];
 
-  let cola = [], idx = 0, modo = "contextual";
+  let cola = [], idx = 0, modo = "contextual", primeraColocacion = true;
   const el = () => document.getElementById("tour");
 
   function pintarCamino() {
@@ -64,61 +67,97 @@
 
   function cerrar() { el().style.display = "none"; el().innerHTML = ""; cola = []; pintarCamino(); }
 
+  // Coloca el recorte sobre el elemento y la tarjeta al lado, con la flecha apuntándole.
+  // La primera colocación de un recorrido es instantánea (sin "viaje" desde la esquina); entre
+  // pasos seguidos, se desliza.
   function colocar(target, card) {
-    const r = target ? target.getBoundingClientRect() : null;
     const hole = el().querySelector(".tour-hole");
-    if (r && r.width && r.height) {
-      hole.className = "tour-hole";
-      Object.assign(hole.style, { left: r.left - 8 + "px", top: r.top - 8 + "px", width: r.width + 16 + "px", height: r.height + 16 + "px" });
-      const cw = Math.min(380, window.innerWidth - 32), ch = card.offsetHeight || 160;
-      let top = r.bottom + 14, left = Math.min(Math.max(16, r.left), window.innerWidth - cw - 16);
-      if (top + ch > window.innerHeight - 16) top = Math.max(16, r.top - ch - 14);
-      if (top < 16 && r.right + cw + 16 < window.innerWidth) { top = Math.max(16, r.top); left = r.right + 14; }
-      Object.assign(card.style, { left: left + "px", top: top + "px" });
-    } else {
+    const r = target ? target.getBoundingClientRect() : null;
+    if (!(r && r.width && r.height)) {
       hole.className = "tour-hole sin";
-      Object.assign(card.style, { left: Math.max(16, (window.innerWidth - 380) / 2) + "px", top: "18%" });
+      card.className = "tour-card";
+      Object.assign(card.style, { left: Math.max(16, (window.innerWidth - card.offsetWidth) / 2) + "px", top: "20%" });
+      return;
     }
+    hole.className = "tour-hole" + (primeraColocacion ? "" : " mover");
+    Object.assign(hole.style, { left: r.left - 8 + "px", top: r.top - 8 + "px", width: r.width + 16 + "px", height: r.height + 16 + "px" });
+    primeraColocacion = false;
+    const cw = card.offsetWidth, ch = card.offsetHeight, M = 16, G = 18;
+    let lado = "abajo", top, left;
+    if (r.bottom + G + ch <= window.innerHeight - M) { lado = "abajo"; top = r.bottom + G; }
+    else if (r.top - G - ch >= M) { lado = "arriba"; top = r.top - G - ch; }
+    else if (r.right + G + cw <= window.innerWidth - M) { lado = "derecha"; top = Math.min(Math.max(M, r.top), window.innerHeight - ch - M); }
+    else { lado = "abajo"; top = Math.max(M, window.innerHeight - ch - M); }
+    if (lado === "derecha") { left = r.right + G; }
+    else { left = Math.min(Math.max(M, r.left + r.width / 2 - cw / 2), window.innerWidth - cw - M); }
+    card.className = "tour-card " + lado;
+    const centro = lado === "derecha" ? Math.min(Math.max(16, r.top + r.height / 2 - top - 7), ch - 30) : Math.min(Math.max(16, r.left + r.width / 2 - left - 7), cw - 30);
+    card.style.setProperty("--flecha", centro + "px");
+    Object.assign(card.style, { left: left + "px", top: top + "px" });
   }
 
   function mostrarPaso() {
-    if (idx >= cola.length) { terminarEtapaSiCorresponde(); cerrar(); return; }
+    if (idx >= cola.length) { finDeRecorrido(); return; }
     const { etapa, i } = cola[idx], paso = etapa.pasos[i];
-    const vista = (location.hash || "#inicio").slice(1).split("?")[0];
-    if (paso.vista !== vista && modo === "guiado") { location.hash = "#" + paso.vista; setTimeout(mostrarPaso, 350); return; }
+    if (paso.vista !== vistaActual() && modo === "guiado") { location.hash = "#" + paso.vista; setTimeout(mostrarPaso, 400); return; }
     const target = paso.sel ? document.querySelector(paso.sel) : null;
     if (paso.sel && !target && modo === "contextual") { idx++; mostrarPaso(); return; }
-    if (target) target.scrollIntoView({ block: "center", behavior: "smooth" });
+    if (target) target.scrollIntoView({ block: "center", behavior: "instant" });
     const t = el();
+    const nuevo = t.style.display !== "block" || !t.querySelector(".tour-hole");
+    if (nuevo) { t.innerHTML = `<div class="tour-hole sin"></div>`; primeraColocacion = true; }
     t.style.display = "block";
-    t.innerHTML = `<div class="tour-hole sin"></div><div class="tour-card">
-      <div class="etapa">Etapa ${etapa.n} · ${etapa.titulo}</div><h3>${paso.t}</h3><p>${paso.p}</p>
-      <div class="acciones"><span class="paso">${i + 1} de ${etapa.pasos.length}</span>
+    t.querySelectorAll(".tour-card,.tour-panel,.tour-centro").forEach((x) => x.remove());
+    const card = document.createElement("div");
+    card.className = "tour-card";
+    card.innerHTML = `<div class="etapa">Etapa ${etapa.n} · ${etapa.titulo}</div><h3>${paso.t}</h3><p>${paso.p}</p>
+      <div class="acciones"><span class="puntos">${cola.map((_, k) => `<i class="${k === idx ? "on" : ""}"></i>`).join("")}</span>
         <button class="sec" onclick="Tour.saltar()">Saltar</button>
         ${idx > 0 ? `<button class="sec" onclick="Tour.atras()">Anterior</button>` : ""}
-        <button onclick="Tour.siguiente()">${idx === cola.length - 1 ? "Listo" : "Siguiente"}</button></div></div>`;
-    const card = t.querySelector(".tour-card");
-    setTimeout(() => colocar(target, card), target ? 320 : 0);
+        <button onclick="Tour.siguiente()">${idx === cola.length - 1 ? "Listo" : "Siguiente"}</button></div>
+      <div class="tecla"><kbd>Enter</kbd> siguiente · <kbd>Esc</kbd> saltar</div>`;
+    t.appendChild(card);
+    requestAnimationFrame(() => colocar(target, card));
     st.vistos[idPaso(etapa, i)] = true; guardar(); pintarCamino();
   }
 
-  function terminarEtapaSiCorresponde() {
+  function finDeRecorrido() {
     const e = etapaActual();
-    if (hecha(e) && st.etapa < ETAPAS.length - 1) {
+    const completa = hecha(e);
+    if (completa && st.etapa < ETAPAS.length - 1) {
       st.etapa++; guardar();
-      aviso?.(`Etapa ${e.n} completa. Sigue con la ${st.etapa + 1}: ${ETAPAS[st.etapa].titulo}.`, 6000);
+      const sig = ETAPAS[st.etapa];
+      centro("🎉", `Etapa ${e.n} completa`, `Ya sabes ${e.titulo.toLowerCase()}. La siguiente es <b>${sig.titulo}</b>: ${sig.resumen}`,
+        `<button onclick="Tour.etapa(${st.etapa})">Seguir con la etapa ${sig.n}</button><button class="sec" onclick="Tour.cerrar()">Más tarde</button>`);
+      return;
     }
+    if (completa) { centro("🏁", "Camino completo", "Recorriste las cinco etapas. Puedes repetir cualquiera desde Guía cuando quieras.", `<button onclick="Tour.cerrar()">Cerrar</button>`); return; }
+    cerrar();
   }
 
-  // Llamado por app.js después de pintar una pantalla: pasos pendientes de esa pantalla, etapa en curso.
+  function centro(hero, titulo, texto, botones) {
+    const t = el();
+    t.style.display = "block";
+    t.innerHTML = `<div class="tour-hole sin"></div><div class="tour-centro card"><div class="hero">${hero}</div><h2>${titulo}</h2><p>${texto}</p><div class="acciones">${botones}</div></div>`;
+  }
+
+  function bienvenida() {
+    st.bienvenida = true; guardar();
+    centro("👋", "Hola, bienvenido a DTE Chile",
+      "Aquí aprendes a cobrar y a declarar como lo hace cualquier negocio en Chile, practicando con una empresa de mentira. Te guío paso a paso, y puedes saltarte lo que quieras.",
+      `<button onclick="Tour.etapa(0)">Empezar el recorrido</button><button class="sec" onclick="Tour.cerrar()">Explorar por mi cuenta</button>`);
+  }
+
+  // Llamado al pintar cada pantalla: pasos pendientes de esa pantalla, etapa en curso.
   function alEntrar(vista) {
     pintarCamino();
     if (st.apagado || el().style.display === "block") return;
+    if (!st.bienvenida) { setTimeout(bienvenida, 400); return; }
     const e = etapaActual();
-    const pendientes = e.pasos.map((p, i) => ({ etapa: e, i })).filter(({ i }) => e.pasos[i].vista === vista && !st.vistos[idPaso(e, i)]);
+    const pendientes = e.pasos.map((_, i) => ({ etapa: e, i })).filter(({ i }) => e.pasos[i].vista === vista && !st.vistos[idPaso(e, i)]);
     if (!pendientes.length) return;
     cola = pendientes; idx = 0; modo = "contextual";
-    setTimeout(mostrarPaso, 250);
+    setTimeout(mostrarPaso, 300);
   }
 
   function abrir() {
@@ -129,7 +168,7 @@
       <div class="etapas">${ETAPAS.map((e, i) => `<div class="et ${hecha(e) ? "hecha" : ""} ${i === st.etapa ? "actual" : ""}" onclick="Tour.etapa(${i})">
         <span class="n">${hecha(e) ? "✓" : e.n}</span><div><b>${e.titulo}</b><span>${e.resumen}</span></div>
         <span class="pill ${e.mundo === "real" ? "p-no" : e.mundo === "pruebas" ? "p-warn" : "p-ok"}">${e.mundo === "real" ? "real" : e.mundo === "pruebas" ? "pruebas" : "práctica"} · ${progreso(e)}/${e.pasos.length}</span></div>`).join("")}</div>
-      <div class="acciones" style="display:flex;gap:8px;margin-top:14px;align-items:center">
+      <div style="display:flex;gap:8px;margin-top:14px;align-items:center">
         <label class="chk" style="margin:0;font-size:.86rem"><input type="checkbox" ${st.apagado ? "checked" : ""} onchange="Tour.apagar(this.checked)"> No mostrar pistas automáticas</label>
         <span style="flex:1"></span>
         <button class="sec" onclick="Tour.reiniciar()">Empezar de cero</button><button onclick="Tour.cerrar()">Cerrar</button></div></div>`;
@@ -137,26 +176,31 @@
 
   function etapa(i) {
     const e = ETAPAS[i];
+    cerrar();   // antes de armar la cola: cerrar() la vacía
     cola = e.pasos.map((_, j) => ({ etapa: e, i: j })); idx = 0; modo = "guiado";
-    st.etapa = i; guardar();
-    if (e.id !== "entender" && e.id !== "sii" && e.id !== "motor") { cerrar(); location.hash = "#aprender?etapa=" + e.n; setTimeout(mostrarPaso, 350); return; }
-    cerrar(); mostrarPaso();
+    st.etapa = i; st.bienvenida = true; guardar();
+    if (e.pasos[0].vista !== vistaActual()) { location.hash = "#" + e.pasos[0].vista; setTimeout(mostrarPaso, 400); return; }
+    mostrarPaso();
   }
 
   window.Tour = {
     alEntrar, abrir, etapa, cerrar,
     siguiente() { idx++; mostrarPaso(); },
     atras() { idx = Math.max(0, idx - 1); mostrarPaso(); },
-    saltar() { cola.forEach(({ etapa, i }) => { st.vistos[idPaso(etapa, i)] = true; }); guardar(); terminarEtapaSiCorresponde(); cerrar(); },
+    saltar() { cola.forEach(({ etapa, i }) => { st.vistos[idPaso(etapa, i)] = true; }); guardar(); const c = cola.length; cola = []; if (c && hecha(etapaActual())) { finDeRecorrido(); } else cerrar(); },
     apagar(v) { st.apagado = !!v; guardar(); },
-    reiniciar() { st = { vistos: {}, etapa: 0, checks: {}, apagado: false }; guardar(); cerrar(); location.hash = "#inicio"; setTimeout(() => alEntrar("inicio"), 300); },
+    reiniciar() { st = { vistos: {}, etapa: 0, checks: {}, apagado: false, bienvenida: false }; guardar(); cerrar(); location.hash = "#inicio"; setTimeout(bienvenida, 300); },
     etapas: ETAPAS, estado: () => st,
     check(id, v) { st.checks[id] = !!v; guardar(); },
   };
-  window.addEventListener("resize", () => { if (cola.length && el().style.display === "block") mostrarPaso(); });
-  // app.js avisa cada pantalla pintada; si la primera ya se pintó antes de cargar este archivo, se recoge igual.
+  document.addEventListener("keydown", (ev) => {
+    if (el().style.display !== "block" || !cola.length) return;
+    if (ev.key === "Enter" || ev.key === "ArrowRight") { ev.preventDefault(); Tour.siguiente(); }
+    else if (ev.key === "ArrowLeft") { ev.preventDefault(); Tour.atras(); }
+    else if (ev.key === "Escape") { ev.preventDefault(); Tour.saltar(); }
+  });
+  window.addEventListener("resize", () => { if (cola.length && el().style.display === "block") { primeraColocacion = true; mostrarPaso(); } });
   document.addEventListener("vista", (e) => alEntrar(e.detail));
   pintarCamino();
-  const vistaActual = (location.hash || "#inicio").slice(1).split("?")[0];
-  if (document.getElementById("vista")?.children.length) alEntrar(vistaActual);
+  if (document.getElementById("vista")?.children.length) alEntrar(vistaActual());
 })();

@@ -125,18 +125,38 @@ code { background:var(--surface-2); border:1px solid var(--bd); border-radius:6p
 
 /* ---------- tour guiado ---------- */
 .tour { position:fixed; inset:0; z-index:40; pointer-events:none; }
-.tour-hole { position:absolute; border-radius:12px; box-shadow:0 0 0 9999px rgba(10,14,22,.55); transition:all .25s ease; pointer-events:none; }
-.tour-hole.sin { box-shadow:0 0 0 9999px rgba(10,14,22,.55); width:0; height:0; }
-.tour-card { position:absolute; width:min(380px,calc(100vw - 32px)); background:var(--surface); color:var(--fg); border:1px solid var(--bd); border-radius:var(--r); padding:18px 18px 14px;
-  box-shadow:var(--sh-2); pointer-events:auto; animation:sube .2s ease-out; }
-.tour-card .etapa { font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--acc); margin-bottom:4px; }
-.tour-card h3 { margin:0 0 6px; font-size:1.05rem; }
-.tour-card p { margin:0; font-size:.93rem; color:var(--mut); }
-.tour-card .acciones { display:flex; align-items:center; gap:8px; margin-top:12px; }
-.tour-card .acciones .paso { color:var(--mut); font-size:.78rem; margin-right:auto; }
-.tour-card button { margin:0; padding:7px 14px; font-size:.86rem; }
+.tour-hole { position:absolute; border-radius:14px; box-shadow:0 0 0 9999px rgba(10,14,22,.58); pointer-events:none; }
+.tour-hole.mover { transition:left .3s cubic-bezier(.2,.8,.2,1), top .3s cubic-bezier(.2,.8,.2,1), width .3s, height .3s; }
+.tour-hole.sin { left:50%; top:50%; width:0; height:0; border-radius:0; }
+.tour-hole::after { content:""; position:absolute; inset:-4px; border-radius:18px; border:2px solid var(--acc); animation:late 1.6s ease-out infinite; }
+.tour-hole.sin::after { display:none; }
+@keyframes late { 0% { opacity:.9; transform:scale(1);} 100% { opacity:0; transform:scale(1.06);} }
+.tour-card { position:absolute; width:min(400px,calc(100vw - 32px)); background:var(--surface); color:var(--fg); border-radius:16px; padding:20px 20px 16px;
+  box-shadow:0 20px 60px -20px rgba(0,0,0,.45), 0 0 0 1px var(--bd); pointer-events:auto; animation:aparece .22s cubic-bezier(.2,.8,.2,1); }
+@keyframes aparece { from { opacity:0; transform:translateY(6px) scale(.98);} to { opacity:1; transform:none;} }
+.tour-card::before { content:""; position:absolute; width:14px; height:14px; background:var(--surface); transform:rotate(45deg); box-shadow:-1px -1px 0 var(--bd); display:none; }
+.tour-card.abajo::before { display:block; top:-8px; left:var(--flecha,28px); }
+.tour-card.arriba::before { display:block; bottom:-8px; left:var(--flecha,28px); box-shadow:1px 1px 0 var(--bd); }
+.tour-card.derecha::before { display:block; left:-8px; top:var(--flecha,28px); box-shadow:-1px 1px 0 var(--bd); }
+.tour-card .etapa { font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--acc); margin-bottom:6px; }
+.tour-card h3 { margin:0 0 6px; font-size:1.1rem; letter-spacing:-.01em; }
+.tour-card p { margin:0; font-size:.95rem; color:var(--mut); line-height:1.5; }
+.tour-card .acciones { display:flex; align-items:center; gap:6px; margin-top:16px; }
+.tour-card .puntos { display:flex; gap:5px; margin-right:auto; align-items:center; }
+.tour-card .puntos i { width:6px; height:6px; border-radius:50%; background:var(--bd-2); display:block; }
+.tour-card .puntos i.on { background:var(--acc); width:16px; border-radius:3px; }
+.tour-card button { margin:0; padding:8px 16px; font-size:.9rem; border-radius:99px; }
 .tour-card button.sec { border:0; background:transparent; color:var(--mut); }
-.tour-panel { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:min(560px,calc(100vw - 32px)); pointer-events:auto; }
+.tour-card button.sec:hover { background:var(--surface-2); color:var(--fg); }
+.tour-card .tecla { font-size:.74rem; color:var(--mut); margin-top:10px; }
+.tour-card .tecla kbd { font:inherit; border:1px solid var(--bd-2); border-radius:5px; padding:0 5px; background:var(--surface-2); }
+.tour-panel,.tour-centro { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:min(560px,calc(100vw - 32px)); pointer-events:auto; animation:aparece .25s cubic-bezier(.2,.8,.2,1); }
+.tour-centro { width:min(480px,calc(100vw - 32px)); text-align:center; padding:34px 30px 26px; }
+.tour-centro .hero { font-size:3rem; line-height:1; margin-bottom:10px; }
+.tour-centro h2 { margin:0 0 8px; font-size:1.5rem; letter-spacing:-.02em; }
+.tour-centro p { color:var(--mut); margin:0 auto; max-width:40ch; }
+.tour-centro .acciones { display:flex; gap:10px; justify-content:center; margin-top:22px; flex-wrap:wrap; }
+.tour-centro button { margin:0; border-radius:99px; padding:11px 22px; }
 .tour-panel .etapas { display:flex; flex-direction:column; gap:8px; margin-top:12px; }
 .tour-panel .et { display:flex; align-items:center; gap:12px; padding:12px 14px; border:1px solid var(--bd); border-radius:var(--r-sm); cursor:pointer; transition:border-color .12s, background .12s; }
 .tour-panel .et:hover { border-color:var(--acc); background:var(--acc-soft); }
