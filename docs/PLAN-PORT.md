@@ -171,10 +171,20 @@ después como historia (no se mantienen los dos).
 | segmento | qué | verificación | estado |
 |---|---|---|---|
 | 1 | sesión (login, empresa, cierre real) y lectura: historial, PDF, XML por firma central, form pre-llenado; importar al almacén | solo lectura en vivo, sin riesgo | **hecho 2026-10-08**: `nucleo-siiengine sesion|listar|importar`; en vivo: sesión y cierre real, 51 documentos listados (los mismos que la BD), PDF y XML por firma central idénticos a los de Python salvo lo que el SII regenera (fecha de creación del PDF, firma del sobre al descargar; el `<DTE>` es byte a byte igual) |
-| 2 | factura exenta: validar (DisplayPreView), vista previa, GenXMLFirma, firma central, SendXML | cuerpos idénticos a los de la factura 63 | pendiente |
-| 3 | NC de anulación | cuerpos idénticos a los de la NC 60 | pendiente |
-| 4 | NC de corrección de montos y nota de débito | captura de la NC 59 / ND 1; sin corrida real todavía en Python tampoco | pendiente |
+| 2 | factura exenta: validar (DisplayPreView), vista previa, GenXMLFirma, firma central, SendXML | cuerpos idénticos a los de la factura 63 | **hecho en seco 2026-10-08**: los 3 cuerpos (validar 54, GenXMLFirma 243, SendXML 250) byte a byte iguales a Python y a la evidencia aceptada de la factura 63; falta UNA corrida real desde Go para entrar a `CadenasVerificadas` |
+| 3 | NC de anulación | cuerpos idénticos a los de la NC 60 | **hecho en seco 2026-10-08**: GenXMLFirma (243) idéntico a Python sobre la misma página; SendXML idéntico a la evidencia de la NC 60; guardarraíl del total por XML (firma central) en vez de PDF; falta una corrida real desde Go |
+| 4 | NC de corrección de montos y nota de débito | captura de la NC 59 / ND 1; sin corrida real todavía en Python tampoco | **hecho en seco 2026-10-08**: validar (60) y GenXMLFirma (244) idénticos a Python; sin corrida real (tampoco en Python). La nota de débito no existe en Python: nada que portar |
 | 5 | eboleta (boletas por el SII) | exige una captura real de una boleta emitida en eboleta.sii.cl | pendiente, sin captura |
+
+**Cómo se verifica sin gastar folios** (`tools/paridad_siiengine.py` + `nucleo-siiengine … --trazas`):
+Python y Go corren el mismo dry-run contra el portal y se comparan los cuerpos que cada uno
+mandaría (validar y GenXMLFirma) y las páginas que recibieron; además `TestParidadEvidencia`
+reconstruye el cuerpo de `mipeSendXML` desde la página de firma y la respuesta de postFirma de
+las emisiones aceptadas (`storage/mipyme_fallidos/*/T34_F63_*`, `T61_F60_*`) y exige igualdad
+byte a byte con lo que viajó; `TestParidadTrazas` hace lo mismo con las trazas privadas
+(`storage/siiengine_paridad/`). Resultado 2026-10-08: todo idéntico en los tres flujos.
+`CadenasVerificadas` de Go sigue vacía hasta la primera corrida real desde Go (la lanza el
+usuario: una factura de $1.000 entre empresas propias y su NC de anulación).
 
 Reglas que el Go repite del Python: claves solo del Llavero, del keystore de la app o de la
 consola (nunca por argumento ni `.env`); una sola sesión por corrida y cierre siguiendo el 302

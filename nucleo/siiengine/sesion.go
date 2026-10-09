@@ -62,6 +62,13 @@ type Cliente struct {
 	Empresa    string // sin puntos, con DV; vacío hasta SeleccionarEmpresa
 	Timeout    time.Duration
 	Pausa      time.Duration // entre páginas del historial y descargas (no martillar el portal)
+	// RaizStorage es la carpeta base de la evidencia (mipyme_fallidos/); "" = "storage".
+	RaizStorage string
+	// Log recibe los avisos que Python manda al logger (nil = silencio). Nunca lleva claves.
+	Log func(format string, a ...any)
+	// Trazas, si no es nil, recibe las páginas crudas de los dry-runs (form.html, preview.html,
+	// nc_anulacion.html, corr_form.html, corr_preview.html): sirven de fixtures de paridad.
+	Trazas map[string]string
 
 	claveTrib, claveCert string
 	jar                  *cookiejar.Jar
@@ -96,6 +103,7 @@ type respuesta struct {
 	Status int
 	Cuerpo []byte
 	URL    string
+	Header http.Header
 }
 
 func (r *respuesta) Texto() string { return Latin1(r.Cuerpo) }
@@ -182,7 +190,7 @@ func (c *Cliente) req(metodo, u string, o opciones) (*respuesta, error) {
 	}
 	raw = descomprimir(raw, resp.Header.Get("Content-Encoding"))
 	c.limpiarCookies(req.URL)
-	return &respuesta{Status: resp.StatusCode, Cuerpo: raw, URL: u}, nil
+	return &respuesta{Status: resp.StatusCode, Cuerpo: raw, URL: u, Header: resp.Header}, nil
 }
 
 func descomprimir(raw []byte, enc string) []byte {

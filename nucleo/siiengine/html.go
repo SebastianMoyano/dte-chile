@@ -155,17 +155,29 @@ func tokenizar(doc string) []token {
 	return out
 }
 
+// Form es el resultado de parsear un formulario: los campos y su orden de primera aparición
+// (el `dict` de Python conserva ese orden, y las notas lo necesitan).
+type Form struct {
+	Campos map[string]string
+	Orden  []string
+}
+
 // ParsearForm es core/sii_mipyme.py::parsear_form: `{name: value}` de todos los
 // input/select/textarea del HTML. El primer input con un nombre gana; en un select gana la
 // opción marcada y, si ninguna lo está, la primera (como el navegador); el textarea acumula
 // su texto.
-func ParsearForm(doc string) map[string]string {
+func ParsearForm(doc string) map[string]string { return ParsearFormOrdenado(doc).Campos }
+
+// ParsearFormOrdenado es ParsearForm conservando el orden de aparición de los nombres.
+func ParsearFormOrdenado(doc string) Form {
 	campos := map[string]string{}
+	var orden []string
 	sel, textarea := "", ""
 	selMarcado, selVioOpcion := false, false
 	setdefault := func(k, v string) {
 		if _, ok := campos[k]; !ok {
 			campos[k] = v
+			orden = append(orden, k)
 		}
 	}
 	for _, t := range tokenizar(doc) {
@@ -197,7 +209,7 @@ func ParsearForm(doc string) map[string]string {
 			setdefault(textarea, "")
 		}
 	}
-	return campos
+	return Form{Campos: campos, Orden: orden}
 }
 
 // fila es lo que _FilasParser junta por cada <tr>: celdas y hrefs.

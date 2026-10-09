@@ -152,10 +152,12 @@ todavía; `emitir()` la trataría como nota (frmSign) si alguien arma el payload
 
 ## Historial de emitidos, PDF y XML
 
-> **En Go (SII engine, fase 6 del port):** este segmento ya está portado en `nucleo/siiengine`
-> (`nucleo/bin/nucleo-siiengine sesion|listar|importar`), verificado en vivo el 2026-10-08 con
-> los mismos resultados que el módulo Python. La emisión (segmentos 2-4) sigue en Python hasta
-> que el Go reproduzca los cuerpos de la factura 63 y la NC 60. Ver `docs/PLAN-PORT.md`.
+> **En Go (SII engine, fase 6 del port):** todo este módulo está portado en `nucleo/siiengine`
+> (`nucleo/bin/nucleo-siiengine sesion|listar|importar|factura|nc-anular|nc-corregir`). Lectura
+> verificada en vivo y emisión verificada **en seco** el 2026-10-08: los cuerpos de validar,
+> GenXMLFirma y SendXML son byte a byte los de Python y los de las emisiones aceptadas (factura
+> 63, NC 60). Falta una corrida real desde Go para marcar `CadenasVerificadas`; hasta entonces el
+> CLI exige `--acepto-riesgo-folio`. Paridad: `tools/paridad_siiengine.py`. Ver `docs/PLAN-PORT.md`.
 
 - **Listado**: `GET mipeAdminDocsEmi.cgi` con `RUT_RECP, FOLIO, RZN_SOC, FEC_DESDE, FEC_HASTA,
   TPO_DOC, ESTADO, ORDEN, NUM_PAG` (paginado, "Página N de M", hasta `pag_max=20` páginas). Cada

@@ -170,20 +170,22 @@ func (c *Cliente) ListarEmitidos(tipo, desde, hasta string) ([]DocumentoEmitido,
 
 // LeerForm es leer_form: el formulario de emisión pre-llenado "igual al último emitido".
 // De aquí salen los datos del emisor según el portal. NO gasta folio.
-func (c *Cliente) LeerForm(tipo int) (map[string]string, error) {
+func (c *Cliente) LeerForm(tipo int) (Form, error) {
 	if err := c.requiereEmpresa(); err != nil {
-		return nil, err
+		return Form{}, err
 	}
 	r, err := c.req("GET", Base+"/mipeGenFacEx.cgi", opciones{navegacion: true, referer: Base + "/mipeSelEmpresa.cgi",
 		params: []Par{{"IGUAL", "ULT_FAC"}, {"PTDC_CODIGO", strconv.Itoa(tipo)}, {"ES_BORR", "FALSE"},
 			{"esCRED_EC", "FALSE"}, {"esFACT_TUR", "FALSE"}}})
 	if err != nil {
-		return nil, err
+		return Form{}, err
 	}
 	if r.rechazado() || len(r.Cuerpo) < 5000 {
-		return nil, fmt.Errorf("%w: el portal no entregó el formulario de emisión (¿sesión expirada, empresa sin documentos previos?; http %d)", ErrRechazo, r.Status)
+		return Form{}, fmt.Errorf("%w: el portal no entregó el formulario de emisión (¿sesión expirada, empresa sin documentos previos?; http %d)", ErrRechazo, r.Status)
 	}
-	return ParsearForm(r.Texto()), nil
+	doc := r.Texto()
+	c.traza(fmt.Sprintf("form_%d.html", tipo), doc)
+	return ParsearFormOrdenado(doc), nil
 }
 
 // DescargarPDF es descargar_pdf: el PDF que el portal genera para un DHDR.
