@@ -65,8 +65,18 @@ reproduce el corpus dorado byte a byte y cuyo T34 el SII aceptó). La secuencia,
 3. `POST /api/v1/dte/documentos/{id}/pdf` → Python dibuja el PDF desde el XML firmado
    (`core/dte_xml.py` reconstruye la entrada, el TED es el original). El núcleo no hace PDF.
 
-Python sigue siendo dueño del keystore, del PDF, del envío al SII, de MIPYME, RCV y F29.
+Python sigue siendo dueño del keystore, del PDF, del envío al SII, de RCV y F29.
 La app de práctica (EMPRESA DEMO SPA) sigue en Python (`core/simulacion.py`).
+
+### El SII engine en Go dentro de la app (fase 6 del port)
+
+"Traer lo emitido en el SII" ya no pasa por `/api/v1/mipyme/sincronizar`: el cascarón corre
+`nucleo/siiengine` en su propio proceso (`app/siiengine.go::SIIEngineSincronizar`). Secuencia:
+`GET /api/v1/mipyme/contexto-siiengine/{rut}` (las claves **recordadas**, descifradas del
+keystore, y las rutas de la base y del storage; mismo modelo de confianza que contexto-emision)
+→ si la persona marcó recordar, `PUT /api/v1/keystore/claves-sii` → sesión, empresa, form,
+historial e importación a la misma base. El JS cae al endpoint Python si el binding no existe.
+La emisión por el SII engine desde la app sigue pendiente (hoy: CLI `nucleo-siiengine`).
 
 ## Empaquetado: la app con el motor adentro
 
@@ -97,7 +107,9 @@ empresas que no emiten con motor propio). Antes de hacerla, un diálogo pide el 
 persona autorizada, su clave tributaria y, para bajar el XML, la del certificado, y explica
 para qué se usan. Viven en memoria de la app (`clavesSesion`) hasta cerrarla. Con la casilla
 "Recordar en este equipo" se mandan con `recordar: true` y el motor las cifra en el keystore
-(ver `docs/MIPYME.md`, sección Claves). Nunca se muestran de vuelta.
+(ver `docs/MIPYME.md`, sección Claves). Nunca se muestran de vuelta. Desde la fase 6, el que
+entra al SII es el propio cascarón (Go); las claves recordadas las recibe del motor por la
+conexión local, en memoria, y no las escribe en ningún lado.
 
 ## Pantallas (v0.1)
 
@@ -132,8 +144,9 @@ Registro del motor arrancado por la app: `logs/app-motor.log`.
 
 ## Pendientes
 
-1. **Emitir por el gratuito desde la app** (canal MIPYME, `core/sii_mipyme.py`): hoy solo el
-   motor propio. Requiere la primera emisión verificada (`CADENAS_VERIFICADAS`).
+1. **Emitir por el SII engine desde la app** (`nucleo/siiengine`, ya portado y verificado en
+   seco): hoy solo por el CLI `nucleo-siiengine factura|nc-anular|nc-corregir`. Falta la
+   primera corrida real desde Go (`CadenasVerificadas`) y la pantalla.
 2. **Nota de crédito desde "Corregir"** por el total registrado del documento.
 3. **Datos del emisor por negocio** en BD (giro, actividad, dirección) en vez de `EMPRESA_*`
    del `.env`; hoy solo la empresa del `.env` puede emitir con el motor propio.

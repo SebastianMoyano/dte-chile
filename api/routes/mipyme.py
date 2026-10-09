@@ -55,6 +55,26 @@ def _resolver_claves(d: "DiagnosticoIn", usuario: dict) -> None:
                                        (("rut_usuario", d.rut_usuario), ("clave_tributaria", d.clave_tributaria)) if not v]})
 
 
+@router.get("/contexto-siiengine/{rut_empresa}",
+            summary="Lo que el SII engine en Go (app/) necesita para operar esta empresa: claves recordadas y rutas")
+async def contexto_siiengine(rut_empresa: str, usuario: dict = Depends(requerir_autenticacion)) -> dict:
+    """Entrega al cascarón de escritorio las claves del SII **recordadas** (descifradas del
+    keystore) y las rutas absolutas de la base y del storage, para que `nucleo/siiengine` corra
+    en el proceso de la app sin pasar por este motor. Mismo modelo de confianza que
+    `keystore/negocios/{id}/contexto-emision` (que entrega la clave privada del certificado):
+    solo localhost, solo con la clave efímera de la app, y nada se persiste del lado Go. Las
+    claves que la persona NO marcó como recordadas no están aquí: la app las tiene en memoria."""
+    from pathlib import Path
+    from core import keystore
+    from core.config import settings
+    from core.database import DATABASE_PATH
+    guardadas = keystore.obtener_claves_sii(usuario["id"], rut_empresa)
+    return {"rut_empresa": rut_empresa, "rut_usuario": guardadas["rut_usuario"],
+            "clave_tributaria": guardadas["tributaria"], "clave_certificado": guardadas["certificado"],
+            "database_path": str(Path(DATABASE_PATH).resolve()),
+            "storage_path": str(Path(settings.storage_path).resolve())}
+
+
 _RECEPTOR_PRUEBA = ReceptorMipyme(rut="11111111-1", razon_social="PRUEBA", giro="PRUEBA",
                                   direccion="-", ciudad="-", comuna="-")
 

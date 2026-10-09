@@ -158,9 +158,13 @@ window.sincronizarGratuito = async () => {
   if (!k) return;
   aviso("Entrando al SII y listando lo emitido… puede tardar un minuto.", 8000);
   try {
-    const r = await api("POST", "/api/v1/mipyme/sincronizar", { rut_empresa: e.rut, rut_usuario: k.rut_usuario, clave_tributaria: k.tributaria,
-      clave_certificado: k.certificado, con_xml: !!k.certificado, con_pdf: true, recordar: !!k.recordar });
-    aviso(`Listo: ${r.listados ?? 0} listados, ${r.importados ?? 0} nuevos, ${r.ya_existian ?? 0} ya estaban, ${r.pdf_ok ?? 0} PDF${r.xml_ok ? `, ${r.xml_ok} XML` : ""}.`, 8000);
+    // El SII engine corre en el propio cascarón (nucleo/siiengine, Go); el motor Python queda de respaldo.
+    const enGo = window.go?.main?.App?.SIIEngineSincronizar;
+    const r = enGo
+      ? JSON.parse(await enGo(e.rut, k.rut_usuario, k.tributaria || "", k.certificado || "", !!k.recordar))
+      : await api("POST", "/api/v1/mipyme/sincronizar", { rut_empresa: e.rut, rut_usuario: k.rut_usuario, clave_tributaria: k.tributaria,
+          clave_certificado: k.certificado, con_xml: !!k.certificado, con_pdf: true, recordar: !!k.recordar });
+    aviso(`Listo: ${r.listados ?? 0} listados, ${r.importados ?? 0} nuevos, ${r.ya_existian ?? 0} ya estaban, ${r.pdf_ok ?? 0} PDF${r.xml_ok ? `, ${r.xml_ok} XML` : ""}${r.motor === "go" ? " (núcleo Go)" : ""}.`, 8000);
     ir("documentos");
   } catch (err) { aviso("No se pudo: " + err.message, 9000); }
 };
