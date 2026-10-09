@@ -193,6 +193,34 @@ consola (nunca por argumento ni `.env`); una sola sesión por corrida y cierre s
 la NC se toma del XML del envío (firma central), no del PDF, para no depender de una librería
 de PDF en Go.
 
+### Fase 7 — Dejar de usar Python: el motor entero en Go (abierta, 2026-10-09)
+
+Meta: la app y el navegador funcionan con un solo binario Go; Python queda para herramientas
+(MCP, correos, captura, certificación ocasional). La base sigue en **SQLite**: es lo correcto
+para una app de escritorio y para un servidor de sala de clases; Postgres solo si un día hace
+falta un servidor grande (la capa `database/sql` lo deja abierto). Lo que sí cambia es la
+**propiedad del esquema**: pasa de `core/database.py::SCHEMA_SQL` a migraciones numeradas en Go.
+
+**Método (patrón estrangulador):** un servidor Go atiende `/api/v1` y reenvía a Python lo que
+aún no está portado; la app y el navegador no cambian. Cada endpoint se porta con un *contrato
+dorado*: misma petición → misma respuesta JSON, comparado contra Python antes de apagarlo
+(como `test_dorado.py --port` para los bytes y `tools/paridad_siiengine.py` para el portal).
+Cuando el último endpoint pasa, se quita el sidecar (PyInstaller) y queda un binario.
+
+| orden | bloque | hoy en Python | dificultad | cómo se verifica |
+|---|---|---|---|---|
+| 0 | corrida real del SII engine desde Go (cierra la fase 6) | — | la lanza el usuario | factura + NC reales, `CadenasVerificadas` |
+| 1 | esquema con migraciones + servidor Go con reenvío | `core/database.py`, `main.py` | baja | la misma base abre con los dos; todos los tests actuales pasan por el servidor Go |
+| 2 | auth, usuarios, API keys, keystore (Fernet compatible) | `core/auth.py`, `core/apikeys.py`, `core/keystore.py` | baja | los blobs cifrados por Python se leen desde Go; login y contexto-emision idénticos |
+| 3 | práctica (empresa demo) y listados/consulta de documentos | `core/simulacion.py`, `api/routes/dte.py`, `consulta.py` | baja | contrato dorado JSON; el navegador del colegio corre solo con Go |
+| 4 | PDF + PDF417 | `core/pdf_gen.py`, `core/dte_xml.py` | media | paridad visual, no byte a byte; el TED va verbatim |
+| 5 | validación XSD | `core/schema_validator.py` (lxml) | **alta** (no hay XSD puro en Go) | decidir con evidencia: libxml2 por cgo en la app, o validador Python solo en el servidor + corpus en la app |
+| 6 | boletas: EnvioBOLETA REST, RVD, programador | `core/sii_boleta.py`, `rvd.py`, `scheduler.py` | media | una boleta real de Moyoli Tech aceptada por el REST desde Go |
+| 7 | RCV, F29, onboarding, portal del SII (timbraje, postulación) | `core/rcv.py`, `onboarding.py`, `sii_portal.py`, `postulacion.py` | media | captura del navegador como vara, igual que el SII engine |
+| 8 | certificación (set, declaración) | scripts | baja prioridad | se usa pocas veces; al final |
+
+No se porta: `mcp_server.py`, la skill de correos y `tools/captura-sii` (herramientas del operador).
+
 ## Riesgos y cómo se mitigan
 
 - **C14N distinta** entre lxml y la librería del port. Es el riesgo mayor. Mitigación: la fase
