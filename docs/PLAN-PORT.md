@@ -210,7 +210,7 @@ Cuando el último endpoint pasa, se quita el sidecar (PyInstaller) y queda un bi
 | orden | bloque | hoy en Python | dificultad | cómo se verifica |
 |---|---|---|---|---|
 | 0 | corrida real del SII engine desde Go (cierra la fase 6) | — | la lanza el usuario | factura + NC reales, `CadenasVerificadas` |
-| 1 | esquema con migraciones + servidor Go con reenvío | `core/database.py`, `main.py` | baja | la misma base abre con los dos; todos los tests actuales pasan por el servidor Go |
+| 1 | esquema con migraciones + servidor Go con reenvío | `core/database.py`, `main.py` | baja | **hecho 2026-10-09**: `nucleo/almacen/migraciones` (0001_base + columnas garantizadas, tabla `migraciones`), `tools/esquema_dorado.py` → 23 objetos idénticos a Python; `nucleo-servidor servir` atiende `/`, `/api/v1/valores*` y `/app`, reenvía el resto a Python; `tools/contrato_api.py` → 19 rutas idénticas (JSON, status, códigos de error, 401) |
 | 2 | auth, usuarios, API keys, keystore (Fernet compatible) | `core/auth.py`, `core/apikeys.py`, `core/keystore.py` | baja | los blobs cifrados por Python se leen desde Go; login y contexto-emision idénticos |
 | 3 | práctica (empresa demo) y listados/consulta de documentos | `core/simulacion.py`, `api/routes/dte.py`, `consulta.py` | baja | contrato dorado JSON; el navegador del colegio corre solo con Go |
 | 4 | PDF + PDF417 | `core/pdf_gen.py`, `core/dte_xml.py` | media | paridad visual, no byte a byte; el TED va verbatim |
@@ -220,6 +220,13 @@ Cuando el último endpoint pasa, se quita el sidecar (PyInstaller) y queda un bi
 | 8 | certificación (set, declaración) | scripts | baja prioridad | se usa pocas veces; al final |
 
 No se porta: `mcp_server.py`, la skill de correos y `tools/captura-sii` (herramientas del operador).
+
+**Cómo se porta una ruta** (desde el paso 1): se escribe en `nucleo/servidor` con el mismo JSON y
+los mismos códigos (envoltorio `{"error": {codigo, mensaje, detalle?, request_id}}`, 422
+`validacion`, 404 `no_encontrado`, 401 `autenticacion`), se agrega a `tools/contrato_api.py`, se
+corren los dos motores con el mismo `APP_SHELL_KEY` y se exige "idéntico" antes de quitarla de
+Python. Auth en Go (`servidor/auth.go`): JWT HS256 con `JWT_SECRET_KEY`, `APP_SHELL_KEY` como el
+usuario dueño, API keys `dte_…` por sha256; los mismos tokens sirven en los dos motores.
 
 ## Riesgos y cómo se mitigan
 
