@@ -219,3 +219,34 @@ func (a *Almacen) EjecutarDDL(ddl string) error {
 	_, err := a.db.Exec(ddl)
 	return err
 }
+
+// DTEDetalle es lo que la app necesita de un documento para anularlo por el SII engine.
+type DTEDetalle struct {
+	ID                  int64
+	TipoDTE             int
+	Folio               int
+	RutEmisor           string
+	RutReceptor         string
+	RazonSocialReceptor string
+	FechaEmision        string
+	MontoTotal          int64
+	Estado              string
+	TrackID             int64 // en el canal MIPYME es el DHDR del portal
+}
+
+// DTEPorID devuelve el documento o nil si no existe.
+func (a *Almacen) DTEPorID(id int64) (*DTEDetalle, error) {
+	var d DTEDetalle
+	var razon, estado sql.NullString
+	var track sql.NullInt64
+	err := a.db.QueryRow(`SELECT id, tipo_dte, folio, rut_emisor, rut_receptor, razon_social_receptor, fecha_emision, monto_total, estado, track_id
+		FROM dtes WHERE id=?`, id).Scan(&d.ID, &d.TipoDTE, &d.Folio, &d.RutEmisor, &d.RutReceptor, &razon, &d.FechaEmision, &d.MontoTotal, &estado, &track)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("leer dte %d: %w", id, err)
+	}
+	d.RazonSocialReceptor, d.Estado, d.TrackID = razon.String, estado.String, track.Int64
+	return &d, nil
+}

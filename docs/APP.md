@@ -86,6 +86,13 @@ factura, es decir, después de la primera corrida real desde Go: la interfaz **n
 el riesgo de folio por la persona (ley L10). Hasta entonces, el CLI `nucleo-siiengine factura`.
 Boletas: siguen en eboleta.sii.cl (sin captura, no portado).
 
+**Corregir por el SII engine** (`App.SIIEngineNotaCredito`): en "Corregir", los documentos del
+canal SII engine tienen "anular": el portal pre-construye la nota de crédito del documento
+(receptor e ítems tal cual, `siiengine.PrepararNCAnulacionDesdePortal`), el total se contrasta
+con el XML registrado, el SII la valida en seco y la app muestra la vista previa. El botón de
+emitir aparece solo con la cadena 61 verificada desde Go. Los del motor propio siguen por el
+panel web.
+
 ## Empaquetado: la app con el motor adentro
 
 ```bash
@@ -152,10 +159,9 @@ Registro del motor arrancado por la app: `logs/app-motor.log`.
 
 ## Pendientes
 
-1. **Emitir por el SII engine desde la app**: la pantalla ya valida contra el SII (dry-run) y
-   emite cuando la cadena esté verificada desde Go (`CadenasVerificadas`), que espera la
-   primera corrida real por el CLI `nucleo-siiengine factura` + `nc-anular`. Faltan desde la app
-   las notas de crédito por el SII engine (están en el CLI).
+1. **Emitir y anular por el SII engine desde la app**: Cobrar y Corregir ya validan contra el
+   SII (dry-run) y emiten cuando la cadena esté verificada desde Go (`CadenasVerificadas`), que
+   espera la primera corrida real por el CLI `nucleo-siiengine factura` + `nc-anular`.
 2. **Nota de crédito desde "Corregir"** por el total registrado del documento.
 3. **Datos del emisor por negocio** en BD (giro, actividad, dirección) en vez de `EMPRESA_*`
    del `.env`; hoy solo la empresa del `.env` puede emitir con el motor propio.

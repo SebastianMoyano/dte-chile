@@ -797,3 +797,75 @@ func RegistrarEnBD(al *almacen.Almacen, res *Resultado, rutEmisor string, recept
 	}
 	return id, al.ActualizarEstado(id, "emitido_mipyme", track)
 }
+
+// ReceptorEItemsDesdeForm lee del formulario pre-construido por el portal (la NC de
+// anulación de un documento) el receptor y las líneas del documento original, sin espacios
+// de relleno. Sirve para anular "tal cual" sin que la persona vuelva a teclear nada.
+func ReceptorEItemsDesdeForm(form Form) (Receptor, []Item) {
+	c := form.Campos
+	rec := Receptor{Rut: strings.TrimSpace(c["EFXP_RUT_RECEP"]) + "-" + strings.TrimSpace(c["EFXP_DV_RECEP"]),
+		RazonSocial: strings.TrimSpace(c["EFXP_RZN_SOC_RECEP"]), Giro: strings.TrimSpace(c["EFXP_GIRO_RECEP"]),
+		Direccion: strings.TrimSpace(c["EFXP_DIR_RECEP"]), Ciudad: strings.TrimSpace(c["EFXP_CIUDAD_RECEP"]),
+		Comuna: strings.TrimSpace(c["EFXP_CMNA_RECEP"])}
+	var items []Item
+	for i := 1; i <= 10; i++ {
+		k := fmt.Sprintf("%02d", i)
+		nombre := strings.TrimSpace(c["EFXP_NMB_"+k])
+		if nombre == "" {
+			continue
+		}
+		qty, _ := strconv.Atoi(reNoDigito.ReplaceAllString(c["EFXP_QTY_"+k], ""))
+		if qty <= 0 {
+			qty = 1
+		}
+		prc, _ := strconv.ParseInt(reNoDigito.ReplaceAllString(c["EFXP_PRC_"+k], ""), 10, 64)
+		items = append(items, Item{Nombre: nombre, Precio: prc, Cantidad: qty, Descripcion: strings.TrimSpace(c["EFXP_DSC_ITEM_"+k])})
+	}
+	return rec, items
+}
+
+// PrepararNCAnulacionDesdePortal es PrepararNCAnulacion tomando receptor e ítems del propio
+// formulario que el portal pre-construye para anular el documento dhdr (lo que usa la app:
+// la persona elige el documento y nada más). Mismo guardarraíl del total registrado.
+func (c *Cliente) PrepararNCAnulacionDesdePortal(dhdr string, tipoRef, folioRef int, fechaRef, fecha string, verificarMonto bool) (*Payload, Receptor, []Item, error) {
+	if err := c.requiereEmpresa(); err != nil {
+		return nil, Receptor{}, nil, err
+	}
+	r, err := c.req("GET", Base+"/mipeDisplayPreView.cgi", opciones{navegacion: true,
+		params:  []Par{{"EHDR_CODIGO", dhdr}, {"TIPO_NOTA", strconv.Itoa(TipoNotaCredito)}},
+		referer: Base + "/mipeGesDocEmi.cgi?CODIGO=" + dhdr})
+	if err != nil {
+		return nil, Receptor{}, nil, err
+	}
+	vista := r.Texto()
+	c.traza("nc_anulacion.html", vista)
+	if r.rechazado() || len(r.Cuerpo) < 1000 {
+		return nil, Receptor{}, nil, fmt.Errorf("%w: el portal no pre-construyó la NC de anulación (http %d, dhdr %s)", ErrRechazo, r.Status, dhdr)
+	}
+	form := ParsearFormOrdenado(vista)
+	receptor, items := ReceptorEItemsDesdeForm(form)
+	if err := receptor.validar(); err != nil {
+		return nil, Receptor{}, nil, fmt.Errorf("%w (receptor según el portal: %q)", err, receptor.Rut)
+	}
+	if len(items) == 0 {
+		return nil, Receptor{}, nil, fmt.Errorf("%w: el formulario de la NC no trae líneas del documento", ErrSII)
+	}
+	if verificarMonto {
+		totalRef, err := c.TotalRegistrado(dhdr, tipoRef, receptor.Rut)
+		if err != nil {
+			return nil, Receptor{}, nil, err
+		}
+		if totalNC := sumaItems(items); totalNC != totalRef {
+			return nil, Receptor{}, nil, fmt.Errorf("%w: las líneas del formulario suman %d pero el documento %d/%d está registrado por %d (documento inconsistente: anular a mano por el total registrado)",
+				ErrValidacion, totalNC, tipoRef, folioRef, totalRef)
+		}
+	}
+	ref := Referencia{Tipo: tipoRef, Folio: folioRef, Fecha: fechaRef, Codigo: CodigoRefAnula, Razon: RazonRefAnula}
+	p, err := ArmarPayload(form, TipoNotaCredito, receptor, items, fecha, "", []Referencia{ref},
+		[]string{"ES_BORR", "EFXP_FMA_PAGO", "INDICA_PRIMERA_EJECUCION"})
+	if err != nil {
+		return nil, Receptor{}, nil, err
+	}
+	p.refererEmision = fmt.Sprintf("%s/mipeDisplayPreView.cgi?EHDR_CODIGO=%s&TIPO_NOTA=%d", Base, dhdr, TipoNotaCredito)
+	return p, receptor, items, nil
+}

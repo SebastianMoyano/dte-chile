@@ -255,3 +255,19 @@ func TestParidadTrazas(t *testing.T) {
 	}
 	t.Logf("flujos comparados: %d", n)
 }
+
+// TestReceptorEItemsDesdeForm: sobre la página real de la NC pre-construida (traza privada),
+// receptor e ítems salen del formulario y cuadran con los parámetros del flujo.
+func TestReceptorEItemsDesdeForm(t *testing.T) {
+	b, err := os.ReadFile("../../storage/siiengine_paridad/nc-anular/go/nc_anulacion.html")
+	if err != nil {
+		t.Skip("sin traza privada")
+	}
+	rec, items := ReceptorEItemsDesdeForm(ParsearFormOrdenado(Latin1(b)))
+	if !ValidarRut(rec.Rut) || rec.RazonSocial == "" || rec.Comuna == "" || len(items) != 1 || items[0].Subtotal() != 1000 {
+		t.Fatalf("receptor=%+v items=%+v", rec, items)
+	}
+	if strings.HasSuffix(rec.Direccion, " ") {
+		t.Fatal("dirección con relleno")
+	}
+}

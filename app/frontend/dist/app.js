@@ -380,7 +380,37 @@ vistas.corregir = async (el) => {
     <p class="sub">Un documento emitido no se borra. Se corrige con otro: la nota de crédito resta, la nota de débito suma.</p>
     <div class="banner ${e.demo ? "verde" : ""}">Elige el documento que salió mal. La nota de crédito se arma por el <b>total registrado</b> de ese documento, para que quede en cero.</div>
     <div class="card">${tabla(corregibles, true)}</div>
-    ${e.demo ? "" : `<p class="mut">La nota de crédito para empresas reales desde esta app llega en la próxima versión. Hoy se hace desde el panel web del motor o, si la empresa usa el gratuito, desde el portal del SII (docs/MIPYME.md).</p>`}`;
+    <div id="cor_aviso"></div>
+    ${e.demo ? "" : `<p class="mut">Los documentos emitidos en el sistema del SII se anulan desde aquí con el SII engine (vista previa validada por el SII; la emisión real espera la cadena verificada). Los del motor propio, por ahora, desde el panel web del motor.</p>`}`;
+};
+// Anular por el SII engine: el portal pre-construye la NC del documento (receptor e ítems tal
+// cual), el SII la valida en seco, y solo se emite con la cadena verificada desde Go.
+window.anularSII = async (id) => {
+  const e = empresa();
+  const enGo = window.go?.main?.App?.SIIEngineNotaCredito;
+  if (!enGo) return aviso("Esta versión del cascarón no trae el SII engine.");
+  const k = await pedirClaves(e.rut, true);
+  if (!k) return;
+  if (!k.certificado && !k.rut_usuario) return;
+  aviso("Pidiendo al SII la nota de crédito de anulación (sin gastar folio)…", 6000);
+  try {
+    const v = JSON.parse(await enGo(e.rut, k.rut_usuario, k.tributaria || "", k.certificado || "", !!k.recordar, id, false));
+    const lineas = (v.items || []).map((i) => `${esc(i.Nombre)} × ${i.Cantidad} = ${clp(i.Precio * i.Cantidad)}`).join("; ");
+    $("cor_aviso").innerHTML = `<div class="banner"><b>El SII validó la nota de crédito:</b> anula ${esc(TIPOS[v.anula.tipo] || v.anula.tipo)} N° ${v.anula.folio} del ${esc(v.anula.fecha)} a <b>${esc(v.receptor.razon_social)}</b> por <b>${clp(v.monto_total)}</b> (${lineas}).
+      ${v.cadena_verificada
+        ? `<button id="cor_ok">Emitir la nota de crédito en el SII (gasta un folio)</button>`
+        : `<p class="mut"><b>Todavía no se emite desde aquí:</b> la cadena de la nota de crédito desde el núcleo Go espera su primera corrida real verificada. Hasta entonces: <code>nucleo-siiengine nc-anular</code> (docs/PLAN-PORT.md, fase 6).</p>`}</div>`;
+    const b = $("cor_ok");
+    if (b) b.onclick = async () => {
+      if (!confirm(`Emitir en el SII la nota de crédito por ${clp(v.monto_total)} que anula el N° ${v.anula.folio}? Un folio gastado no vuelve.`)) return;
+      b.disabled = true;
+      try {
+        const r = JSON.parse(await enGo(e.rut, k.rut_usuario, k.tributaria || "", k.certificado || "", false, id, true));
+        aviso(`Nota de crédito folio ${r.folio} emitida en el SII.`, 8000);
+        ir(`ver?id=${r.dte_id}`);
+      } catch (err) { $("cor_aviso").innerHTML += `<div class="banner rojo">${esc(err.message)}</div>`; b.disabled = false; }
+    };
+  } catch (err) { $("cor_aviso").innerHTML = `<div class="banner rojo">${esc(err.message)}</div>`; }
 };
 
 // ---------- documentos ----------
@@ -401,7 +431,7 @@ function tabla(docs, elegir = false) {
   return `<div class="tablewrap"><table><tr><th>Fecha</th><th>Documento</th><th>N°</th><th>Para</th><th class="num">Total</th><th>Estado</th><th></th></tr>
     ${docs.map((d) => `<tr><td>${esc((d.fecha_emision || "").slice(0, 10))}</td><td>${esc(TIPOS[d.tipo_dte] || d.tipo_dte)}</td><td>${d.folio}</td>
       <td>${esc(d.razon_social_receptor || d.rut_receptor || "")}</td><td class="num">${clp(d.monto_total)}</td><td>${est(d.estado)}</td>
-      <td>${elegir ? `<span class="lnk" onclick="${d.ambiente === "simulacion" ? `anularDemo(${d.id})` : `aviso('Anular empresas reales desde la app: próxima versión.')`}">anular</span>` :
+      <td>${elegir ? `<span class="lnk" onclick="${d.ambiente === "simulacion" ? `anularDemo(${d.id})` : d.canal === "mipyme" ? `anularSII(${d.id})` : `aviso('Anular documentos del motor propio desde la app: próxima versión.')`}">anular</span>` :
         `${d.tiene_pdf ? `<span class="lnk" onclick="ir('ver?id=${d.id}')">ver</span> <span class="lnk" onclick="bajar(${d.id},'pdf',${d.tipo_dte},${d.folio})">PDF</span>` : ""} ${d.tiene_xml ? `<span class="lnk" onclick="bajar(${d.id},'xml',${d.tipo_dte},${d.folio})">XML</span>` : ""}`}</td></tr>`).join("")}
     </table></div>`;
 }

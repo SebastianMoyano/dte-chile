@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -214,6 +215,103 @@ func (a *App) SIIEngineFactura(rutEmpresa, rutUsuario, claveTributaria, claveCer
 		return "", err
 	}
 	defer alm.Cerrar()
+	fecha := p.Valor("EFXP_FCH_EMIS")
+	id, err := siiengine.RegistrarEnBD(alm, res, rutEmpresa, rec, fecha)
+	if err != nil {
+		return "", err
+	}
+	if res.PDF != nil {
+		ruta := fmt.Sprintf("%s/pdfs/mipyme_T%d_F%d_%s.pdf", ctx.StoragePath, res.Tipo, res.Folio, fecha)
+		if err := os.WriteFile(ruta, res.PDF, 0o644); err == nil {
+			alm.GuardarPDF(id, ruta)
+			salida["pdf"] = ruta
+		}
+	}
+	salida["folio"], salida["dhdr"], salida["dte_id"] = res.Folio, res.DHDR, id
+	out, _ := json.Marshal(salida)
+	return string(out), nil
+}
+
+// SIIEngineNotaCredito arma (y, con emitir=true, emite) la nota de crédito que ANULA un
+// documento emitido por el SII engine (fila `dtes` con el DHDR en track_id). Receptor e
+// ítems salen del formulario que el portal pre-construye; el total se contrasta con el XML
+// registrado. Sin emitir es un dry-run real sin folio. Emitir exige la cadena 61 verificada
+// desde Go (CadenasVerificadas): la interfaz no acepta el riesgo de folio por la persona.
+func (a *App) SIIEngineNotaCredito(rutEmpresa, rutUsuario, claveTributaria, claveCertificado string, recordar bool, dteID int64, emitir bool) (string, error) {
+	ctx, err := a.contextoSIIEngine(rutEmpresa)
+	if err != nil {
+		return "", err
+	}
+	if recordar && (rutUsuario != "" || claveTributaria != "" || claveCertificado != "") {
+		cuerpo, _ := json.Marshal(map[string]any{"rut_empresa": rutEmpresa, "rut_usuario": rutUsuario,
+			"clave_tributaria": claveTributaria, "clave_certificado": claveCertificado})
+		if r, err := a.API("PUT", "/api/v1/keystore/claves-sii", string(cuerpo)); err != nil || r.Status != 200 {
+			return "", fmt.Errorf("no se pudieron recordar las claves (%v)", err)
+		}
+	}
+	if rutUsuario == "" {
+		rutUsuario = ctx.RutUsuario
+	}
+	if claveTributaria == "" {
+		claveTributaria = ctx.ClaveTributaria
+	}
+	if claveCertificado == "" {
+		claveCertificado = ctx.ClaveCertificado
+	}
+	if rutUsuario == "" || claveTributaria == "" || claveCertificado == "" {
+		return "", fmt.Errorf("la nota de crédito exige el RUT de la persona autorizada, su clave tributaria y la del certificado")
+	}
+	_, verificada := siiengine.CadenasVerificadas[siiengine.TipoNotaCredito]
+	if emitir && !verificada {
+		return "", fmt.Errorf("la nota de crédito por el SII engine desde Go todavía no está verificada con una corrida real: por ahora se emite con el CLI nucleo-siiengine nc-anular (docs/PLAN-PORT.md, fase 6)")
+	}
+	alm, err := almacen.Abrir(ctx.DatabasePath)
+	if err != nil {
+		return "", err
+	}
+	defer alm.Cerrar()
+	doc, err := alm.DTEPorID(dteID)
+	if err != nil {
+		return "", err
+	}
+	if doc == nil || doc.TrackID == 0 || !strings.HasSuffix(doc.Estado, "_mipyme") {
+		return "", fmt.Errorf("el documento %d no es del SII engine (sin DHDR): solo se anulan por aquí los emitidos en el sistema del SII", dteID)
+	}
+	if siiengine.FormatearRut(doc.RutEmisor, false) != siiengine.FormatearRut(rutEmpresa, false) {
+		return "", fmt.Errorf("el documento %d es de %s, no de %s", dteID, doc.RutEmisor, rutEmpresa)
+	}
+	cli, err := siiengine.Nuevo(rutUsuario, claveTributaria, claveCertificado)
+	if err != nil {
+		return "", err
+	}
+	cli.RaizStorage = ctx.StoragePath
+	defer cli.Cerrar()
+	if err := cli.IniciarSesion(); err != nil {
+		return "", err
+	}
+	if err := cli.SeleccionarEmpresa(rutEmpresa); err != nil {
+		return "", err
+	}
+	dhdr := strconv.FormatInt(doc.TrackID, 10)
+	p, rec, items, err := cli.PrepararNCAnulacionDesdePortal(dhdr, doc.TipoDTE, doc.Folio, doc.FechaEmision, "", true)
+	if err != nil {
+		return "", err
+	}
+	salida := map[string]any{
+		"dry_run": !emitir, "tipo": p.Tipo, "monto_total": p.MontoTotal(), "campos_nuevos": p.CamposNuevos,
+		"cadena_verificada": verificada, "fecha": p.Valor("EFXP_FCH_EMIS"),
+		"anula":    map[string]any{"tipo": doc.TipoDTE, "folio": doc.Folio, "fecha": doc.FechaEmision, "dhdr": dhdr},
+		"receptor": map[string]string{"rut": rec.Rut, "razon_social": rec.RazonSocial},
+		"items":    items,
+	}
+	if !emitir {
+		out, _ := json.Marshal(salida)
+		return string(out), nil
+	}
+	res, err := cli.Emitir(p, siiengine.OpcionesEmitir{Confirmar: true, ConPDF: true})
+	if err != nil {
+		return "", err
+	}
 	fecha := p.Valor("EFXP_FCH_EMIS")
 	id, err := siiengine.RegistrarEnBD(alm, res, rutEmpresa, rec, fecha)
 	if err != nil {
