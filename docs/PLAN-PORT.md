@@ -175,7 +175,7 @@ después como historia (no se mantienen los dos).
 | 3 | NC de anulación | cuerpos idénticos a los de la NC 60 | **hecho en seco 2026-10-08**: GenXMLFirma (243) idéntico a Python sobre la misma página; SendXML idéntico a la evidencia de la NC 60; guardarraíl del total por XML (firma central) en vez de PDF; falta una corrida real desde Go |
 | 4 | NC de corrección de montos y nota de débito | captura de la NC 59 / ND 1; sin corrida real todavía en Python tampoco | **hecho en seco 2026-10-08**: validar (60) y GenXMLFirma (244) idénticos a Python; sin corrida real (tampoco en Python). La nota de débito no existe en Python: nada que portar |
 | 5 | eboleta (boletas por el SII) | exige una captura real de una boleta emitida en eboleta.sii.cl | pendiente, sin captura |
-| app | el cascarón usa `nucleo/siiengine` en vez del motor Python | "Traer lo emitido" → `App.SIIEngineSincronizar` (claves recordadas por `mipyme/contexto-siiengine`) | **hecho 2026-10-08** para sincronizar; emitir desde la app: pendiente |
+| app | el cascarón usa `nucleo/siiengine` en vez del motor Python | "Traer lo emitido" → `App.SIIEngineSincronizar` (claves recordadas por `mipyme/contexto-siiengine`) | **hecho 2026-10-08** para sincronizar; **2026-10-09**: Cobrar valida en el SII por Go (dry-run) y emite solo cuando `CadenasVerificadas` tenga la factura |
 
 **Cómo se verifica sin gastar folios** (`tools/paridad_siiengine.py` + `nucleo-siiengine … --trazas`):
 Python y Go corren el mismo dry-run contra el portal y se comparan los cuerpos que cada uno

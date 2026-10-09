@@ -76,7 +76,15 @@ La app de práctica (EMPRESA DEMO SPA) sigue en Python (`core/simulacion.py`).
 keystore, y las rutas de la base y del storage; mismo modelo de confianza que contexto-emision)
 → si la persona marcó recordar, `PUT /api/v1/keystore/claves-sii` → sesión, empresa, form,
 historial e importación a la misma base. El JS cae al endpoint Python si el binding no existe.
-La emisión por el SII engine desde la app sigue pendiente (hoy: CLI `nucleo-siiengine`).
+
+**Cobrar por el SII engine** (`app/siiengine.go::SIIEngineFactura`): para una empresa que emite
+en el sistema del SII, "Cobrarle a alguien" con "Una empresa" + "No lleva IVA" pide giro,
+dirección, comuna y ciudad del cliente (el portal los exige), pide las claves, y hace un
+**dry-run real**: el SII valida el documento y la app muestra la vista previa sin gastar folio.
+El botón "Emitir de verdad" solo aparece cuando `siiengine.CadenasVerificadas` tiene la
+factura, es decir, después de la primera corrida real desde Go: la interfaz **no** puede aceptar
+el riesgo de folio por la persona (ley L10). Hasta entonces, el CLI `nucleo-siiengine factura`.
+Boletas: siguen en eboleta.sii.cl (sin captura, no portado).
 
 ## Empaquetado: la app con el motor adentro
 
@@ -144,9 +152,10 @@ Registro del motor arrancado por la app: `logs/app-motor.log`.
 
 ## Pendientes
 
-1. **Emitir por el SII engine desde la app** (`nucleo/siiengine`, ya portado y verificado en
-   seco): hoy solo por el CLI `nucleo-siiengine factura|nc-anular|nc-corregir`. Falta la
-   primera corrida real desde Go (`CadenasVerificadas`) y la pantalla.
+1. **Emitir por el SII engine desde la app**: la pantalla ya valida contra el SII (dry-run) y
+   emite cuando la cadena esté verificada desde Go (`CadenasVerificadas`), que espera la
+   primera corrida real por el CLI `nucleo-siiengine factura` + `nc-anular`. Faltan desde la app
+   las notas de crédito por el SII engine (están en el CLI).
 2. **Nota de crédito desde "Corregir"** por el total registrado del documento.
 3. **Datos del emisor por negocio** en BD (giro, actividad, dirección) en vez de `EMPRESA_*`
    del `.env`; hoy solo la empresa del `.env` puede emitir con el motor propio.

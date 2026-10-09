@@ -186,6 +186,11 @@ vistas.cobrar = async (el) => {
       <div id="c_datos_emp" style="display:none">
         <div class="row"><div><label>RUT del cliente</label><input id="c_rut" placeholder="${e.demo ? "76111111-6" : "12345678-5"}" value="${e.demo ? "76111111-6" : ""}"></div>
         <div><label>Nombre o razón social</label><input id="c_nombre" placeholder="CLIENTE DEMO SPA" value="${e.demo ? "CLIENTE DEMO SPA" : ""}"></div></div>
+        <div id="c_datos_sii" style="display:${!e.demo && !e.usa_sw_propio ? "block" : "none"}">
+          <p class="mut">El sistema del SII pide también el giro y la dirección del cliente (como están en el SII; el giro se corta a 40 letras).</p>
+          <div class="row"><div><label>Giro del cliente</label><input id="c_giro" placeholder="Comercio"></div><div><label>Dirección</label><input id="c_dir" placeholder="Calle 123"></div></div>
+          <div class="row"><div><label>Comuna</label><input id="c_comuna" placeholder="SANTIAGO"></div><div><label>Ciudad</label><input id="c_ciudad" placeholder="Santiago"></div></div>
+        </div>
       </div>
       <label>Qué le vendes</label><input id="c_que" placeholder="${e.demo ? "Café" : "Servicio"}">
       <div class="row"><div><label>Monto</label><input id="c_monto" type="number" min="0" step="1" placeholder="${e.demo ? "1190" : ""}"></div>
@@ -248,8 +253,38 @@ vistas.cobrar = async (el) => {
         return;
       }
       if (!e.usa_sw_propio) {
-        $("c_aviso").innerHTML += `<div class="banner"><b>${esc(e.razon_social || e.rut)}</b> emite hoy con <b>${(e.estado_etiqueta || "").toLowerCase().includes("gratuito") ? "el sistema gratuito del SII" : "otro software"}</b>, no con el motor propio.
-          La emisión por el gratuito desde esta app llega en la próxima versión. <span class="lnk" onclick="window.go.main.App.AbrirPanel('certificados')">Abrir el panel</span>.</div>`;
+        // SII engine: la app opera el sistema de facturación del SII por la empresa (nucleo/siiengine, Go).
+        // Hoy cubre la factura exenta; las boletas van por eboleta (sin captura todavía).
+        if (tipo !== 34) {
+          $("c_aviso").innerHTML += `<div class="banner"><b>${esc(e.razon_social || e.rut)}</b> emite en el sistema del SII, no con el motor propio. Desde esta app, por ahora, solo la <b>factura exenta</b> (marca "No lleva IVA" y "Una empresa"). Las boletas siguen en eboleta.sii.cl.</div>`;
+          return;
+        }
+        const enGo = window.go?.main?.App?.SIIEngineFactura;
+        if (!enGo) { $("c_aviso").innerHTML += `<div class="banner">Esta versión del cascarón no trae el SII engine.</div>`; return; }
+        const faltan = [["c_giro", "giro"], ["c_dir", "dirección"], ["c_comuna", "comuna"], ["c_ciudad", "ciudad"]].filter(([id]) => !$(id).value.trim()).map(([, n]) => n);
+        if (faltan.length) return aviso("Faltan datos del cliente para el SII: " + faltan.join(", ") + ".");
+        const k = await pedirClaves(e.rut, true);
+        if (!k) return;
+        const doc = { receptor: { rut: $("c_rut").value.trim(), razon_social: $("c_nombre").value.trim() || "CLIENTE", giro: $("c_giro").value.trim(),
+                                  direccion: $("c_dir").value.trim(), comuna: $("c_comuna").value.trim(), ciudad: $("c_ciudad").value.trim() },
+                      item: { nombre: que, precio: neto, descripcion: "" }, fecha: new Date().toISOString().slice(0, 10), forma_pago: "1" };
+        aviso("Validando en el SII (sin gastar folio)…", 6000);
+        const v = JSON.parse(await enGo(e.rut, k.rut_usuario, k.tributaria || "", k.certificado || "", !!k.recordar, JSON.stringify(doc), false));
+        const nuevos = v.campos_nuevos?.length ? `<p class="mut">⚠️ El formulario del SII trae campos nuevos: ${esc(v.campos_nuevos.join(", "))}.</p>` : "";
+        $("c_aviso").innerHTML += `<div class="banner"><b>El SII validó el documento:</b> factura exenta de <b>${clp(v.monto_total)}</b> a <b>${esc(v.receptor.razon_social)}</b> (${esc(v.receptor.rut)}), ${esc(v.receptor.direccion)}, ${esc(v.receptor.comuna)}; fecha ${esc(v.fecha)}, contado. Emisor según el SII: ${esc(v.emisor.razon_social)}.${nuevos}
+          ${v.cadena_verificada
+            ? `<button id="c_sii_ok">Emitir de verdad en el SII (gasta un folio)</button>`
+            : `<p class="mut"><b>Todavía no se emite desde aquí:</b> la cadena de emisión desde el núcleo Go espera su primera corrida real verificada. Hasta entonces se emite con el comando <code>nucleo-siiengine factura</code> (docs/PLAN-PORT.md, fase 6).</p>`}</div>`;
+        const b = $("c_sii_ok");
+        if (b) b.onclick = async () => {
+          if (!confirm(`Emitir en el SII una factura exenta por ${clp(v.monto_total)} a ${v.receptor.razon_social}? Un folio gastado no vuelve.`)) return;
+          b.disabled = true;
+          try {
+            const r = JSON.parse(await enGo(e.rut, k.rut_usuario, k.tributaria || "", k.certificado || "", false, JSON.stringify(doc), true));
+            aviso(`Emitida en el SII: factura exenta folio ${r.folio} (${clp(r.monto_total)}).`, 8000);
+            ir(`ver?id=${r.dte_id}`);
+          } catch (err) { $("c_aviso").innerHTML += `<div class="banner rojo">${esc(err.message)}</div>`; b.disabled = false; }
+        };
         return;
       }
       // Empresa real con motor propio: firma y persiste el NÚCLEO EN GO (fase 4 del port);
