@@ -126,6 +126,23 @@ para qué se usan. Viven en memoria de la app (`clavesSesion`) hasta cerrarla. C
 entra al SII es el propio cascarón (Go); las claves recordadas las recibe del motor por la
 conexión local, en memoria, y no las escribe en ningún lado.
 
+## Navegador o app: una interfaz, dos envases (2026-10-09)
+
+La interfaz (`app/frontend/dist`, HTML y JS planos) corre igual en la **app instalada** (Wails:
+binario Go + vista web del sistema, sin Chromium adentro) y en el **navegador**, servida por el
+propio motor en `/app`. Lo que la ata al cascarón son seis bindings (`Estado`, `API`, `Bytes`,
+`Guardar`, `EmitirNucleo`, `SIIEngine*`); `puente.js`, cargado antes que `app.js`, los define
+sobre HTTP cuando no hay cascarón: inicio de sesión con usuario y clave del motor (JWT en
+`sessionStorage`), descargas por el navegador, panel en otra pestaña, y "Traer lo emitido"
+por el endpoint Python. Lo que es propio del cascarón (emitir con el núcleo Go, cobrar y anular
+por el SII engine en el proceso) avisa que hace falta la app instalada.
+
+**Para qué cada uno.** La app instalada es el camino principal: es lo que la gente entiende
+como "un programa", y es donde viven certificados, claves y emisión real. El navegador es el
+mismo producto sin instalar, pensado para una sala de clases: cada alumno abre
+`http://<motor>/app`, entra, practica con EMPRESA DEMO SPA y recorre el mismo tour. En el
+servidor de mediaplex (`docs/…/despliegue`) basta el motor actualizado para tenerlo.
+
 ## Interfaz y tour guiado (2026-10-09)
 
 Estructura: **barra lateral** (marca, navegación con íconos, y abajo "Tu camino": las cinco

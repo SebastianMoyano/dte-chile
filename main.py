@@ -243,6 +243,13 @@ _STATIC_DIR = Path(__file__).parent / "static"
 if _STATIC_DIR.is_dir():
     app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
 
+# La interfaz de la app de escritorio, servida también en el navegador (misma interfaz, dos
+# envases): `app/frontend/dist/puente.js` reemplaza los bindings de Wails por HTTP contra este
+# motor, con inicio de sesión. Pensado para una sala de clases (práctica sin instalar nada).
+_APP_DIR = Path(__file__).parent / "app" / "frontend" / "dist"
+if _APP_DIR.is_dir():
+    app.mount("/app", StaticFiles(directory=str(_APP_DIR), html=True), name="app")
+
 
 @app.get("/certificados", tags=["Frontend"], include_in_schema=False,
          summary="Página de gestión de certificados")
