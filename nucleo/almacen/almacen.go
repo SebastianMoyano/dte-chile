@@ -149,3 +149,73 @@ func (a *Almacen) CrearDTE(d DTE) (int64, error) {
 	}
 	return res.LastInsertId()
 }
+
+// ---------------------------------------------------------------------------
+// Lo que el SII engine (nucleo/siiengine) necesita para importar y marcar documentos: réplica
+// de core/models.py::obtener_dte_por_folio / actualizar_estado_dte / guardar_pdf_dte y del
+// UPDATE de xml_firmado de importar_emitidos.
+// ---------------------------------------------------------------------------
+
+// DTEFila es lo mínimo de una fila existente de `dtes`.
+type DTEFila struct {
+	ID       int64
+	Estado   string
+	PDFPath  string
+	TieneXML bool
+}
+
+// DTEPorFolio devuelve la fila (rut_emisor, tipo, folio) o nil si no existe.
+func (a *Almacen) DTEPorFolio(rut string, tipo, folio int) (*DTEFila, error) {
+	var f DTEFila
+	var pdf, xml sql.NullString
+	err := a.db.QueryRow(`SELECT id, estado, pdf_path, xml_firmado FROM dtes WHERE rut_emisor=? AND tipo_dte=? AND folio=?`,
+		rut, tipo, folio).Scan(&f.ID, &f.Estado, &pdf, &xml)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("leer dte: %w", err)
+	}
+	f.PDFPath = pdf.String
+	f.TieneXML = xml.Valid && xml.String != ""
+	return &f, nil
+}
+
+// ActualizarEstado es actualizar_estado_dte; trackID 0 deja track_id como está.
+func (a *Almacen) ActualizarEstado(id int64, estado string, trackID int64) error {
+	ahora := time.Now().Format("2006-01-02T15:04:05.000000")
+	var err error
+	if trackID != 0 {
+		_, err = a.db.Exec(`UPDATE dtes SET estado=?, track_id=?, actualizado_en=? WHERE id=?`, estado, trackID, ahora, id)
+	} else {
+		_, err = a.db.Exec(`UPDATE dtes SET estado=?, actualizado_en=? WHERE id=?`, estado, ahora, id)
+	}
+	if err != nil {
+		return fmt.Errorf("actualizar estado: %w", err)
+	}
+	return nil
+}
+
+// GuardarPDF es guardar_pdf_dte.
+func (a *Almacen) GuardarPDF(id int64, ruta string) error {
+	ahora := time.Now().Format("2006-01-02T15:04:05.000000")
+	if _, err := a.db.Exec(`UPDATE dtes SET pdf_path=?, actualizado_en=? WHERE id=?`, ruta, ahora, id); err != nil {
+		return fmt.Errorf("guardar pdf: %w", err)
+	}
+	return nil
+}
+
+// GuardarXML guarda el XML firmado (decodificado ISO-8859-1, como lo guarda Python).
+func (a *Almacen) GuardarXML(id int64, xml string) error {
+	if _, err := a.db.Exec(`UPDATE dtes SET xml_firmado=?, actualizado_en=datetime('now') WHERE id=?`, xml, id); err != nil {
+		return fmt.Errorf("guardar xml: %w", err)
+	}
+	return nil
+}
+
+// EjecutarDDL corre una sentencia de esquema. El esquema lo define Python (core/database.py,
+// SCHEMA_SQL); esto existe para tests y migraciones mínimas, no para que Go lo redefina.
+func (a *Almacen) EjecutarDDL(ddl string) error {
+	_, err := a.db.Exec(ddl)
+	return err
+}

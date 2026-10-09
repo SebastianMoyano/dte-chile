@@ -141,8 +141,46 @@ intento porque estaba escrito en la especificación de bytes antes de programar.
 > EnvioBOLETA (REST de boletas) siguen pendientes.
 
 Con fases 1-4 hechas, se mira el valor de portar: envío SOAP y semilla/token (sencillo),
-PDF con PDF417 (hay librerías en Go), boletas EnvioBOLETA + RVD. El portal MIPYME no se
-porta: es scraping vivo y cambia con el SII.
+PDF con PDF417 (hay librerías en Go), boletas EnvioBOLETA + RVD. El portal MIPYME (SII engine)
+se porta en la fase 6 con la captura del navegador como vara: es scraping vivo, pero con
+evidencia byte a byte deja de ser adivinanza.
+
+### Fase 6 — El SII engine en Go, por segmentos (abierta, 2026-10-08)
+
+> **Vocabulario.** El producto tiene un motor base y una expansión. **SII engine**: la app
+> opera los sistemas del propio SII por la empresa (facturas por el portal MIPYME, boletas por
+> eboleta); el SII pone folio, timbre y firma; sirve para quien no quiere cambiar nada. **Motor
+> propio**: software certificado, con CAF, timbre y firma nuestros; es la expansión, por familia
+> de documento (el SII exige exclusividad por familia: una empresa puede tener facturas en el SII
+> engine y boletas en el motor propio, como Moyoli Tech). Las dos vías son gratis para quien
+> las usa; "gratuito" es solo el nombre que el SII le pone a su sistema. Mismo almacén, misma
+> pantalla: un documento es un documento venga de donde venga (`dtes.estado = emitido_mipyme`
+> marca el canal). El punto de entrada de emisión rutea por empresa y familia según lo que el
+> SII tiene autorizado (diagnóstico del onboarding), y migrar de una vía a la otra no pierde
+> historial.
+
+El SII engine es una unidad cerrada (sesión, formularios, envío, PDF y XML, registro en la BD)
+que no toca firma ni CAF: se porta aparte, en `nucleo/siiengine`, con el mismo almacén SQLite
+que el motor propio. La vara es la misma de las fases 1-3: **mismo HTML de entrada, mismo cuerpo
+byte a byte** que `core/sii_mipyme.py`, verificado contra las evidencias reales (captura de la
+factura 62; cuerpos de la factura 63 y la NC 60, `storage/mipyme_fallidos/…/T34_F63_*` y
+`T61_F60_*`). Ningún folio se gasta para verificar; una sola corrida real por segmento cuando
+el cuerpo ya es idéntico. Python queda como referencia hasta que cada segmento pase en real, y
+después como historia (no se mantienen los dos).
+
+| segmento | qué | verificación | estado |
+|---|---|---|---|
+| 1 | sesión (login, empresa, cierre real) y lectura: historial, PDF, XML por firma central, form pre-llenado; importar al almacén | solo lectura en vivo, sin riesgo | **hecho 2026-10-08**: `nucleo-siiengine sesion|listar|importar`; en vivo: sesión y cierre real, 51 documentos listados (los mismos que la BD), PDF y XML por firma central idénticos a los de Python salvo lo que el SII regenera (fecha de creación del PDF, firma del sobre al descargar; el `<DTE>` es byte a byte igual) |
+| 2 | factura exenta: validar (DisplayPreView), vista previa, GenXMLFirma, firma central, SendXML | cuerpos idénticos a los de la factura 63 | pendiente |
+| 3 | NC de anulación | cuerpos idénticos a los de la NC 60 | pendiente |
+| 4 | NC de corrección de montos y nota de débito | captura de la NC 59 / ND 1; sin corrida real todavía en Python tampoco | pendiente |
+| 5 | eboleta (boletas por el SII) | exige una captura real de una boleta emitida en eboleta.sii.cl | pendiente, sin captura |
+
+Reglas que el Go repite del Python: claves solo del Llavero, del keystore de la app o de la
+consola (nunca por argumento ni `.env`); una sola sesión por corrida y cierre siguiendo el 302
+(tope ~10 por RUT); sin reintentos en los pasos que gastan folio; el guardarraíl del total de
+la NC se toma del XML del envío (firma central), no del PDF, para no depender de una librería
+de PDF en Go.
 
 ## Riesgos y cómo se mitigan
 
@@ -160,5 +198,5 @@ porta: es scraping vivo y cambia con el SII.
 ## Qué NO es parte del plan
 
 - Cambiar la API o la app por el port.
-- Portar el canal MIPYME, la captura o el F29.
+- Portar la extensión de captura o el F29 (el SII engine sí se porta: fase 6).
 - Tocar producción con el port antes de que certifique en Maullín.

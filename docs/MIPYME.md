@@ -152,6 +152,11 @@ todavía; `emitir()` la trataría como nota (frmSign) si alguien arma el payload
 
 ## Historial de emitidos, PDF y XML
 
+> **En Go (SII engine, fase 6 del port):** este segmento ya está portado en `nucleo/siiengine`
+> (`nucleo/bin/nucleo-siiengine sesion|listar|importar`), verificado en vivo el 2026-10-08 con
+> los mismos resultados que el módulo Python. La emisión (segmentos 2-4) sigue en Python hasta
+> que el Go reproduzca los cuerpos de la factura 63 y la NC 60. Ver `docs/PLAN-PORT.md`.
+
 - **Listado**: `GET mipeAdminDocsEmi.cgi` con `RUT_RECP, FOLIO, RZN_SOC, FEC_DESDE, FEC_HASTA,
   TPO_DOC, ESTADO, ORDEN, NUM_PAG` (paginado, "Página N de M", hasta `pag_max=20` páginas). Cada
   fila trae el enlace `mipeGesDocEmi.cgi?CODIGO=<DHDR>` y las celdas `[RUT receptor, razón social,

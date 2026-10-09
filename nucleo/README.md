@@ -26,11 +26,14 @@ fila que Python.
 | `emision` | el orquestador: folio → TED → XML → firma → sobre → [XSD por gancho] → disco → BD (sin PDF) |
 | `valores` | UF, UTM y dólar desde las páginas oficiales del SII (fallback mindicador.cl), caché en la tabla `valores` del SQLite; `get` (fecha exacta), `vigente` (último valor hábil) y `demonio` (refresco diario in-process) |
 | `sii` | cliente SOAP del SII: semilla, token (firma byte a byte igual a Python), DTEUpload, estado por TrackID |
+| `siiengine` | el **SII engine** (la app operando el portal MIPYME del SII, `core/sii_mipyme.py`): segmento 1 = sesión por clave tributaria, empresa, cierre real, historial, PDF, XML por firma central, importación a `dtes`. Solo lectura; la emisión sigue en Python (fase 6 de `docs/PLAN-PORT.md`) |
 
 **Contra el SII**: el 2026-10-05 un T34 de certificación emitido por `nucleo-emitir` fue
 aceptado (ACEPTADOS=1, TrackID 261542052; script `fase3_envio.py`), y `nucleo-sii` obtuvo
 token y leyó ese estado desde Go. Binarios: `nucleo-dorado`, `nucleo-emitir`, `nucleo-sii`,
-`nucleo-valores` (UF/UTM/dólar del SII; `actualizar`/`get`/`vigente`/`demonio`).
+`nucleo-valores` (UF/UTM/dólar del SII; `actualizar`/`get`/`vigente`/`demonio`). `nucleo-siiengine sesion|listar|importar` opera el portal
+MIPYME en producción sin gastar folios (claves por `NUCLEO_CLAVE_TRIBUTARIA`/`_CERTIFICADO` o el
+Llavero, nunca por argumento); verificado en vivo el 2026-10-08 contra lo que importó Python.
 
 Regla (L15): si un byte difiere del corpus, el error está aquí o en Python, y se averigua cuál
 contra el SII antes de tocar lo esperado. Plan y fases en `docs/PLAN-PORT.md`.

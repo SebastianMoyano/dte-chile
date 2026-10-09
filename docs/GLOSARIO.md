@@ -2,6 +2,18 @@
 
 > Dos líneas por término, sin jerga. Para el detalle de cada tema, sigue el enlace.
 
+## Las dos vías de emisión
+
+- **SII engine**: la app opera los sistemas del propio SII por la empresa — facturas por el
+  portal MIPYME (`docs/MIPYME.md`), boletas por eboleta. El SII pone folio, timbre y firma.
+  Es el motor base: sirve para quien no quiere cambiar nada de cómo emite hoy.
+- **Motor propio**: software certificado ante el SII, con CAF, timbre y firma nuestros. Es la
+  expansión, por familia de documento (el SII exige exclusividad por familia: facturas en una
+  vía y boletas en la otra es válido). Ambas vías son gratis para quien las usa; "gratuito" es
+  solo el nombre del SII para su sistema, no una diferencia del producto.
+- **Canal**: por cuál de las dos vías salió un documento. En la BD, `estado = emitido_mipyme`
+  marca el SII engine; el resto es motor propio. Misma tabla, misma pantalla.
+
 ## Documentos
 
 - **DTE** (Documento Tributario Electrónico): cualquier documento tributario en XML firmado —
