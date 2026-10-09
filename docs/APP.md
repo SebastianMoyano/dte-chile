@@ -126,6 +126,25 @@ para qué se usan. Viven en memoria de la app (`clavesSesion`) hasta cerrarla. C
 entra al SII es el propio cascarón (Go); las claves recordadas las recibe del motor por la
 conexión local, en memoria, y no las escribe en ningún lado.
 
+## Interfaz y tour guiado (2026-10-09)
+
+Estructura: **barra lateral** (marca, navegación con íconos, y abajo "Tu camino": las cinco
+etapas con su avance y el botón **Guía**), **cabecera** con la empresa activa y el semáforo
+del mundo (práctica / pruebas del SII / real), y el contenido en tarjetas. Tokens de color en
+`app.css` (`:root`), modo oscuro automático, estados vacíos, foco visible. Sin dependencias.
+
+**Tour por etapas** (`app/frontend/dist/tour.js`): las etapas son los cinco tramos de
+`docs/aprender/00-plan.md`. Cada etapa tiene pasos que apuntan a algo de una pantalla (se
+ilumina con un recorte sobre la página y una tarjeta al lado) o explican un concepto. Es
+**progresivo**: al entrar por primera vez a una pantalla aparecen solo los pasos de esa
+pantalla de la etapa en curso; cuando se completan todos los de la etapa, pasa a la siguiente.
+Desde **Guía** se ve el camino completo y se puede recorrer o repetir cualquier etapa (el tour
+navega solo por las pantallas). Las etapas 2, 3 y 5 llevan además una lista de verificación
+en Aprender (trámites que hace la persona, no la app). El avance y las casillas quedan en
+`localStorage` de ese equipo ("No mostrar pistas automáticas" lo apaga; "Empezar de cero" lo
+borra). `app.js` avisa al tour después de pintar cada pantalla (`Tour.alEntrar`), y las
+tarjetas que el tour señala llevan `data-tour="…"`.
+
 ## Pantallas (v0.1)
 
 | Pantalla | Qué hace hoy | Endpoints |
@@ -165,7 +184,8 @@ Registro del motor arrancado por la app: `logs/app-motor.log`.
 2. **Nota de crédito desde "Corregir"** por el total registrado del documento.
 3. **Datos del emisor por negocio** en BD (giro, actividad, dirección) en vez de `EMPRESA_*`
    del `.env`; hoy solo la empresa del `.env` puede emitir con el motor propio.
-4. Cargar las lecciones y el quiz (`docs/aprender/`) en la pantalla Aprender, enlazados al
+4. Cargar las lecciones largas y el quiz (`docs/aprender/`) en la pantalla Aprender (el tour y
+   las listas de verificación ya están), enlazados al
    modo práctica (que ya existe).
 5. **Instalador**: hecho para macOS (motor PyInstaller dentro del bundle, carpeta de datos,
    `.env` generado). Falta: builds Windows/Linux, universal (Intel) y un DMG.

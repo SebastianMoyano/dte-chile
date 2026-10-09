@@ -7,24 +7,37 @@
 <link rel="stylesheet" href="app.css">
 </head>
 <body>
-<header class="top">
-  <div class="brand" onclick="ir('inicio')">DTE Chile</div>
-  <nav>
-    <a href="#inicio" data-v="inicio">Inicio</a>
-    <a href="#cobrar" data-v="cobrar">Cobrarle a alguien</a>
-    <a href="#mes" data-v="mes">Mi mes</a>
-    <a href="#corregir" data-v="corregir">Corregir</a>
-    <a href="#documentos" data-v="documentos">Documentos</a>
-    <a href="#valores" data-v="valores">Valores</a>
-    <a href="#aprender" data-v="aprender">Aprender</a>
-  </nav>
-  <select id="empresa" class="sel" title="Empresa activa"></select>
-  <div id="mundo" class="mundo m-cargando" title="En qué mundo estás">cargando…</div>
-</header>
-
-<main id="vista" class="wrap"></main>
+<div class="shell">
+  <aside class="side">
+    <div class="brand" onclick="ir('inicio')"><span class="logo">D</span><span>DTE Chile</span></div>
+    <nav>
+      <a href="#inicio" data-v="inicio"><i>🏠</i><span>Inicio</span></a>
+      <a href="#cobrar" data-v="cobrar"><i>🧾</i><span>Cobrar</span></a>
+      <a href="#documentos" data-v="documentos"><i>📄</i><span>Documentos</span></a>
+      <a href="#corregir" data-v="corregir"><i>↩️</i><span>Corregir</span></a>
+      <a href="#mes" data-v="mes"><i>📅</i><span>Mi mes</span></a>
+      <a href="#valores" data-v="valores"><i>📈</i><span>Valores</span></a>
+      <a href="#aprender" data-v="aprender"><i>🎓</i><span>Aprender</span></a>
+    </nav>
+    <div class="camino" id="camino" title="Tu camino: cinco etapas, de cero a emitir">
+      <div class="camino-cab"><span>Tu camino</span><button class="mini" id="tour_btn" onclick="Tour.abrir()">Guía</button></div>
+      <ol id="camino_lista"></ol>
+    </div>
+  </aside>
+  <div class="main">
+    <header class="top">
+      <div class="top-l">
+        <label class="sel-wrap" title="Empresa activa"><span>Empresa</span><select id="empresa" class="sel"></select></label>
+      </div>
+      <div id="mundo" class="mundo m-cargando" title="En qué mundo estás">cargando…</div>
+    </header>
+    <main id="vista" class="wrap"></main>
+  </div>
+</div>
 
 <div id="aviso" class="aviso" style="display:none"></div>
+<div id="tour" class="tour" style="display:none"></div>
 <script src="app.js"></script>
+<script src="tour.js"></script>
 </body>
 </html>

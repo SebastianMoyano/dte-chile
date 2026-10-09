@@ -42,7 +42,7 @@ function pintarMundo() {
   if (!estado.listo) { m.className = "mundo " + (estado.error ? "m-error" : "m-cargando"); m.textContent = estado.error ? "motor con error" : "arrancando motor…"; return; }
   const w = mundo();
   m.className = "mundo m-" + w;
-  m.textContent = w === "sim" ? "SIMULACIÓN · nada sale de tu computador" : w === "real" ? "REAL · cada documento cuenta" : "PRUEBAS DEL SII · sin efecto tributario";
+  m.textContent = w === "sim" ? "Práctica · nada sale de aquí" : w === "real" ? "Real · cada documento cuenta" : "Pruebas del SII · sin efecto";
 }
 function pintarSelector() {
   const s = $("empresa");
@@ -64,8 +64,10 @@ async function render() {
   const v = (location.hash || "#inicio").slice(1).split("?")[0];
   document.querySelectorAll("nav a").forEach((a) => a.classList.toggle("on", a.dataset.v === v));
   const f = vistas[v] || vistas.inicio;
+  window.scrollTo(0, 0);
   $("vista").innerHTML = '<p class="mut">Cargando…</p>';
   try { await f($("vista")); } catch (e) { $("vista").innerHTML = `<div class="banner rojo">${esc(e.message)}</div>`; }
+  document.dispatchEvent(new CustomEvent("vista", { detail: v }));   // el tour escucha (tour.js)
 }
 window.addEventListener("hashchange", render);
 
@@ -88,19 +90,20 @@ vistas.inicio = async (el) => {
     cab = `<div class="banner ${mundo() === "real" ? "rojo" : ""}"><b>${esc(e.razon_social || e.rut)}</b> · ${esc(e.rut)} · <span class="pill ${e.usa_sw_propio ? "p-ok" : "p-mut"}">${esc(e.estado_etiqueta || "sin diagnóstico")}</span>
       ${mundo() === "real" ? "<br>Esta empresa está en <b>producción</b>: lo que emitas cuenta ante el SII." : "<br>Esta empresa está en el <b>ambiente de pruebas</b> del SII: el SII responde, pero sin efecto tributario."}</div>`;
   }
-  const sinc = (!e.demo && !e.usa_sw_propio) ? `<div class="card accion" onclick="sincronizarGratuito()"><div class="ico">🔄</div><h3>Traer lo emitido en el SII</h3><p>Esta empresa emite en el sistema gratuito del SII. Entra como tú, lista lo emitido y guarda PDF y XML aquí. Solo lectura.</p></div>` : "";
+  const sinc = (!e.demo && !e.usa_sw_propio) ? `<div class="card accion" data-tour="sincronizar" onclick="sincronizarGratuito()"><div class="ico">🔄</div><h3>Traer lo emitido en el SII</h3><p>Esta empresa emite en el sistema del SII. La app entra como tú, lista lo emitido y guarda PDF y XML aquí. Solo lectura.</p></div>` : "";
+  const hora = new Date().getHours(), saludo = hora < 12 ? "Buenos días" : hora < 20 ? "Buenas tardes" : "Buenas noches";
   el.innerHTML = `
-    <h1>¿Qué quieres hacer?</h1>
-    <p class="sub">Tres cosas cubren casi todo. Lo demás está arriba.</p>
+    <h1>${saludo}</h1>
+    <p class="sub">${e.demo ? "Estás en la empresa de práctica: prueba todo sin miedo." : `Trabajando por <b>${esc(e.razon_social || e.rut)}</b>.`} ¿Qué quieres hacer?</p>
     ${cab}
-    ${sinc ? `<div class="grid">${sinc}</div>` : ""}
     <div class="grid">
-      <div class="card accion" onclick="ir('cobrar')"><div class="ico">🧾</div><h3>Cobrarle a alguien</h3><p>Una boleta o una factura. Te muestro el neto, el IVA y el total antes de emitir.</p></div>
+      ${sinc}
+      <div class="card accion" data-tour="cobrar" onclick="ir('cobrar')"><div class="ico">🧾</div><h3>Cobrarle a alguien</h3><p>Una boleta o una factura. Ves neto, IVA y total antes de emitir.</p></div>
       <div class="card accion" onclick="ir('mes')"><div class="ico">📅</div><h3>Mi mes</h3><p>Cuánto vendiste, cuánto IVA cobraste y qué va a pedir el F29.</p></div>
       <div class="card accion" onclick="ir('corregir')"><div class="ico">↩️</div><h3>Corregir</h3><p>Nada se borra. Una nota de crédito arregla lo que salió mal.</p></div>
     </div>
-    ${negocios.length ? "" : `<div class="card"><b>Todavía no hay ninguna empresa real.</b><p class="mut">Practica con la demo todo lo que quieras. Cuando tengas tu certificado, agrega tu empresa desde el panel del motor y aparecerá en el selector de arriba.</p>
-      <button class="sec" onclick="window.go.main.App.AbrirPanel('certificados')">Abrir el panel</button></div>`}
+    ${negocios.length ? "" : `<div class="card"><b>Todavía no hay ninguna empresa real.</b><p class="mut">Practica con la demo todo lo que quieras. Cuando tengas tu certificado digital, agrégalo en el panel del motor y tu empresa aparecerá arriba.</p>
+      <button class="sec" data-tour="panel" onclick="window.go.main.App.AbrirPanel('certificados')">Abrir el panel</button></div>`}
     <p class="mut" id="valores_hoy"></p>
     <p class="mut">Motor v${esc(estado.version)} en <code>${esc(estado.url)}</code>${estado.externo ? " (externo)" : estado.empaquetado ? " (dentro de la app)" : " (desde el repo)"}.
       ${estado.empaquetado ? `Tus datos están en <code>${esc(estado.raiz)}</code>. Panel web: usuario <code>admin</code>, clave <code>${esc(estado.clave_admin)}</code>.` : ""}</p>`;
@@ -425,7 +428,7 @@ vistas.documentos = async (el) => {
 };
 
 function tabla(docs, elegir = false) {
-  if (!docs.length) return `<p class="mut">No hay documentos todavía. <span class="lnk" onclick="ir('cobrar')">Emitir el primero</span>.</p>`;
+  if (!docs.length) return `<div class="vacio"><div class="ico">🗂️</div>No hay documentos todavía.<br><span class="lnk" onclick="ir('cobrar')">Emitir el primero</span></div>`;
   const est = (e) => { e = e || ""; const c = e.includes("acept") || e.includes("emitido") || e === "simulado" ? "p-ok" : e.includes("rechaz") || e.includes("anulado") ? "p-no" : e.includes("envi") ? "p-warn" : "p-mut";
     const t = e === "simulado" ? "práctica" : e === "anulado_simulado" ? "anulada" : e.replace("_mipyme", " · gratuito SII"); return `<span class="pill ${c}">${esc(t)}</span>`; };
   return `<div class="tablewrap"><table><tr><th>Fecha</th><th>Documento</th><th>N°</th><th>Para</th><th class="num">Total</th><th>Estado</th><th></th></tr>
@@ -479,18 +482,39 @@ vistas.valores = async (el) => {
 
 // ---------- aprender ----------
 vistas.aprender = async (el) => {
+  const T = window.Tour, et = T ? T.etapas : [], st = T ? T.estado() : { vistos: {}, etapa: 0, checks: {} };
+  const hecha = (e) => e.pasos.every((_, i) => st.vistos[`${e.id}:${i}`]);
+  const prog = (e) => e.pasos.filter((_, i) => st.vistos[`${e.id}:${i}`]).length;
+  const LISTAS = {
+    crear: ["Decidí si emito como persona natural (mi RUT) o creo una empresa (SpA, EIRL, Ltda.).",
+            "Si es empresa: la constituí en Empresa en un Día (registroempresasysociedades.cl) y tengo el RUT y la escritura.",
+            "Sé quién es el representante legal: es quien firma por la empresa ante el SII."],
+    iniciar: ["Hice el inicio de actividades en sii.cl y elegí el giro (actividad económica).",
+              "Tengo clave tributaria de la persona y, si corresponde, de la empresa.",
+              "Compré un certificado digital (.p12) a nombre de una persona autorizada por la empresa.",
+              "Cargué el certificado en el panel del motor: la empresa aparece en el selector de arriba.",
+              "Decidí por cuál vía emito: con lo que el SII da (etapa 4) o con motor propio (etapa 5)."],
+    motor: ["Entiendo qué es un CAF (los folios que el SII me entrega) y que mi certificado firma cada documento.",
+            "Probé emitir en el ambiente de pruebas del SII (semáforo amarillo).",
+            "Pasé la certificación del SII (set de pruebas + declaración de cumplimiento) para los tipos que voy a emitir."],
+  };
+  const lista = (e) => LISTAS[e.id] ? `<ul class="lista-check">${LISTAS[e.id].map((t, i) => { const id = e.id + ":" + i; return `<li><input type="checkbox" ${st.checks?.[id] ? "checked" : ""} onchange="Tour.check('${id}', this.checked)"><span>${t}</span></li>`; }).join("")}</ul>` : "";
   el.innerHTML = `
     <h1>Aprender</h1>
-    <p class="sub">Para quien no sabe nada de finanzas. Cinco tramos, en el orden en que pasan en la vida real.</p>
-    <div class="grid">
-      ${[["1. Entender", "Qué es una boleta, el IVA, el folio, el SII, declarar. Practica con EMPRESA DEMO SPA: elige la empresa de práctica arriba y ve a Cobrarle a alguien.", "sim"],
-         ["2. Crear la empresa", "Persona natural o empresa, Empresa en un Día, el RUT propio.", "sim"],
-         ["3. Iniciar actividades", "Giro, clave tributaria, certificado digital, inscribirse como emisor.", "sim"],
-         ["4. Usar lo gratis del SII", "El emisor gratuito de facturas y boletas, con esta app como complemento. Real desde el primer clic.", "real"],
-         ["5. El motor propio", "CAF, firma, certificación. Primero en el ambiente de pruebas del SII.", "pruebas"]]
-        .map(([t, d, m]) => `<div class="card"><span class="pill ${m === "real" ? "p-no" : m === "pruebas" ? "p-warn" : "p-ok"}">${m === "real" ? "real" : m === "pruebas" ? "pruebas del SII" : "simulación"}</span><h3 style="margin:8px 0 4px">${t}</h3><p class="mut" style="margin:0">${d}</p></div>`).join("")}
-    </div>
-    <p class="mut">Las lecciones, el quiz y los videos del tramo 1 están en el repo (<code>docs/aprender/</code>). En esta pantalla se van a cargar en la próxima versión.</p>`;
+    <p class="sub">Para quien no sabe nada de finanzas. Cinco etapas en el orden en que pasan en la vida real; cada una se recorre dentro de la app, paso a paso.</p>
+    ${et.map((e, i) => `<div class="card" data-tour="etapa-${e.n}" id="etapa-${e.n}" style="${i === st.etapa ? "border-color:var(--acc)" : ""}">
+      <div style="display:flex;align-items:center;gap:12px">
+        <span class="pill ${hecha(e) ? "p-ok" : i === st.etapa ? "p-warn" : "p-mut"}">${hecha(e) ? "completa" : i === st.etapa ? "en curso" : "pendiente"}</span>
+        <span class="pill ${e.mundo === "real" ? "p-no" : e.mundo === "pruebas" ? "p-warn" : "p-ok"}">${e.mundo === "real" ? "real" : e.mundo === "pruebas" ? "pruebas del SII" : "práctica"}</span>
+        <span class="mut" style="margin-left:auto">${prog(e)}/${e.pasos.length} pasos</span></div>
+      <h3 style="margin:10px 0 4px">${e.n}. ${e.titulo}</h3>
+      <p class="mut" style="margin:0 0 6px">${e.resumen}</p>
+      ${lista(e)}
+      <button class="${hecha(e) ? "sec" : ""}" onclick="Tour.etapa(${i})">${hecha(e) ? "Repetir el recorrido" : prog(e) ? "Seguir el recorrido" : "Empezar el recorrido"}</button>
+    </div>`).join("")}
+    <p class="mut">Las lecciones largas, el quiz y los videos del tramo 1 están en el repo (<code>docs/aprender/</code>).</p>`;
+  const n = param("etapa");
+  if (n) document.getElementById("etapa-" + n)?.scrollIntoView({ block: "start", behavior: "smooth" });
 };
 
 // ---------- arranque ----------
