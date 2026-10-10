@@ -7,25 +7,32 @@ package servidor
 import (
 	"bufio"
 	"os"
+	"strconv"
 	"strings"
 )
 
 // Config es lo que el servidor necesita del `.env` del motor (mismos nombres que
 // core/config.py; las variables de entorno ganan sobre el archivo, como en pydantic-settings).
 type Config struct {
-	AppName, AppVersion string
-	DatabasePath        string // DATABASE_URL sin el prefijo sqlite:///
-	StoragePath         string
-	JWTSecret           string
-	JWTAlgoritmo        string
-	AppShellKey         string // solo por entorno (APP_SHELL_KEY)
-	SIIAmbiente         string
-	EmpresaRut          string
-	EmpresaRazonSocial  string
-	CORSOrigins         string
-	MotorPython         string // URL del motor Python para el reenvío ("" = sin reenvío)
-	CarpetaApp          string // app/frontend/dist, servida en /app
-	Valores             map[string]string
+	AppName, AppVersion  string
+	DatabasePath         string // DATABASE_URL sin el prefijo sqlite:///
+	StoragePath          string
+	JWTSecret            string
+	JWTAlgoritmo         string
+	AppShellKey          string // solo por entorno (APP_SHELL_KEY)
+	SIIAmbiente          string
+	EmpresaRut           string
+	EmpresaRazonSocial   string
+	CORSOrigins          string
+	JWTExpiraMin         int
+	MasterKey            string // DTE_MASTER_KEY (Fernet); vacía = derivada del secreto JWT, como Python
+	ResolucionFecha      string // SII_FECHA_RESOLUCION (producción)
+	ResolucionNumero     int
+	ResolucionFechaCert  string // SII_FECHA_RESOLUCION_CERT
+	ResolucionNumeroCert int
+	MotorPython          string // URL del motor Python para el reenvío ("" = sin reenvío)
+	CarpetaApp           string // app/frontend/dist, servida en /app
+	Valores              map[string]string
 }
 
 // CargarConfig lee el .env (si existe) y el entorno. Los secretos nunca se registran en el log.
@@ -67,18 +74,35 @@ func CargarConfig(rutaEnv string) (*Config, error) {
 	}
 	c := &Config{
 		AppName: get("APP_NAME", "DTE Chile API"), AppVersion: get("APP_VERSION", "1.0.0"),
-		DatabasePath:       strings.TrimPrefix(get("DATABASE_URL", "sqlite:///./dte_database.db"), "sqlite:///"),
-		StoragePath:        get("STORAGE_PATH", "./storage"),
-		JWTSecret:          get("JWT_SECRET_KEY", ""),
-		JWTAlgoritmo:       get("JWT_ALGORITHM", "HS256"),
-		AppShellKey:        os.Getenv("APP_SHELL_KEY"),
-		SIIAmbiente:        get("SII_AMBIENTE", "certificacion"),
-		EmpresaRut:         get("EMPRESA_RUT", ""),
-		EmpresaRazonSocial: get("EMPRESA_RAZON_SOCIAL", ""),
-		CORSOrigins:        get("CORS_ORIGINS", "*"),
-		Valores:            vals,
+		DatabasePath:         strings.TrimPrefix(get("DATABASE_URL", "sqlite:///./dte_database.db"), "sqlite:///"),
+		StoragePath:          get("STORAGE_PATH", "./storage"),
+		JWTSecret:            get("JWT_SECRET_KEY", ""),
+		JWTAlgoritmo:         get("JWT_ALGORITHM", "HS256"),
+		AppShellKey:          os.Getenv("APP_SHELL_KEY"),
+		SIIAmbiente:          get("SII_AMBIENTE", "certificacion"),
+		EmpresaRut:           get("EMPRESA_RUT", ""),
+		EmpresaRazonSocial:   get("EMPRESA_RAZON_SOCIAL", ""),
+		CORSOrigins:          get("CORS_ORIGINS", "*"),
+		JWTExpiraMin:         entero(get("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", "60"), 60),
+		MasterKey:            get("DTE_MASTER_KEY", ""),
+		ResolucionFecha:      get("SII_FECHA_RESOLUCION", "2014-08-22"),
+		ResolucionNumero:     entero(get("SII_NUMERO_RESOLUCION", "80"), 80),
+		ResolucionFechaCert:  get("SII_FECHA_RESOLUCION_CERT", "2026-07-08"),
+		ResolucionNumeroCert: entero(get("SII_NUMERO_RESOLUCION_CERT", "0"), 0),
+		Valores:              vals,
+	}
+	if c.JWTSecret == "" {
+		c.JWTSecret = "cambiar_esto_por_una_clave_segura_de_al_menos_32_caracteres" // default de core/config.py
 	}
 	return c, nil
+}
+
+func entero(s string, def int) int {
+	n, err := strconv.Atoi(strings.TrimSpace(s))
+	if err != nil {
+		return def
+	}
+	return n
 }
 
 // EmpresaConfigurada es settings.empresa_configurada.

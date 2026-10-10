@@ -107,8 +107,10 @@ async def registro(body: RegistroRequest) -> RegistroResponse:
     Registra un nuevo usuario en el sistema.
     Requiere autenticación si ya existe al menos un usuario (el primero es admin).
     """
-    existente = obtener_usuario_por_username(body.username)
-    if existente:
+    # Sin filtrar por activo: un usuario desactivado conserva el username (UNIQUE) y antes
+    # esto terminaba en un IntegrityError → 500. Mismo contrato que el motor Go: 409.
+    from core.database import obtenerUno
+    if obtenerUno("SELECT id FROM usuarios WHERE username=?", (body.username,)):
         raise ConflictoError(f"El usuario '{body.username}' ya existe")
 
     hashed = hash_password(body.password)

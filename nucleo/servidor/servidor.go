@@ -17,11 +17,12 @@ import (
 
 // Servidor atiende las rutas portadas y reenvía el resto al motor Python.
 type Servidor struct {
-	cfg   *Config
-	db    *sql.DB
-	alm   *almacen.Almacen
-	proxy *httputil.ReverseProxy
-	mux   *http.ServeMux
+	cfg    *Config
+	db     *sql.DB
+	alm    *almacen.Almacen
+	proxy  *httputil.ReverseProxy
+	mux    *http.ServeMux
+	fernet *fernet
 }
 
 // Nuevo abre (y migra) la base, prepara el reenvío y arma las rutas.
@@ -34,7 +35,11 @@ func Nuevo(cfg *Config) (*Servidor, error) {
 	if err != nil {
 		return nil, err
 	}
-	s := &Servidor{cfg: cfg, db: db, alm: alm, mux: http.NewServeMux()}
+	fer, err := nuevoFernet(cfg.MasterKey, cfg.JWTSecret)
+	if err != nil {
+		return nil, err
+	}
+	s := &Servidor{cfg: cfg, db: db, alm: alm, mux: http.NewServeMux(), fernet: fer}
 	if cfg.MotorPython != "" {
 		u, err := url.Parse(cfg.MotorPython)
 		if err != nil {
@@ -58,6 +63,9 @@ func (s *Servidor) Handler() http.Handler { return conRequestID(s.cors(s.mux)) }
 func (s *Servidor) rutas() {
 	s.mux.HandleFunc("GET /{$}", s.raiz)
 	s.rutasValores(s.mux)
+	s.rutasAuth(s.mux)
+	s.rutasAPIKeys(s.mux)
+	s.rutasKeystore(s.mux)
 	if s.cfg.CarpetaApp != "" {
 		if st, err := os.Stat(s.cfg.CarpetaApp); err == nil && st.IsDir() {
 			fs := http.StripPrefix("/app/", http.FileServer(http.Dir(s.cfg.CarpetaApp)))

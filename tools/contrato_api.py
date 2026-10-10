@@ -1,66 +1,157 @@
 """
 tools/contrato_api.py — Contrato dorado de la API: el motor Go debe responder lo mismo que el
-motor Python (fase 7 del port). Pide cada ruta a los dos y compara status, `codigo` de error y
-el JSON completo (ignorando campos volátiles como request_id y actualizado).
+motor Python (fase 7 del port). Pide cada paso a los dos motores y compara status, `codigo` de
+error y el JSON completo (ignorando campos volátiles).
 
-Uso (los dos motores corriendo, con el MISMO APP_SHELL_KEY en el entorno de ambos, o un JWT):
+Uso (los dos motores corriendo, con el MISMO APP_SHELL_KEY en el entorno de ambos):
   APP_SHELL_KEY=… .venv/bin/python tools/contrato_api.py --python http://127.0.0.1:8771 --go http://127.0.0.1:8010
-  … --token <jwt o api key>        (si no, usa APP_SHELL_KEY del entorno)
-  … --rutas rutas.txt              (una ruta por línea; si no, el juego de rutas de abajo)
+  … --escenario valores|auth|apikeys|keystore|todos   (default: todos)
+  … --token <jwt o api key>                            (si no, APP_SHELL_KEY del entorno)
+  … --sin-auth                                         (además, cada GET sin token → 401)
 
-Sale 0 si todo coincide; 1 si hay diferencias (se listan).
+Un paso es (método, ruta, cuerpo, ignorar, guarda). `{motor}` en ruta/cuerpo se reemplaza por
+"py"/"go" (cada motor crea sus propios recursos en la MISMA base); `guarda="id"` captura ese
+campo de la respuesta para usarlo como `{id}` en pasos siguientes (por motor). `archivo=`
+manda multipart. Sale 0 si todo coincide; 1 si hay diferencias (se listan).
 """
 from __future__ import annotations
 
 import argparse
 import json
+import mimetypes
 import os
+import pathlib
 import sys
 import urllib.error
 import urllib.request
+import uuid
 
-IGNORAR = {"request_id", "actualizado"}
-
-RUTAS_DEFAULT = [
-    "/",
-    "/api/v1/valores",
-    "/api/v1/valores?fecha=2026-10-01",
-    "/api/v1/valores?fecha=2026-09-14",
-    "/api/v1/valores?fecha=no-es-fecha",
-    "/api/v1/valores/uf",
-    "/api/v1/valores/utm?fecha=2026-09-15",
-    "/api/v1/valores/dolar?fecha=2026-10-05",
-    "/api/v1/valores/xx",
-    "/api/v1/valores/uf?fecha=1990-01-01",
-    "/api/v1/valores/historico?anio=2026",
-    "/api/v1/valores/historico?anio=2015",
-    "/api/v1/valores/historico?anio=1999",
-    "/api/v1/valores/historico",
-    "/api/v1/valores/uf/serie?desde=2026-09-01&hasta=2026-09-10",
-    "/api/v1/valores/utm/serie?desde=2026-01-01&hasta=2026-12-31",
-    "/api/v1/valores/uf/serie",
-    # reenviadas (Python detrás de Go): deben ser idénticas
-    "/api/v1/keystore/negocios",
-    "/api/v1/dte/documentos?limite=3",
-]
+IGNORAR_SIEMPRE = {"request_id", "actualizado", "creado", "creado_en", "ultimo_acceso", "ultimo_uso", "actualizado_en"}
+RAIZ = pathlib.Path(__file__).resolve().parent.parent
+CERT_DEMO = RAIZ / "tests" / "dorado" / "fixtures" / "cert_demo.p12"
 
 
-def pedir(base: str, ruta: str, token: str | None):
-    req = urllib.request.Request(base + ruta, headers={"Accept": "application/json", **({"Authorization": "Bearer " + token} if token else {})})
+def paso(metodo, ruta, cuerpo=None, ignorar=(), guarda=None, archivo=None, solo=None, espera=None):
+    """guarda: campo de la respuesta → variable del mismo nombre; "access_token" se usa como Bearer en los pasos
+    siguientes del escenario. solo="py"|"go": el paso corre en un solo motor (preparación), sin comparar;
+    espera: status exigido en ese caso."""
+    return {"metodo": metodo, "ruta": ruta, "cuerpo": cuerpo, "ignorar": set(ignorar), "guarda": guarda, "archivo": archivo, "solo": solo, "espera": espera}
+
+
+ESCENARIOS = {
+    "valores": [paso("GET", r) for r in [
+        "/", "/api/v1/valores", "/api/v1/valores?fecha=2026-10-01", "/api/v1/valores?fecha=2026-09-14", "/api/v1/valores?fecha=no-es-fecha",
+        "/api/v1/valores/uf", "/api/v1/valores/utm?fecha=2026-09-15", "/api/v1/valores/dolar?fecha=2026-10-05", "/api/v1/valores/xx",
+        "/api/v1/valores/uf?fecha=1990-01-01", "/api/v1/valores/historico?anio=2026", "/api/v1/valores/historico?anio=2015",
+        "/api/v1/valores/historico?anio=1999", "/api/v1/valores/historico", "/api/v1/valores/uf/serie?desde=2026-09-01&hasta=2026-09-10",
+        "/api/v1/valores/utm/serie?desde=2026-01-01&hasta=2026-12-31", "/api/v1/valores/uf/serie",
+        "/api/v1/keystore/negocios", "/api/v1/dte/documentos?limite=3"]],
+    "auth": [
+        paso("POST", "/api/v1/auth/registro", {"username": "contrato_{motor}", "password": "clave-contrato-1", "nombre_completo": "Contrato {motor}"}, ignorar={"id", "username", "mensaje"}, guarda="id"),
+        paso("POST", "/api/v1/auth/registro", {"username": "contrato_{motor}", "password": "clave-contrato-1"}),
+        paso("POST", "/api/v1/auth/registro", {"username": "ab", "password": "123"}),
+        paso("POST", "/api/v1/auth/registro", {"username": "sin_clave"}),
+        paso("POST", "/api/v1/auth/login", {"username": "contrato_{motor}", "password": "clave-contrato-1"}, ignorar={"access_token", "username", "nombre_completo"}),
+        paso("POST", "/api/v1/auth/login", {"username": "contrato_{motor}", "password": "incorrecta"}),
+        paso("POST", "/api/v1/auth/login", {"username": "nadie_{motor}", "password": "x"}),
+        paso("POST", "/api/v1/auth/login", {"username": "solo"}),
+        # cruzados: cada motor verifica el hash que generó el OTRO (passlib ↔ Go)
+        paso("POST", "/api/v1/auth/login", {"username": "contrato_py", "password": "clave-contrato-1"}, ignorar={"access_token"}),
+        paso("POST", "/api/v1/auth/login", {"username": "contrato_go", "password": "clave-contrato-1"}, ignorar={"access_token"}),
+        paso("GET", "/api/v1/auth/me"),
+        paso("GET", "/api/v1/auth/usuarios", ignorar={"id", "username", "nombre_completo", "email"}),
+        paso("DELETE", "/api/v1/auth/usuarios/{id}", ignorar={"mensaje"}),
+        paso("DELETE", "/api/v1/auth/usuarios/abc"),
+    ],
+    "apikeys": [
+        # las keys se gestionan SOLO con un JWT de usuario (no con la clave de la app ni con otra key)
+        paso("POST", "/api/v1/apikeys", {"nombre": "con-clave-de-app"}),
+        paso("POST", "/api/v1/auth/registro", {"username": "apikeys_{motor}", "password": "clave-contrato-1"}, ignorar={"id", "username", "mensaje"}, guarda="id:usuario_id"),
+        paso("POST", "/api/v1/auth/login", {"username": "apikeys_{motor}", "password": "clave-contrato-1"}, ignorar={"access_token", "username"}, guarda="access_token"),
+        paso("POST", "/api/v1/apikeys", {"nombre": "contrato-{motor}"}, ignorar={"api_key", "id", "prefijo", "nombre"}, guarda="id"),
+        paso("POST", "/api/v1/apikeys", {"nombre": ""}),
+        paso("POST", "/api/v1/apikeys", {}),
+        paso("GET", "/api/v1/apikeys", ignorar={"id", "nombre", "prefijo", "activo"}),
+        paso("DELETE", "/api/v1/apikeys/{id}", ignorar={"revocada"}),
+        paso("DELETE", "/api/v1/apikeys/{id}", ignorar={"revocada"}),
+        paso("DELETE", "/api/v1/apikeys/999999"),
+        paso("DELETE", "/api/v1/auth/usuarios/{usuario_id}", ignorar={"mensaje"}),
+    ],
+    # solo lectura sobre la base real: el PEM del certificado y la resolución deben ser byte a byte iguales
+    "contexto": [paso("GET", f"/api/v1/keystore/negocios/{i}/contexto-emision") for i in (1, 2, 3, 999999)],
+    "keystore": [
+        paso("POST", "/api/v1/keystore/certificados", {"password": "demo", "nombre": "demo {motor}"}, archivo=str(CERT_DEMO), ignorar={"id", "nombre"}, guarda="id"),
+        paso("POST", "/api/v1/keystore/certificados", {"password": "mala"}, archivo=str(CERT_DEMO)),
+        paso("POST", "/api/v1/keystore/certificados", {"nombre": "sin clave"}, archivo=str(CERT_DEMO)),
+        paso("GET", "/api/v1/keystore/certificados", ignorar={"id", "nombre", "alias"}),
+        # el demo tiene un solo RUT y la fila es por (cuenta, rut): cada motor borra la suya por turnos
+        paso("DELETE", "/api/v1/keystore/certificados/{id}", solo="py", espera=200),
+        paso("POST", "/api/v1/keystore/certificados", {"password": "demo", "nombre": "demo go"}, archivo=str(CERT_DEMO), solo="go", espera=201, guarda="id"),
+        paso("DELETE", "/api/v1/keystore/certificados/{id}", solo="go", espera=200),
+        paso("DELETE", "/api/v1/keystore/certificados/{id}"),
+        paso("GET", "/api/v1/keystore/negocios"),
+        paso("DELETE", "/api/v1/keystore/negocios/999999"),
+        paso("PUT", "/api/v1/keystore/claves-sii", {"rut_empresa": "77777777-{motor}", "rut_usuario": "12345678-5", "clave_tributaria": "secreta-{motor}"}, ignorar={"rut_empresa"}),
+        paso("PUT", "/api/v1/keystore/claves-sii", {"rut_empresa": "77777777-{motor}", "clave_certificado": "cert-{motor}"}, ignorar={"rut_empresa"}),
+        paso("PUT", "/api/v1/keystore/claves-sii", {}),
+        paso("GET", "/api/v1/keystore/claves-sii/77777777-{motor}", ignorar={"rut_empresa"}),
+        paso("GET", "/api/v1/mipyme/contexto-siiengine/77777777-{motor}", ignorar={"rut_empresa", "clave_tributaria", "clave_certificado"}),
+        # cruzados: cada motor descifra lo que cifró el OTRO (Fernet)
+        paso("GET", "/api/v1/mipyme/contexto-siiengine/77777777-py"),
+        paso("GET", "/api/v1/mipyme/contexto-siiengine/77777777-go"),
+        paso("DELETE", "/api/v1/keystore/claves-sii/77777777-{motor}"),
+        paso("DELETE", "/api/v1/keystore/claves-sii/77777777-{motor}"),
+        paso("GET", "/api/v1/keystore/claves-sii/77777777-{motor}", ignorar={"rut_empresa"}),
+        paso("GET", "/api/v1/keystore/negocios/999999/contexto-emision"),
+    ],
+}
+
+
+def pedir(base: str, p: dict, token: str | None, motor: str, vars_: dict):
+    def sub(x):
+        if isinstance(x, str):
+            x = x.replace("{motor}", motor)
+            for k, v in vars_.items():
+                x = x.replace("{" + k + "}", str(v))
+            return x
+        if isinstance(x, dict):
+            return {k: sub(v) for k, v in x.items()}
+        return x
+    ruta, cuerpo = sub(p["ruta"]), sub(p["cuerpo"])
+    if token and vars_.get("access_token") and ruta.startswith("/api/v1/apikeys"):
+        token = vars_["access_token"]   # las rutas de API keys exigen el JWT del usuario
+    headers = {"Accept": "application/json", **({"Authorization": "Bearer " + token} if token else {})}
+    datos = None
+    if p["archivo"]:
+        limite = uuid.uuid4().hex
+        partes = []
+        for k, v in (cuerpo or {}).items():
+            partes.append(f"--{limite}\r\nContent-Disposition: form-data; name=\"{k}\"\r\n\r\n{v}\r\n".encode())
+        contenido = open(p["archivo"], "rb").read()
+        nombre = os.path.basename(p["archivo"])
+        tipo = mimetypes.guess_type(nombre)[0] or "application/octet-stream"
+        partes.append(f"--{limite}\r\nContent-Disposition: form-data; name=\"archivo\"; filename=\"{nombre}\"\r\nContent-Type: {tipo}\r\n\r\n".encode() + contenido + b"\r\n")
+        partes.append(f"--{limite}--\r\n".encode())
+        datos = b"".join(partes)
+        headers["Content-Type"] = f"multipart/form-data; boundary={limite}"
+    elif cuerpo is not None:
+        datos = json.dumps(cuerpo).encode()
+        headers["Content-Type"] = "application/json"
+    req = urllib.request.Request(base + ruta, data=datos, method=p["metodo"], headers=headers)
     try:
-        with urllib.request.urlopen(req, timeout=30) as r:
-            return r.status, r.read()
+        with urllib.request.urlopen(req, timeout=60) as r:
+            return r.status, r.read(), ruta
     except urllib.error.HTTPError as e:
-        return e.code, e.read()
+        return e.code, e.read(), ruta
     except Exception as e:  # noqa: BLE001
-        return -1, str(e).encode()
+        return -1, str(e).encode(), ruta
 
 
-def limpiar(x):
+def limpiar(x, ignorar):
     if isinstance(x, dict):
-        return {k: limpiar(v) for k, v in x.items() if k not in IGNORAR}
+        return {k: limpiar(v, ignorar) for k, v in x.items() if k not in ignorar}
     if isinstance(x, list):
-        return [limpiar(v) for v in x]
+        return [limpiar(v, ignorar) for v in x]
     return x
 
 
@@ -79,7 +170,7 @@ def diferencias(a, b, ruta=""):
             out.append(f"{ruta}: largos {len(a)} vs {len(b)}")
         for i, (x, y) in enumerate(zip(a, b)):
             out += diferencias(x, y, f"{ruta}[{i}]")
-    elif a != b and not (isinstance(a, (int, float)) and isinstance(b, (int, float)) and a == b):
+    elif a != b and not (isinstance(a, (int, float)) and isinstance(b, (int, float)) and not isinstance(a, bool) and not isinstance(b, bool) and a == b):
         out.append(f"{ruta}: python={a!r} go={b!r}")
     return out
 
@@ -89,39 +180,66 @@ def main() -> int:
     ap.add_argument("--python", required=True)
     ap.add_argument("--go", required=True)
     ap.add_argument("--token", default=os.environ.get("APP_SHELL_KEY"))
-    ap.add_argument("--rutas")
-    ap.add_argument("--sin-auth", action="store_true", help="además, pedir cada ruta sin token y comparar el 401")
+    ap.add_argument("--escenario", default="todos")
+    ap.add_argument("--sin-auth", action="store_true")
     a = ap.parse_args()
-    rutas = [l.strip() for l in open(a.rutas, encoding="utf-8") if l.strip() and not l.startswith("#")] if a.rutas else RUTAS_DEFAULT
+    nombres = list(ESCENARIOS) if a.escenario == "todos" else [a.escenario]
     fallas = 0
-    for ruta in rutas:
-        variantes = [(ruta, a.token)] + ([(ruta, None)] if a.sin_auth and ruta != "/" else [])
-        for r, tok in variantes:
-            sp, bp = pedir(a.python, r, tok)
-            sg, bg = pedir(a.go, r, tok)
-            etiqueta = r + ("" if tok else "  [sin token]")
-            try:
-                jp, jg = json.loads(bp or b"null"), json.loads(bg or b"null")
-            except ValueError:
-                print(f"✗ {etiqueta}: respuesta no JSON (python {sp}, go {sg})"); fallas += 1; continue
-            if sp != sg:
-                print(f"✗ {etiqueta}: status python {sp} ≠ go {sg}"); fallas += 1; continue
-            if sp >= 400:
-                cp, cg = (jp or {}).get("error", {}).get("codigo"), (jg or {}).get("error", {}).get("codigo")
-                if cp != cg:
-                    print(f"✗ {etiqueta}: {sp} codigo python {cp!r} ≠ go {cg!r}"); fallas += 1
-                else:
-                    print(f"✓ {etiqueta}: {sp} {cp}")
+    for nombre in nombres:
+        print(f"\n== {nombre} ==")
+        vars_py, vars_go = {}, {}
+        for p in ESCENARIOS[nombre]:
+            if p["solo"]:
+                base, motor, vars_ = (a.python, "py", vars_py) if p["solo"] == "py" else (a.go, "go", vars_go)
+                st, cuerpo, ruta = pedir(base, p, a.token, motor, vars_)
+                try:
+                    j = json.loads(cuerpo or b"null")
+                except ValueError:
+                    j = None
+                if p["guarda"] and isinstance(j, dict):
+                    campo, _, var = p["guarda"].partition(":")
+                    if campo in j:
+                        vars_[var or campo] = j[campo]
+                ok = p["espera"] is None or st == p["espera"]
+                print(f"{'·' if ok else '✗'} {p['metodo']} {ruta}  [solo {motor}] → {st}")
+                if not ok:
+                    fallas += 1
                 continue
-            difs = diferencias(limpiar(jp), limpiar(jg))
-            if difs:
-                fallas += 1
-                print(f"✗ {etiqueta}: {len(difs)} diferencia(s)")
-                for d in difs[:8]:
-                    print("    " + d)
-            else:
-                print(f"✓ {etiqueta}: {sp} idéntico")
-    print(f"\n{'TODO IDÉNTICO' if not fallas else str(fallas) + ' ruta(s) con diferencias'}")
+            variantes = [(a.token, True)] + ([(None, False)] if a.sin_auth and p["metodo"] == "GET" and p["ruta"] != "/" else [])
+            for tok, con in variantes:
+                sp, bp, rp = pedir(a.python, p, tok, "py", vars_py)
+                sg, bg, rg = pedir(a.go, p, tok, "go", vars_go)
+                etiqueta = f"{p['metodo']} {p['ruta']}" + ("" if con else "  [sin token]")
+                try:
+                    jp, jg = json.loads(bp or b"null"), json.loads(bg or b"null")
+                except ValueError:
+                    print(f"✗ {etiqueta}: respuesta no JSON (python {sp}: {bp[:80]!r}, go {sg}: {bg[:80]!r})"); fallas += 1; continue
+                if con and p["guarda"]:
+                    campo, _, var = p["guarda"].partition(":")
+                    var = var or campo
+                    if isinstance(jp, dict) and campo in jp:
+                        vars_py[var] = jp[campo]
+                    if isinstance(jg, dict) and campo in jg:
+                        vars_go[var] = jg[campo]
+                if sp != sg:
+                    print(f"✗ {etiqueta}: status python {sp} ≠ go {sg}  (py: {bp[:120]!r} | go: {bg[:120]!r})"); fallas += 1; continue
+                if sp >= 400:
+                    cp, cg = (jp or {}).get("error", {}).get("codigo"), (jg or {}).get("error", {}).get("codigo")
+                    if cp != cg:
+                        print(f"✗ {etiqueta}: {sp} codigo python {cp!r} ≠ go {cg!r}"); fallas += 1
+                    else:
+                        print(f"✓ {etiqueta}: {sp} {cp}")
+                    continue
+                ign = IGNORAR_SIEMPRE | p["ignorar"]
+                difs = diferencias(limpiar(jp, ign), limpiar(jg, ign))
+                if difs:
+                    fallas += 1
+                    print(f"✗ {etiqueta}: {len(difs)} diferencia(s)")
+                    for d in difs[:8]:
+                        print("    " + d)
+                else:
+                    print(f"✓ {etiqueta}: {sp} idéntico")
+    print(f"\n{'TODO IDÉNTICO' if not fallas else str(fallas) + ' paso(s) con diferencias'}")
     return 0 if not fallas else 1
 
 

@@ -25,6 +25,7 @@ type Usuario struct {
 	ID       int64
 	Username string
 	Tipo     string // "usuario" | "apikey"
+	Via      string // "jwt" | "app" (APP_SHELL_KEY) | "apikey": Python distingue JWT de la clave de la app en requerir_usuario
 	APIKeyID int64
 }
 
@@ -52,12 +53,14 @@ func (s *Servidor) autenticar(r *http.Request) (*Usuario, error) {
 	}
 	if username, ok := s.verificarJWT(token); ok {
 		if u, err := s.usuarioPorUsername(username); err == nil && u != nil {
+			u.Via = "jwt"
 			s.tocarUltimoAcceso(u.ID)
 			return u, nil
 		}
 	}
 	if len(s.cfg.AppShellKey) >= 24 && subtle.ConstantTimeCompare([]byte(token), []byte(s.cfg.AppShellKey)) == 1 {
 		if u, err := s.usuarioDueno(); err == nil && u != nil {
+			u.Via = "app"
 			s.tocarUltimoAcceso(u.ID)
 			return u, nil
 		}
@@ -156,7 +159,7 @@ func (s *Servidor) verificarAPIKey(token string) (*Usuario, error) {
 		return nil, err
 	}
 	s.db.Exec(`UPDATE api_keys SET ultimo_uso=? WHERE id=?`, time.Now().Format("2006-01-02T15:04:05.000000"), id)
-	return &Usuario{Username: "apikey:" + nombre, Tipo: "apikey", APIKeyID: id}, nil
+	return &Usuario{Username: "apikey:" + nombre, Tipo: "apikey", Via: "apikey", APIKeyID: id}, nil
 }
 
 // protegido envuelve un handler exigiendo autenticación (401 con el envoltorio de Python).
@@ -169,4 +172,11 @@ func (s *Servidor) protegido(h http.HandlerFunc) http.HandlerFunc {
 		}
 		h(w, r.WithContext(contextoCon(r.Context(), ctxUsuario, u)))
 	}
+}
+
+// firmaHS256 es la firma JWT HS256 en base64url sin relleno.
+func firmaHS256(secreto, datos string) string {
+	mac := hmac.New(sha256.New, []byte(secreto))
+	mac.Write([]byte(datos))
+	return base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
 }
