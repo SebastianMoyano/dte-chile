@@ -42,3 +42,6 @@ __pycache__/
 # Nota: `.env.example` SÍ se versiona (es la plantilla sin secretos reales).
 !.env.example
 storage/mipyme_fallidos/
+
+# El set de pruebas que asigna el SII lleva el RUT real de la empresa: se guarda en storage/set_pruebas_sii/
+SIISetDePruebas*
