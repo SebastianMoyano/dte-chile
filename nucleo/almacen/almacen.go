@@ -250,3 +250,14 @@ func (a *Almacen) DTEPorID(id int64) (*DTEDetalle, error) {
 	d.RazonSocialReceptor, d.Estado, d.TrackID = razon.String, estado.String, track.Int64
 	return &d, nil
 }
+
+// RegistrarCAF es registrar_caf: inserta el CAF con folio_siguiente = folio_desde.
+func (a *Almacen) RegistrarCAF(tipo int, rut string, desde, hasta int, fechaAutorizacion, cafXML string) (int64, error) {
+	ahora := time.Now().Format("2006-01-02T15:04:05.000000")
+	res, err := a.db.Exec(`INSERT INTO cafs (tipo_dte, rut_emisor, folio_desde, folio_hasta, folio_siguiente, fecha_autorizacion, caf_xml, creado_en)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, tipo, rut, desde, hasta, desde, fechaAutorizacion, cafXML, ahora)
+	if err != nil {
+		return 0, fmt.Errorf("registrar caf: %w", err)
+	}
+	return res.LastInsertId()
+}

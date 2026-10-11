@@ -11,18 +11,20 @@ import (
 	"strings"
 
 	"dtechile/nucleo/almacen"
+	"dtechile/nucleo/firma"
 
 	_ "modernc.org/sqlite"
 )
 
 // Servidor atiende las rutas portadas y reenvía el resto al motor Python.
 type Servidor struct {
-	cfg    *Config
-	db     *sql.DB
-	alm    *almacen.Almacen
-	proxy  *httputil.ReverseProxy
-	mux    *http.ServeMux
-	fernet *fernet
+	cfg      *Config
+	db       *sql.DB
+	alm      *almacen.Almacen
+	proxy    *httputil.ReverseProxy
+	mux      *http.ServeMux
+	fernet   *fernet
+	certDemo *firma.Certificado // el de la práctica, en memoria
 }
 
 // Nuevo abre (y migra) la base, prepara el reenvío y arma las rutas.
@@ -66,6 +68,8 @@ func (s *Servidor) rutas() {
 	s.rutasAuth(s.mux)
 	s.rutasAPIKeys(s.mux)
 	s.rutasKeystore(s.mux)
+	s.rutasDocumentos(s.mux)
+	s.rutasSimulacion(s.mux)
 	if s.cfg.CarpetaApp != "" {
 		if st, err := os.Stat(s.cfg.CarpetaApp); err == nil && st.IsDir() {
 			fs := http.StripPrefix("/app/", http.FileServer(http.Dir(s.cfg.CarpetaApp)))

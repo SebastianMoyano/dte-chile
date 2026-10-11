@@ -79,6 +79,29 @@ ESCENARIOS = {
     ],
     # solo lectura sobre la base real: el PEM del certificado y la resolución deben ser byte a byte iguales
     "contexto": [paso("GET", f"/api/v1/keystore/negocios/{i}/contexto-emision") for i in (1, 2, 3, 999999)],
+    # práctica: cada motor emite con el mismo CAF demo (folios distintos) → se ignora lo que depende del folio/id
+    "simulacion": [
+        paso("POST", "/api/v1/simulacion/reiniciar", {}, ignorar={"documentos_borrados", "cafs_borrados"}),
+        paso("GET", "/api/v1/simulacion/estado", ignorar={"documentos", "folios"}),
+        paso("POST", "/api/v1/simulacion/emitir", {"tipo_dte": 39, "items": [{"nombre": "Café", "precio_unitario": 1190}]}, ignorar={"dte_id", "folio", "pdf_path", "pdf_b64"}, guarda="dte_id"),
+        paso("POST", "/api/v1/simulacion/emitir", {"tipo_dte": 33, "items": [{"nombre": "Servicio", "precio_unitario": 20000, "cantidad": 2}], "receptor": {"rut": "76111111-6", "razon_social": "CLIENTE DEMO SPA"}}, ignorar={"dte_id", "folio", "pdf_path", "pdf_b64"}, guarda="dte_id:factura_id"),
+        paso("POST", "/api/v1/simulacion/emitir", {"tipo_dte": 34, "items": [{"nombre": "Arriendo", "precio_unitario": 100000}]}, ignorar={"dte_id", "folio", "pdf_path", "pdf_b64"}),
+        paso("POST", "/api/v1/simulacion/emitir", {"tipo_dte": 52, "items": [{"nombre": "x", "precio_unitario": 1}]}),
+        paso("POST", "/api/v1/simulacion/emitir", {"tipo_dte": 39, "items": []}),
+        paso("POST", "/api/v1/simulacion/emitir", {"tipo_dte": 39}),
+        paso("GET", "/api/v1/simulacion/documentos/{dte_id}", ignorar={"dte_id", "folio", "pdf_path", "pdf_b64"}),
+        paso("GET", "/api/v1/simulacion/documentos/999999"),
+        paso("POST", "/api/v1/simulacion/anular/{factura_id}", {"motivo": "Prueba del contrato"}, ignorar={"dte_id", "folio", "pdf_path", "pdf_b64"}),
+        paso("POST", "/api/v1/simulacion/anular/{factura_id}"),
+        paso("POST", "/api/v1/simulacion/anular/999999"),
+        paso("GET", "/api/v1/simulacion/estado", ignorar={"documentos", "folios"}),
+        paso("GET", "/api/v1/dte/documentos?rut_emisor=77777777-7&limite=3", ignorar={"id", "folio", "pdf_path", "total", "documentos"}),
+        paso("GET", "/api/v1/dte/documentos/{dte_id}/xml", ignorar={"*"}),
+        paso("GET", "/api/v1/dte/documentos/999999/pdf"),
+        paso("GET", "/api/v1/dte/documentos/emisores", ignorar={"documentos", "ultimo"}),
+        paso("GET", "/api/v1/dte/emisor"),
+        paso("GET", "/api/v1/dte/documentos?limite=abc"),
+    ],
     "keystore": [
         paso("POST", "/api/v1/keystore/certificados", {"password": "demo", "nombre": "demo {motor}"}, archivo=str(CERT_DEMO), ignorar={"id", "nombre"}, guarda="id"),
         paso("POST", "/api/v1/keystore/certificados", {"password": "mala"}, archivo=str(CERT_DEMO)),
@@ -213,6 +236,8 @@ def main() -> int:
                 try:
                     jp, jg = json.loads(bp or b"null"), json.loads(bg or b"null")
                 except ValueError:
+                    if sp == sg and sp < 400 and "*" in p["ignorar"]:
+                        print(f"✓ {etiqueta}: {sp} (binario, {len(bp)} B vs {len(bg)} B)"); continue
                     print(f"✗ {etiqueta}: respuesta no JSON (python {sp}: {bp[:80]!r}, go {sg}: {bg[:80]!r})"); fallas += 1; continue
                 if con and p["guarda"]:
                     campo, _, var = p["guarda"].partition(":")
