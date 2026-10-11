@@ -517,6 +517,40 @@ vistas.aprender = async (el) => {
   if (n) document.getElementById("etapa-" + n)?.scrollIntoView({ block: "start", behavior: "smooth" });
 };
 
+// ---------- tu IA (clientes MCP del computador) ----------
+vistas.ia = async (el) => {
+  let lista;
+  try { lista = await window.go.main.App.Conectores(); } catch (e) { el.innerHTML = `<div class="banner rojo">${esc(e.message || e)}</div>`; return; }
+  const detectados = lista.filter((c) => c.presente);
+  const fila = (c) => `<li>
+      <div style="flex:1"><b>${esc(c.nombre)}</b><br><span class="mut">${c.instalado ? "Conectado: ya puede trabajar con tu facturación." : c.presente ? "Está en este computador." : "No lo encontré en este computador."}</span></div>
+      ${c.instalado
+        ? `<button class="sec" style="margin:0" onclick="conectarIA('${c.id}', true)">Desconectar</button>`
+        : `<button class="${c.presente ? "" : "sec"}" style="margin:0" onclick="conectarIA('${c.id}', false)">Conectar</button>`}
+    </li>`;
+  el.innerHTML = `
+    <h1>Tu IA</h1>
+    <p class="sub">Si usas un asistente de IA en este computador, puede trabajar con tu facturación: ver tus documentos, revisar tus folios, preparar una boleta y pedirte que la apruebes.</p>
+    <div class="banner"><b>Todo queda en este computador.</b> La IA le habla a esta app directamente, sin pasar por internet y sin claves que copiar. Tú sigues decidiendo: lo que gasta folios o cuenta ante el SII te lo muestra antes.</div>
+    <div class="card"><h3>Encontré en este computador</h3>
+      ${detectados.length ? "" : `<p class="mut">Ningún asistente conocido todavía. Cuando instales Claude, Cursor, VS Code, Windsurf, Gemini CLI o Codex, vuelve aquí.</p>`}
+      <ul class="lista-check">${detectados.map(fila).join("")}</ul>
+      ${detectados.length ? `<p class="mut">Después de conectar, cierra y vuelve a abrir ese programa y pídele, por ejemplo: <i>«muéstrame mis últimos documentos»</i>.</p>` : ""}
+    </div>
+    <details class="card"><summary>Otros asistentes</summary>
+      <ul class="lista-check">${lista.filter((c) => !c.presente).map(fila).join("")}</ul>
+      <p class="mut">Claude, ChatGPT o Gemini <b>en el navegador o en el celular</b> no se conectan así: sus conexiones salen desde la nube de cada empresa, no desde tu computador. Para eso hace falta publicar la app en internet con una dirección propia; está previsto, pero no es esto.</p>
+    </details>`;
+};
+async function conectarIA(id, quitar) {
+  try {
+    const archivo = await window.go.main.App.ConectarIA(id, quitar);
+    aviso(quitar ? "Desconectado." : "Conectado. Reinicia ese programa para que vea la app.", 5000);
+    render();
+    if (!quitar) console.log("MCP escrito en", archivo);
+  } catch (e) { aviso("No pude: " + (e.message || e), 7000); }
+}
+
 // ---------- arranque ----------
 (async () => {
   estado = await window.go.main.App.Estado();

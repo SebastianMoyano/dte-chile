@@ -122,7 +122,7 @@ sin PyInstaller, sin procesos hijos.
 ## Empaquetado: la app con el motor adentro
 
 ```bash
-cd app && ./empaquetar-mac.sh      # build/bin/DTE Chile.app (motor Go adentro; ~20 MB), sin repo ni .venv
+cd app && ./empaquetar-mac.sh      # build/bin/DTE Chile.app (motor Go adentro, universal; ~20 MB), sin repo ni .venv
 IDENTIDAD="Developer ID Application: …" ./firmar-mac.sh   # firma y notarización (opcional)
 ```
 

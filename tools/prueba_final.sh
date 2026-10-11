@@ -62,7 +62,12 @@ mcp_stdio() {
   local out
   out=$(printf '%s\n%s\n' '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"salud","arguments":{}}}' \
     | nucleo/bin/nucleo-mcp --env "$TMP/no.env" --db "$TMP/mcp.db" 2>/dev/null)
-  echo "$out" | grep -q '"name":"emitir_dte"' && echo "$out" | grep -q 'dte-chile-mcp'
+  echo "$out" | grep -q '"name":"emitir_dte"' && echo "$out" | grep -q 'dte-chile-mcp' || return 1
+  # el instalador de clientes: escribe la entrada en un HOME de prueba y la vuelve a leer
+  rm -rf "$TMP/home"; mkdir -p "$TMP/home/.cursor"
+  HOME="$TMP/home" nucleo/bin/nucleo-mcp instalar --en todos --json | grep -q '"cliente":"cursor"' || return 1
+  grep -q '"dte-chile"' "$TMP/home/.cursor/mcp.json" || return 1
+  HOME="$TMP/home" nucleo/bin/nucleo-mcp clientes | grep -q '^cursor .*conectado'
 }
 gate mcp mcp_stdio
 echo "== 7. la app (motor Go en proceso)"

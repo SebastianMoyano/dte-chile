@@ -60,7 +60,7 @@ va por flag (`nucleo/cliutil`).
 | binario | reemplaza a | qué hace |
 |---|---|---|
 | `nucleo-servidor` | `uvicorn main:app`, `rotar_claves.py` | el motor HTTP (`servir`, `migrar`) y `rotar-claves` (re-cifra certificados y claves del SII con una master key nueva, renueva el JWT, resetea admin) |
-| `nucleo-mcp` | `mcp_server.py` | el servidor MCP (stdio o `--http` con bearer): 19 herramientas para una IA, sobre el motor en proceso |
+| `nucleo-mcp` | `mcp_server.py` | el servidor MCP (stdio o `--http` con bearer): 20 herramientas para una IA, sobre el motor en proceso (`nucleo/mcp`); `clientes` e `instalar --en claude-code|claude-desktop|cursor|vscode|windsurf|gemini|codex|todos` lo enchufan en la IA del computador (`nucleo/conectores`); `tools/empaquetar_mcpb.sh` hace el `.mcpb` de doble click |
 | `nucleo-keystore` | `keystore_cli.py`, `diagnostico_cert.py` | `add`/`list`/`test`/`portal`/`remove` certificados del keystore; `info` de un .p12 |
 | `nucleo-emitir` | — | emitir un documento desde JSON con el núcleo |
 | `nucleo-dorado` | — | el port externo que mide `test_dorado.py` |

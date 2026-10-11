@@ -221,13 +221,26 @@ Cuando el último endpoint pasa, se quita el sidecar (PyInstaller) y queda un bi
 | 9 | quitar el sidecar Python de la app: `app/` usa `nucleo/servidor` en proceso | `app/motor.go`, `app/empaquetar-mac.sh` | media | **hecho 2026-10-11**: `Motor.iniciarGo` levanta el servidor Go en el mismo proceso (puerto libre, clave efímera; `App.API` sigue por HTTP así que la interfaz y el puente no cambian); `asegurarAdmin` en el servidor (lo que hacía `main.py`); `/app` desde el FS embebido de Wails; `DTE_MOTOR=python` conserva el sidecar para comparar; `empaquetar-mac.sh` sin PyInstaller (opcional con `DTE_MOTOR_PYTHON_BUNDLE=1`). Gate: `app/motor_test.go` (carpeta de datos vacía → .env, base, admin, 401 sin clave, /app/, boleta de práctica con PDF, todo sin Python) |
 | 10 | lo que `main.py` servía fuera de la API: buscador público `/consulta` (HTML, `/api`, `/xml`, `/pdf`, POST), páginas del panel (`/certificados`, `/onboarding`, `/apikeys`, `/documentos`, `/static/*`, `/favicon.ico`) y el acotamiento por `DOMINIO_PUBLICO_BOLETAS` | `api/routes/consulta.py`, `main.py` | baja | **hecho 2026-10-11**: `servidor/consulta.go` (misma página autocontenida, mismo candado de 5 datos, PDF guardado o regenerado desde el XML con el TED verbatim) y `servidor/static/` (copias de `static/*.html` con `TestStaticIgual`). Contrato `consulta` 19/19 (HTML byte a byte del mismo tamaño; el PDF regenerado difiere porque es `nucleo/pdf`, no ReportLab). **Con esto el motor Go cubre todo lo que servía `main.py`**; en Python quedan el MCP, los scripts de certificación y las herramientas del operador |
 
-No se porta: `mcp_server.py`, la skill de correos y `tools/captura-sii` (herramientas del operador).
+No se porta: la skill de correos y `tools/captura-sii` (herramientas del operador). `mcp_server.py` sí se portó (abajo).
 
 **Herramientas del operador y el MCP, también en Go** (2026-10-11): `nucleo-mcp` (= `mcp_server.py`, stdio
-y HTTP con bearer; 19 herramientas sobre el motor en proceso, con rutas solo-Go `/api/v1/portal/*` y
+y HTTP con bearer; 20 herramientas sobre el motor en proceso, con rutas solo-Go `/api/v1/portal/*` y
 `/dte/enviar-keystore` para operar con el certificado del keystore), `nucleo-keystore`, `nucleo-servidor
 rotar-claves` (re-cifra TAMBIÉN `claves_sii`, que el script Python dejaba huérfanas), `nucleo-rvd`,
 `nucleo-sii boleta-enviar|boleta-estado`, `nucleo-cafs`, `nucleo-portal`, `nucleo-certificacion`.
+
+**Conectar la IA del computador en un click** (2026-10-11, [`CONECTAR.md`](CONECTAR.md)): el MCP pasó a
+paquete (`nucleo/mcp`: `Nuevo`, `Atender`, `ServirStdio`, `Handler`, `Arrancar` con la regla de carpeta de la
+app) y `nucleo/conectores` escribe la entrada en la configuración de Claude Code, la app de Claude, Cursor,
+VS Code, Windsurf, Gemini CLI y Codex CLI conservando lo demás (`nucleo-mcp clientes|instalar`). La app es
+su propio servidor MCP (`dte-chile --mcp`, `app/ia.go`) y la pestaña **Tu IA** conecta con un botón;
+`tools/empaquetar_mcpb.sh` hace el `.mcpb` de doble click (macOS universal + Linux + Windows, 24 MB).
+`cliutil.CarpetaDatos/AsegurarEnv/ResolverRaiz` son ahora la única regla de "dónde están los datos" para
+la app y los binarios. Decisión: **sin túneles embebidos** (Tailscale, Cloudflare); la nube de terceros
+irá por OAuth en el motor + URL propia del usuario. Gates: `conectores` (7 clientes, 3 sistemas, JSON y
+TOML, idempotencia, no pisa JSON inválido), `mcp` (stdio, dos motores sobre la misma base, arranque en
+carpeta de datos), `app/ia_test.go` (la app con `--mcp` y `ConectarIA`), y el gate `mcp` de
+`prueba_final.sh` instala en un HOME de prueba.
 
 **Las tres transacciones que faltan, en el ambiente de pruebas del SII** (las lanza quien opera):
 

@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"crypto/rand"
-	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -19,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"dtechile/nucleo/cliutil"
 	"dtechile/nucleo/servidor"
 )
 
@@ -139,62 +139,6 @@ func motorEmpaquetado() string {
 	return ""
 }
 
-// carpetaDatos es donde vive todo lo que la app escribe cuando va empaquetada:
-// ~/Library/Application Support/DTE Chile (macOS), %AppData%\DTE Chile, ~/.config/DTE Chile.
-// DTE_DATOS la cambia (pruebas, o quien quiera sus datos en otra carpeta).
-func carpetaDatos() (string, error) {
-	d := os.Getenv("DTE_DATOS")
-	if d == "" {
-		base, err := os.UserConfigDir()
-		if err != nil {
-			return "", err
-		}
-		d = filepath.Join(base, "DTE Chile")
-	}
-	for _, sub := range []string{"", "logs", "storage"} {
-		if err := os.MkdirAll(filepath.Join(d, sub), 0o755); err != nil {
-			return "", err
-		}
-	}
-	return d, nil
-}
-
-// asegurarEnv crea el `.env` de la carpeta de datos la primera vez, con secretos generados
-// aquí (JWT y clave maestra del keystore) y la clave del usuario admin del panel web. Si ya
-// existe no se toca: ahí vive la configuración del usuario.
-func asegurarEnv(dir string) (string, error) {
-	ruta := filepath.Join(dir, ".env")
-	if b, err := os.ReadFile(ruta); err == nil {
-		return claveAdminDe(string(b)), nil
-	}
-	azar := func(n int) string { b := make([]byte, n); _, _ = rand.Read(b); return hex.EncodeToString(b) }
-	fernet := make([]byte, 32)
-	_, _ = rand.Read(fernet)
-	admin := azar(8)
-	contenido := "# Configuración del motor DTE Chile (creada por la app; edítala si hace falta)\n" +
-		"SII_AMBIENTE=certificacion\n" +
-		"HOST=127.0.0.1\n" +
-		"CORS_ORIGINS=http://127.0.0.1\n" +
-		"LOG_LEVEL=info\n" +
-		"NOMBRE_SOFTWARE=DTE_CHILE\n" +
-		"JWT_SECRET_KEY=" + azar(32) + "\n" +
-		"DTE_MASTER_KEY=" + base64.URLEncoding.EncodeToString(fernet) + "\n" +
-		"ADMIN_PASSWORD=" + admin + "\n"
-	if err := os.WriteFile(ruta, []byte(contenido), 0o600); err != nil {
-		return "", err
-	}
-	return admin, nil
-}
-
-func claveAdminDe(env string) string {
-	for _, l := range strings.Split(env, "\n") {
-		if strings.HasPrefix(l, "ADMIN_PASSWORD=") {
-			return strings.TrimSpace(strings.TrimPrefix(l, "ADMIN_PASSWORD="))
-		}
-	}
-	return ""
-}
-
 // Iniciar arranca (o conecta) el motor y espera a que responda en "/".
 func (m *Motor) Iniciar(ctx context.Context) error {
 	if u := os.Getenv("DTE_API_URL"); u != "" {
@@ -214,11 +158,11 @@ func (m *Motor) Iniciar(ctx context.Context) error {
 func (m *Motor) iniciarGo(ctx context.Context) error {
 	raiz, err := localizarRaiz()
 	if err != nil || os.Getenv("DTE_DATOS") != "" {
-		d, err := carpetaDatos()
+		d, err := cliutil.CarpetaDatos()
 		if err != nil {
 			return err
 		}
-		admin, err := asegurarEnv(d)
+		admin, err := cliutil.AsegurarEnv(d)
 		if err != nil {
 			return err
 		}
@@ -278,11 +222,11 @@ func (m *Motor) iniciarPython(ctx context.Context) error {
 	var programa []string
 	var raiz string
 	if emp := motorEmpaquetado(); emp != "" {
-		d, err := carpetaDatos()
+		d, err := cliutil.CarpetaDatos()
 		if err != nil {
 			return err
 		}
-		admin, err := asegurarEnv(d)
+		admin, err := cliutil.AsegurarEnv(d)
 		if err != nil {
 			return err
 		}

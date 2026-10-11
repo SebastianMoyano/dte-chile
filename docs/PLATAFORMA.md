@@ -86,6 +86,10 @@ demás debería quedar **detrás de auth y sin exponer a Internet** (ver §5).
 
 ## 4. Integración con IA (servidor MCP) — la vía recomendada
 
+> **Sin Python y en un click**: `nucleo-mcp` (Go) es el mismo servidor con las mismas 20 herramientas, y
+> `nucleo-mcp instalar --en claude-code|claude-desktop|cursor|vscode|windsurf|gemini|codex` lo enchufa en la IA
+> del computador; la app tiene la pestaña **Tu IA** para lo mismo. Guía: [`CONECTAR.md`](CONECTAR.md).
+
 El motor incluye un **servidor MCP** (`mcp_server.py`) con ~20 herramientas listas para que una
 IA opere el SII: `salud`, `diagnostico`, `salud_folios`, `situacion_folios`, `solicitar_folios`,
 `previsualizar_dte`, **`emitir_dte`**, `enviar_dte`, `estado_envio`, `empresa_autorizada`, etc.
