@@ -67,7 +67,9 @@ def _reconstruir_boleta(xml_firmado: str):
 
     from core.dte import DTEInput, EmisorModel, ItemDTE, ReceptorModel, TipoDTE
 
-    raiz = etree.fromstring(xml_firmado.encode("ISO-8859-1"))
+    # El XML guardado es el <DTE> firmado SIN declaración: hay que decirle a lxml que los bytes
+    # son ISO-8859-1 (si no, asume UTF-8 y "Café" lo hace fallar con "Invalid bytes").
+    raiz = etree.fromstring(xml_firmado.encode("ISO-8859-1"), parser=etree.XMLParser(encoding="ISO-8859-1"))
 
     def hijo(p, tag):
         if p is None:

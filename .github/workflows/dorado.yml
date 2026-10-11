@@ -2,9 +2,10 @@ name: corpus dorado
 
 # L15: la salida del motor es reproducible byte a byte, en Python y en el núcleo Go.
 # Si este workflow falla, alguien movió un byte de la firma: se averigua, no se regenera.
+# Los mismos gates, en local y de una vez: ./tools/prueba_final.sh (con red) — aquí sin red.
 on:
   push:
-    paths: ["core/**", "nucleo/**", "tests/dorado/**", "test_dorado.py", "requirements.txt", ".github/workflows/dorado.yml"]
+    paths: ["core/**", "api/**", "nucleo/**", "tests/dorado/**", "tools/**", "test_dorado.py", "test_simulacion.py", "main.py", "requirements.txt", ".github/workflows/dorado.yml"]
   pull_request:
 
 jobs:
@@ -18,11 +19,23 @@ jobs:
       - name: Python puro == esperado (15 casos)
         run: python test_dorado.py
       - uses: actions/setup-go@v5
-        with: { go-version: "1.24", cache-dependency-path: nucleo/go.sum }
-      - name: Núcleo Go
+        with: { go-version: "1.26", cache-dependency-path: nucleo/go.sum }
+      - name: Núcleo Go — vet + tests (xsd, pdf417, portal, rcv, rvd, sii, siiengine, servidor)
         working-directory: nucleo
-        run: go vet ./... && go build -o bin/nucleo-dorado ./cmd/nucleo-dorado
+        run: go vet ./... && go test ./... && go build -o bin/nucleo-dorado ./cmd/nucleo-dorado && go build -o bin/nucleo-servidor ./cmd/nucleo-servidor
       - name: Go == esperado (port externo)
         run: python test_dorado.py --port nucleo/bin/nucleo-dorado
       - name: Mundo de práctica (sin red)
         run: python test_simulacion.py
+      - name: Esquema dorado (la base de Go == la de Python)
+        run: python tools/esquema_dorado.py --go nucleo/bin/nucleo-servidor
+      - name: Contrato dorado (los dos motores, sin red)
+        env:
+          APP_SHELL_KEY: ci-${{ github.run_id }}
+          RVD_SCHEDULER_ACTIVO: "false"
+        run: |
+          python setup.py >/dev/null 2>&1 || true
+          python -m uvicorn main:app --port 8771 >py.log 2>&1 &
+          nucleo/bin/nucleo-servidor servir --puerto 8010 --motor http://127.0.0.1:8771 >go.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:8771/ >/dev/null && curl -sf http://127.0.0.1:8010/ >/dev/null && break; sleep 1; done
+          python tools/contrato_api.py --python http://127.0.0.1:8771 --go http://127.0.0.1:8010 --escenario todos --sin-red

@@ -7,6 +7,7 @@ bytes. Sin red, sin base de datos.
 ```bash
 go build -o bin/nucleo-dorado ./cmd/nucleo-dorado && go build -o bin/nucleo-emitir ./cmd/nucleo-emitir
 cd .. && .venv/bin/python test_dorado.py --port nucleo/bin/nucleo-dorado    # 15/15 idénticos (fase 1)
+cd .. && ./tools/prueba_final.sh                                               # TODOS los gates de una vez
 .venv/bin/python test_fase2.py                                               # Go y Python sobre la misma base (fase 2)
 ```
 

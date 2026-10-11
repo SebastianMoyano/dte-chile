@@ -66,12 +66,12 @@ def sobre(ruta, reemplazo=None) -> str:
     return b64(datos)
 
 
-def paso(metodo, ruta, cuerpo=None, ignorar=(), guarda=None, archivo=None, solo=None, espera=None, archivo_campo="archivo", archivos_extra=None, multipart=False):
+def paso(metodo, ruta, cuerpo=None, ignorar=(), guarda=None, archivo=None, solo=None, espera=None, archivo_campo="archivo", archivos_extra=None, multipart=False, red=False):
     """guarda: campo de la respuesta → variable del mismo nombre; "access_token" se usa como Bearer en los pasos
     siguientes del escenario. solo="py"|"go": el paso corre en un solo motor (preparación), sin comparar;
     espera: status exigido en ese caso."""
     return {"metodo": metodo, "ruta": ruta, "cuerpo": cuerpo, "ignorar": set(ignorar), "guarda": guarda, "archivo": archivo, "solo": solo, "espera": espera,
-            "archivo_campo": archivo_campo, "archivos_extra": archivos_extra or {}, "multipart": multipart}
+            "archivo_campo": archivo_campo, "archivos_extra": archivos_extra or {}, "multipart": multipart, "red": red}
 
 
 ESCENARIOS = {
@@ -184,12 +184,12 @@ ESCENARIOS = {
         paso("POST", "/api/v1/dte/enviar", {"xml_envio_b64": sobre(SOBRE_FACTURA, (b"<RutEmisor>77777777-7", b"<RutEmisor>77777777-X")), "certificado_p12_b64": CERT_DEMO_B64,
                                             "password_certificado": "demo", "rut_empresa": "77777777", "dv_empresa": "7"}, ignorar={"mensaje"}),
         paso("POST", "/api/v1/dte/enviar", {"xml_envio_b64": sobre(SOBRE_FACTURA), "certificado_p12_b64": CERT_DEMO_B64, "password_certificado": "demo",
-                                            "rut_empresa": "77777777", "dv_empresa": "7"}, ignorar={"mensaje"}),
+                                            "rut_empresa": "77777777", "dv_empresa": "7"}, ignorar={"mensaje"}, red=True),
         paso("POST", "/api/v1/dte/enviar", {"xml_envio_b64": sobre(SOBRE_FACTURA)}),
-        paso("POST", "/api/v1/estado/track", {"track_id": 1, "rut_empresa": "77777777", "dv_empresa": "7", "certificado_p12_b64": CERT_DEMO_B64, "password_certificado": "demo"}, ignorar={"mensaje"}),
+        paso("POST", "/api/v1/estado/track", {"track_id": 1, "rut_empresa": "77777777", "dv_empresa": "7", "certificado_p12_b64": CERT_DEMO_B64, "password_certificado": "demo"}, ignorar={"mensaje"}, red=True),
         paso("POST", "/api/v1/estado/track", {"track_id": 1}),
         paso("POST", "/api/v1/estado/dte", {"rut_emisor": "77777777", "dv_emisor": "7", "tipo_dte": 33, "folio": 1, "fecha_emision": "20260115", "monto_total": 23800,
-                                            "rut_receptor": "76111111", "dv_receptor": "6", "certificado_p12_b64": CERT_DEMO_B64, "password_certificado": "demo"}, ignorar={"mensaje"}),
+                                            "rut_receptor": "76111111", "dv_receptor": "6", "certificado_p12_b64": CERT_DEMO_B64, "password_certificado": "demo"}, ignorar={"mensaje"}, red=True),
     ],
     # utilidades sin estado y consultas a tablas: CAF, certificado, generar/pdf, db/*, monitoreo, lote, mipyme (solo la validación local)
     "rutas": [
@@ -245,14 +245,14 @@ ESCENARIOS = {
     ],
     # portal del SII con certificado: validación local + consultas públicas (RUT ficticio → no autorizado)
     "portal": [
-        paso("GET", "/api/v1/keystore/empresa?rut=77777777-7"),
-        paso("GET", "/api/v1/keystore/empresa?rut=77777777-7&ambiente=produccion"),
+        paso("GET", "/api/v1/keystore/empresa?rut=77777777-7", red=True),
+        paso("GET", "/api/v1/keystore/empresa?rut=77777777-7&ambiente=produccion", red=True),
         paso("GET", "/api/v1/keystore/empresa"),
         paso("GET", "/api/v1/keystore/certificados/999999/empresas"),
         paso("GET", "/api/v1/keystore/certificados/abc/empresas"),
-        paso("POST", "/api/v1/keystore/negocios", {"rut": "77777777-7"}, multipart=True),
+        paso("POST", "/api/v1/keystore/negocios", {"rut": "77777777-7"}, multipart=True, red=True),
         paso("POST", "/api/v1/keystore/negocios", {"ambiente": "certificacion"}, multipart=True),
-        paso("POST", "/api/v1/keystore/negocios", {"rut": "77777777-7", "cert_id": "abc"}, multipart=True),
+        paso("POST", "/api/v1/keystore/negocios", {"rut": "77777777-7", "cert_id": "abc"}, multipart=True, red=True),
         paso("GET", "/api/v1/keystore/negocios/999999/estado"),
         paso("GET", "/api/v1/keystore/negocios/999999/timbraje"),
         paso("GET", "/api/v1/keystore/negocios/abc/estado"),
@@ -392,6 +392,7 @@ def main() -> int:
     ap.add_argument("--token", default=os.environ.get("APP_SHELL_KEY"))
     ap.add_argument("--escenario", default="todos")
     ap.add_argument("--sin-auth", action="store_true")
+    ap.add_argument("--sin-red", action="store_true", help="saltar los pasos que consultan al SII")
     a = ap.parse_args()
     nombres = list(ESCENARIOS) if a.escenario == "todos" else [a.escenario]
     fallas = 0
@@ -399,6 +400,9 @@ def main() -> int:
         print(f"\n== {nombre} ==")
         vars_py, vars_go = {}, {}
         for p in ESCENARIOS[nombre]:
+            if a.sin_red and p.get("red"):
+                print(f"· {p['metodo']} {p['ruta']}  [sin red: salta]")
+                continue
             if p["solo"]:
                 base, motor, vars_ = (a.python, "py", vars_py) if p["solo"] == "py" else (a.go, "go", vars_go)
                 st, cuerpo, ruta = pedir(base, p, a.token, motor, vars_)

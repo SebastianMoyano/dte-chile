@@ -353,8 +353,8 @@ func (s *Servidor) contextoEmision(w http.ResponseWriter, r *http.Request) {
 		ambiente = neg.Ambiente.String
 	}
 	fecha, numero := s.resolucionEmisor(neg.Rut, ambiente)
-	db, _ := filepath.Abs(s.cfg.DatabasePath)
-	st, _ := filepath.Abs(s.cfg.StoragePath)
+	db, _ := rutaReal(s.cfg.DatabasePath)
+	st, _ := rutaReal(s.cfg.StoragePath)
 	responderJSON(w, 200, map[string]any{
 		"negocio_id": neg.ID, "rut": neg.Rut, "razon_social": neg.RazonSocial.valor(), "ambiente": ambiente,
 		"resolucion": map[string]any{"fecha": fecha, "numero": numero},
@@ -449,8 +449,21 @@ func (s *Servidor) contextoSIIEngine(w http.ResponseWriter, r *http.Request) {
 	if usuario.Valid {
 		ru = usuario.String
 	}
-	db, _ := filepath.Abs(s.cfg.DatabasePath)
-	st, _ := filepath.Abs(s.cfg.StoragePath)
+	db, _ := rutaReal(s.cfg.DatabasePath)
+	st, _ := rutaReal(s.cfg.StoragePath)
 	responderJSON(w, 200, map[string]any{"rut_empresa": rut, "rut_usuario": ru, "clave_tributaria": descifrar(trib), "clave_certificado": descifrar(cert),
 		"database_path": db, "storage_path": st})
+}
+
+// rutaReal es Path(...).resolve() de Python: absoluta y con los enlaces simbólicos resueltos
+// (en macOS /var es /private/var; sin esto el contrato difiere en las rutas).
+func rutaReal(p string) (string, error) {
+	abs, err := filepath.Abs(p)
+	if err != nil {
+		return p, err
+	}
+	if real, err := filepath.EvalSymlinks(abs); err == nil {
+		return real, nil
+	}
+	return abs, nil
 }

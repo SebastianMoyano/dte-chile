@@ -223,6 +223,15 @@ Cuando el último endpoint pasa, se quita el sidecar (PyInstaller) y queda un bi
 
 No se porta: `mcp_server.py`, la skill de correos y `tools/captura-sii` (herramientas del operador).
 
+**La prueba final, en un solo comando** (2026-10-11): `./tools/prueba_final.sh` corre todos los gates en
+orden —corpus dorado en Python y en Go (byte a byte), práctica sin red, `go vet` + `go test` del núcleo
+(xsd 1.070 vectores, pdf417, portal, rcv, rvd, sii, siiengine, servidor), esquema dorado, contrato dorado
+con los dos motores sobre una COPIA de la base (203 pasos), y la app (vet + el motor Go en proceso sobre
+una carpeta de datos vacía; `--app` también compila el bundle Wails)— y sale 0 solo si todo pasa.
+`--sin-red` salta los pasos que consultan al SII (es lo que corre la CI, `.github/workflows/dorado.yml`).
+Lo que la prueba final NO cubre, porque son transacciones reales que lanza quien opera: una emisión
+real por el SII engine desde Go (`CadenasVerificadas`), una boleta real por el REST y un RVD aceptados.
+
 **Cómo se porta una ruta** (desde el paso 1): se escribe en `nucleo/servidor` con el mismo JSON y
 los mismos códigos (envoltorio `{"error": {codigo, mensaje, detalle?, request_id}}`, 422
 `validacion`, 404 `no_encontrado`, 401 `autenticacion`), se agrega a `tools/contrato_api.py`, se
