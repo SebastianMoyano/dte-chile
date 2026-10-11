@@ -71,6 +71,7 @@ func (s *Servidor) rutas() {
 	s.rutasKeystore(s.mux)
 	s.rutasDocumentos(s.mux)
 	s.rutasSimulacion(s.mux)
+	s.rutasXSD(s.mux)
 	if s.cfg.CarpetaApp != "" {
 		if st, err := os.Stat(s.cfg.CarpetaApp); err == nil && st.IsDir() {
 			fs := http.StripPrefix("/app/", http.FileServer(http.Dir(s.cfg.CarpetaApp)))

@@ -2,7 +2,7 @@ package servidor
 
 // /api/v1/simulacion/*: la práctica con EMPRESA DEMO SPA, réplica de api/routes/simulacion.py
 // y core/simulacion.py, emitiendo con el núcleo Go (nucleo/emision) y dibujando el PDF con
-// nucleo/pdf. Solo la validación XSD (POST /api/v1/dte/validar-xml) se le pide todavía al motor
+// nucleo/pdf y la validación XSD con nucleo/xsd. Nada se le pide ya al motor
 // Python, con la misma autorización de la petición; sin motor Python, la práctica emite sin XSD.
 
 import (
@@ -20,6 +20,7 @@ import (
 
 	"dtechile/nucleo/emision"
 	"dtechile/nucleo/xmlgen"
+	"dtechile/nucleo/xsd"
 )
 
 func (s *Servidor) rutasSimulacion(mux *http.ServeMux) {
@@ -165,29 +166,8 @@ func (s *Servidor) emitirDemo(r *http.Request, tipo int, items []itemDemo, recep
 	if err != nil {
 		return 0, err
 	}
-	var validar func([]byte) error
-	if s.cfg.MotorPython != "" {
-		validar = func(xml []byte) error {
-			cuerpo, _ := json.Marshal(map[string]string{"xml_b64": base64.StdEncoding.EncodeToString(xml)})
-			st, b, err := s.motorPython(r, "POST", "/api/v1/dte/validar-xml", cuerpo)
-			if err != nil {
-				return nil // sin validador disponible: la práctica sigue (como la app)
-			}
-			var v struct {
-				Valido  bool     `json:"valido"`
-				Errores []string `json:"errores"`
-			}
-			if st != 200 || json.Unmarshal(b, &v) != nil {
-				return nil
-			}
-			if !v.Valido {
-				return fmt.Errorf("%s", strings.Join(v.Errores, "; "))
-			}
-			return nil
-		}
-	}
 	res, err := emision.Emitir(emision.Contexto{Almacen: s.alm, Cert: cert, StorageBase: s.carpetaDemo(), Ambiente: ambienteDemo,
-		FechaResolucion: "2026-01-01", NumeroResolucion: 0, Marca: time.Now().Format("2006-01-02T15:04:05"), Validar: validar}, d)
+		FechaResolucion: "2026-01-01", NumeroResolucion: 0, Marca: time.Now().Format("2006-01-02T15:04:05"), Validar: xsd.ValidarError}, d)
 	if err != nil {
 		return 0, err
 	}

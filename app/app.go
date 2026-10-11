@@ -19,6 +19,7 @@ import (
 	"dtechile/nucleo/emision"
 	"dtechile/nucleo/pdf"
 	"dtechile/nucleo/valores"
+	"dtechile/nucleo/xsd"
 )
 
 // Estado es lo que la interfaz necesita saber del motor. Nunca incluye la clave.
@@ -247,28 +248,10 @@ func (a *App) EmitirNucleo(negocioID int, docJSON string) (string, error) {
 	if marca == "" {
 		marca = time.Now().Format("2006-01-02T15:04:05")
 	}
-	// XSD: lo valida el motor Python antes de que el núcleo escriba nada.
-	validar := func(xml []byte) error {
-		cuerpo, _ := json.Marshal(map[string]string{"xml_b64": base64.StdEncoding.EncodeToString(xml)})
-		r, err := a.API("POST", "/api/v1/dte/validar-xml", string(cuerpo))
-		if err != nil {
-			return err
-		}
-		var v struct {
-			Valido  bool     `json:"valido"`
-			Errores []string `json:"errores"`
-		}
-		if r.Status != 200 || json.Unmarshal([]byte(r.Cuerpo), &v) != nil {
-			return fmt.Errorf("validador no disponible (%d): %s", r.Status, r.Cuerpo)
-		}
-		if !v.Valido {
-			return fmt.Errorf("%s", strings.Join(v.Errores, "; "))
-		}
-		return nil
-	}
+	// XSD: nucleo/xsd (mismo veredicto que lxml) antes de que el núcleo escriba nada.
 	res, err := emision.Emitir(emision.Contexto{Almacen: alm, Cert: ctx.Cert, StorageBase: ctx.StoragePath,
 		Ambiente: ctx.Ambiente, FechaResolucion: ctx.FechaResolucion, NumeroResolucion: ctx.NumeroResolucion,
-		Marca: marca, Validar: validar}, doc)
+		Marca: marca, Validar: xsd.ValidarError}, doc)
 	if err != nil {
 		return "", err
 	}

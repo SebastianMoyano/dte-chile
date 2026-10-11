@@ -5,7 +5,7 @@ error y el JSON completo (ignorando campos volátiles).
 
 Uso (los dos motores corriendo, con el MISMO APP_SHELL_KEY en el entorno de ambos):
   APP_SHELL_KEY=… .venv/bin/python tools/contrato_api.py --python http://127.0.0.1:8771 --go http://127.0.0.1:8010
-  … --escenario valores|auth|apikeys|keystore|todos   (default: todos)
+  … --escenario valores|auth|apikeys|simulacion|xsd|keystore|todos   (default: todos)
   … --token <jwt o api key>                            (si no, APP_SHELL_KEY del entorno)
   … --sin-auth                                         (además, cada GET sin token → 401)
 
@@ -29,6 +29,20 @@ import uuid
 IGNORAR_SIEMPRE = {"request_id", "actualizado", "creado", "creado_en", "ultimo_acceso", "ultimo_uso", "actualizado_en"}
 RAIZ = pathlib.Path(__file__).resolve().parent.parent
 CERT_DEMO = RAIZ / "tests" / "dorado" / "fixtures" / "cert_demo.p12"
+SOBRE_FACTURA = RAIZ / "tests" / "dorado" / "esperado" / "02_factura_reunion" / "envio.xml"
+SOBRE_BOLETAS = RAIZ / "tests" / "dorado" / "esperado" / "14_sobre_dos_boletas" / "envio.xml"
+
+
+def b64(datos: bytes) -> str:
+    import base64
+    return base64.b64encode(datos).decode("ascii")
+
+
+def sobre(ruta, reemplazo=None) -> str:
+    datos = ruta.read_bytes()
+    if reemplazo:
+        datos = datos.replace(reemplazo[0], reemplazo[1], 1)
+    return b64(datos)
 
 
 def paso(metodo, ruta, cuerpo=None, ignorar=(), guarda=None, archivo=None, solo=None, espera=None):
@@ -104,6 +118,17 @@ ESCENARIOS = {
         paso("GET", "/api/v1/dte/documentos/emisores", ignorar={"documentos", "ultimo"}),
         paso("GET", "/api/v1/dte/emisor"),
         paso("GET", "/api/v1/dte/documentos?limite=abc"),
+    ],
+    # XSD: mismo veredicto y tipo; los textos de los errores son de cada validador (lxml / nucleo/xsd)
+    "xsd": [
+        paso("POST", "/api/v1/dte/validar-xml", {"xml_b64": sobre(SOBRE_FACTURA)}),
+        paso("POST", "/api/v1/dte/validar-xml", {"xml_b64": sobre(SOBRE_BOLETAS)}),
+        paso("POST", "/api/v1/dte/validar-xml", {"xml_b64": sobre(SOBRE_FACTURA, (b"<RutEmisor>77777777-7", b"<RutEmisor>77777777-X"))}, ignorar={"errores", "mensaje"}),
+        paso("POST", "/api/v1/dte/validar-xml", {"xml_b64": sobre(SOBRE_BOLETAS, (b"<TpoDTE>39", b"<TpoDTE>33"))}, ignorar={"errores", "mensaje"}),
+        paso("POST", "/api/v1/dte/validar-xml", {"xml_b64": sobre(SOBRE_FACTURA, (b"</EnvioDTE>", b""))}, ignorar={"errores", "mensaje"}),
+        paso("POST", "/api/v1/dte/validar-xml", {"xml_b64": b64(b"<Otro/>")}, ignorar={"errores", "mensaje"}),
+        paso("POST", "/api/v1/dte/validar-xml", {"xml_b64": "no-es-base64!!"}, ignorar={"mensaje"}),
+        paso("POST", "/api/v1/dte/validar-xml", {}),
     ],
     "keystore": [
         paso("POST", "/api/v1/keystore/certificados", {"password": "demo", "nombre": "demo {motor}"}, archivo=str(CERT_DEMO), ignorar={"id", "nombre"}, guarda="id"),

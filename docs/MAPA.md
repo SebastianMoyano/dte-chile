@@ -32,6 +32,7 @@ Código y comentarios **en español**.
 | **Volver a dibujar el PDF de un documento** (solo XML: emitidos por Go o importados) | `core/dte_xml.py` → `POST /api/v1/dte/documentos/{id}/pdf` |
 | **App de escritorio** (Go + Wails, motor como sidecar o empaquetado con PyInstaller, clave efímera) | [`APP.md`](APP.md) → `app/`, `motor.spec` |
 | **Portar el núcleo a Go/Rust** (plan por fases, criterios, riesgos) | [`PLAN-PORT.md`](PLAN-PORT.md) → `nucleo/` (Go; fases 1-4; `test_fase2.py`, `fase3_envio.py`, CI `.github/workflows/dorado.yml`) |
+| **Validar un XML contra el XSD del SII** (en Python y en Go, mismo veredicto) | `core/schema_validator.py` (lxml) · `nucleo/xsd/` (sin libxml2; vectores de paridad `tools/generar_xsd_vectores.py`) · `POST /api/v1/dte/validar-xml` en los dos motores |
 | **Verificar que la salida no cambió / probar un port** (byte a byte, sin SII) | [`DORADO.md`](DORADO.md) → `test_dorado.py`, `tests/dorado/`, `core/reloj.py` |
 | **Practicar sin riesgo** (EMPRESA DEMO SPA: mismo pipeline, CAF y certificado ficticios, sin envío) | [`APP.md`](APP.md) → `core/simulacion.py`, `test_simulacion.py` |
 | **Enseñar a facturar y declarar** (curso por tramos, app para quien no sabe nada, videos) | [`aprender/00-plan.md`](aprender/00-plan.md) |
