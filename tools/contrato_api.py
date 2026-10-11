@@ -5,7 +5,7 @@ error y el JSON completo (ignorando campos volátiles).
 
 Uso (los dos motores corriendo, con el MISMO APP_SHELL_KEY en el entorno de ambos):
   APP_SHELL_KEY=… .venv/bin/python tools/contrato_api.py --python http://127.0.0.1:8771 --go http://127.0.0.1:8010
-  … --escenario valores|auth|apikeys|simulacion|xsd|emitir|rutas|keystore|todos   (default: todos)
+  … --escenario valores|auth|apikeys|simulacion|xsd|emitir|rutas|portal|keystore|todos   (default: todos)
   … --token <jwt o api key>                            (si no, APP_SHELL_KEY del entorno)
   … --sin-auth                                         (además, cada GET sin token → 401)
 
@@ -242,6 +242,25 @@ ESCENARIOS = {
         paso("POST", "/api/v1/mipyme/diagnostico", {"rut_empresa": "77777777-7"}),
         paso("POST", "/api/v1/mipyme/importar", {"rut_empresa": "77777777-7", "rut_usuario": "12345678-5"}),
         paso("POST", "/api/v1/mipyme/sincronizar", {}),
+    ],
+    # portal del SII con certificado: validación local + consultas públicas (RUT ficticio → no autorizado)
+    "portal": [
+        paso("GET", "/api/v1/keystore/empresa?rut=77777777-7"),
+        paso("GET", "/api/v1/keystore/empresa?rut=77777777-7&ambiente=produccion"),
+        paso("GET", "/api/v1/keystore/empresa"),
+        paso("GET", "/api/v1/keystore/certificados/999999/empresas"),
+        paso("GET", "/api/v1/keystore/certificados/abc/empresas"),
+        paso("POST", "/api/v1/keystore/negocios", {"rut": "77777777-7"}, multipart=True),
+        paso("POST", "/api/v1/keystore/negocios", {"ambiente": "certificacion"}, multipart=True),
+        paso("POST", "/api/v1/keystore/negocios", {"rut": "77777777-7", "cert_id": "abc"}, multipart=True),
+        paso("GET", "/api/v1/keystore/negocios/999999/estado"),
+        paso("GET", "/api/v1/keystore/negocios/999999/timbraje"),
+        paso("GET", "/api/v1/keystore/negocios/abc/estado"),
+        paso("GET", "/api/v1/onboarding/diagnostico"),
+        paso("GET", "/api/v1/onboarding/diagnostico?cert_id=abc&rut=77777777-7"),
+        paso("GET", "/api/v1/onboarding/diagnostico?cert_id=999999&rut=77777777-7"),
+        paso("GET", "/api/v1/onboarding/cartera?cert_id=999999"),
+        paso("GET", "/api/v1/onboarding/cartera"),
     ],
     "keystore": [
         paso("POST", "/api/v1/keystore/certificados", {"password": "demo", "nombre": "demo {motor}"}, archivo=str(CERT_DEMO), ignorar={"id", "nombre"}, guarda="id"),

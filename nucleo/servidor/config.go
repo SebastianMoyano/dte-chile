@@ -36,6 +36,7 @@ type Config struct {
 	RelojFijo            string // RELOJ_FIJO: hora fija ISO para salidas reproducibles (nunca en producción)
 	RVDSchedulerActivo   bool   // RVD_SCHEDULER_ACTIVO
 	RVDIntervaloSeg      int    // RVD_INTERVALO_SEG
+	NombreSoftware       string // NOMBRE_SOFTWARE: nombre(s) con que este motor se registra en el SII (coma)
 	CarpetaApp           string // app/frontend/dist, servida en /app
 	Valores              map[string]string
 }
@@ -99,6 +100,7 @@ func CargarConfig(rutaEnv string) (*Config, error) {
 		RelojFijo:            get("RELOJ_FIJO", ""),
 		RVDSchedulerActivo:   !strings.EqualFold(get("RVD_SCHEDULER_ACTIVO", "true"), "false") && get("RVD_SCHEDULER_ACTIVO", "true") != "0",
 		RVDIntervaloSeg:      entero(get("RVD_INTERVALO_SEG", "1800"), 1800),
+		NombreSoftware:       get("NOMBRE_SOFTWARE", ""),
 		Valores:              vals,
 	}
 	if c.JWTSecret == "" {

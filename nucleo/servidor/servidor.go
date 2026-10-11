@@ -81,6 +81,7 @@ func (s *Servidor) rutas() {
 	s.rutasGenerar(s.mux)
 	s.rutasMonitoreo(s.mux)
 	s.rutasMipyme(s.mux)
+	s.rutasPortal(s.mux)
 	s.mux.HandleFunc("POST /api/v1/estado/lote", s.protegido(s.estadoLote))
 	if s.cfg.CarpetaApp != "" {
 		if st, err := os.Stat(s.cfg.CarpetaApp); err == nil && st.IsDir() {

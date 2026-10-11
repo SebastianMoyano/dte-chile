@@ -1,0 +1,868 @@
+{
+ "empresa_autorizada": {
+  "rut": "77777777-7",
+  "razon_social": "EMPRESA DEMO SPA",
+  "nro_resolucion": "80",
+  "fecha_resolucion": "22-08-2014",
+  "direccion_regional": "SANTIAGO CENTRO",
+  "documentos": [
+   {
+    "codigo": 33,
+    "descripcion": "FACTURA ELECTRONICA",
+    "autorizado_desde": "01-02-2026",
+    "desautorizado_desde": ""
+   },
+   {
+    "codigo": 34,
+    "descripcion": "FACTURA NO AFECTA O EXENTA ELECTRONICA",
+    "autorizado_desde": "01-02-2026",
+    "desautorizado_desde": "15-03-2026"
+   },
+   {
+    "codigo": 39,
+    "descripcion": "BOLETA ELECTRONICA",
+    "autorizado_desde": "05-02-2026",
+    "desautorizado_desde": ""
+   },
+   {
+    "codigo": 61,
+    "descripcion": "NOTA DE CREDITO ELECTRONICA",
+    "autorizado_desde": "01-02-2026",
+    "desautorizado_desde": ""
+   }
+  ]
+ },
+ "empresa_no_autorizada": null,
+ "empresa_autorizada_real": {
+  "rut": "77777777-7",
+  "razon_social": "RUT DE PRUEBA ASESORIAS & TRIBUTARIAS & MOBILE MB1234 SPA",
+  "nro_resolucion": "99",
+  "fecha_resolucion": "21-10-2014",
+  "direccion_regional": "V",
+  "documentos": [
+   {
+    "codigo": 33,
+    "descripcion": "FACTURA ELECTRONICA",
+    "autorizado_desde": "29-12-2016",
+    "desautorizado_desde": ""
+   },
+   {
+    "codigo": 34,
+    "descripcion": "FACTURA NO AFECTA O EXENTA ELECTRONICA",
+    "autorizado_desde": "29-12-2016",
+    "desautorizado_desde": ""
+   },
+   {
+    "codigo": 43,
+    "descripcion": "LIQUIDACION FACTURA ELECTRONICA",
+    "autorizado_desde": "01-01-2018",
+    "desautorizado_desde": ""
+   },
+   {
+    "codigo": 46,
+    "descripcion": "FACTURA COMPRA ELECTRONICA",
+    "autorizado_desde": "01-01-2018",
+    "desautorizado_desde": ""
+   },
+   {
+    "codigo": 52,
+    "descripcion": "GUIA DESPACHO ELECTRONICA",
+    "autorizado_desde": "29-12-2016",
+    "desautorizado_desde": ""
+   },
+   {
+    "codigo": 56,
+    "descripcion": "NOTA DEBITO ELECTRONICA",
+    "autorizado_desde": "29-12-2016",
+    "desautorizado_desde": ""
+   },
+   {
+    "codigo": 61,
+    "descripcion": "NOTA CREDITO ELECTRONICA",
+    "autorizado_desde": "29-12-2016",
+    "desautorizado_desde": ""
+   },
+   {
+    "codigo": 110,
+    "descripcion": "FACTURA DE EXPORTACION ELECTRONICA",
+    "autorizado_desde": "01-01-2018",
+    "desautorizado_desde": ""
+   },
+   {
+    "codigo": 111,
+    "descripcion": "NOTA DE DEBITO EXPORTACION ELECTRONICA",
+    "autorizado_desde": "01-01-2018",
+    "desautorizado_desde": ""
+   },
+   {
+    "codigo": 112,
+    "descripcion": "NOTA DE CREDITO EXPORTACION ELECTRONICA",
+    "autorizado_desde": "01-01-2018",
+    "desautorizado_desde": ""
+   },
+   {
+    "codigo": 850,
+    "descripcion": "LIBROS CONTALES ELECTRONICOS",
+    "autorizado_desde": "16-10-2007",
+    "desautorizado_desde": ""
+   }
+  ]
+ },
+ "software": {
+  "software": "Motor Demo 2",
+  "resolucion": "0",
+  "fecha_resolucion": "",
+  "mail_admin": "admin@demo.cl",
+  "propio": true,
+  "certificado": false
+ },
+ "software_sii": {
+  "software": "SII",
+  "resolucion": "123",
+  "fecha_resolucion": "2026-01-01",
+  "mail_admin": "",
+  "propio": false,
+  "certificado": true
+ },
+ "empresas_asociadas": [
+  {
+   "rut": "77777777-7",
+   "razon_social": "EMPRESA DEMO SPA"
+  },
+  {
+   "rut": "12345678-5",
+   "razon_social": "ANA DEMO"
+  }
+ ],
+ "timbrajes": [
+  {
+   "tipo_dte": 33,
+   "folio_desde": 1,
+   "folio_hasta": 5,
+   "cantidad": 5,
+   "dia": "10",
+   "mes": "01",
+   "ano": "2026",
+   "mandatario": "ANA DEMO"
+  },
+  {
+   "tipo_dte": 33,
+   "folio_desde": 6,
+   "folio_hasta": 15,
+   "cantidad": 10,
+   "dia": "15",
+   "mes": "02",
+   "ano": "2026",
+   "mandatario": "JUAN PÉREZ"
+  },
+  {
+   "tipo_dte": 33,
+   "folio_desde": 16,
+   "folio_hasta": 17,
+   "cantidad": 2,
+   "dia": "01",
+   "mes": "03",
+   "ano": "2026",
+   "mandatario": "ANA DEMO"
+  }
+ ],
+ "anulables": [
+  {
+   "tipo_dte": 33,
+   "folio_desde": 1,
+   "folio_hasta": 5,
+   "cantidad": 5,
+   "dia": "10",
+   "mes": "01",
+   "ano": "2026",
+   "mandatario": ""
+  },
+  {
+   "tipo_dte": 33,
+   "folio_desde": 6,
+   "folio_hasta": 15,
+   "cantidad": 10,
+   "dia": "15",
+   "mes": "02",
+   "ano": "2026",
+   "mandatario": ""
+  }
+ ],
+ "anulacion": {
+  "af_anular_ok": {
+   "ok": true,
+   "mensaje": "Anulación autorizada por el SII",
+   "folio_desde": 7,
+   "folio_hasta": 9
+  },
+  "af_anular_recep": {
+   "ok": false,
+   "mensaje": "Al menos un folio fue recepcionado (no anulable)",
+   "folio_desde": 7,
+   "folio_hasta": 9
+  },
+  "af_anular_antes": {
+   "ok": false,
+   "mensaje": "El rango ya fue anulado anteriormente",
+   "folio_desde": 7,
+   "folio_hasta": 9
+  },
+  "af_anular_raro": {
+   "ok": false,
+   "mensaje": "Respuesta no reconocida del SII",
+   "folio_desde": 7,
+   "folio_hasta": 9
+  },
+  "sin_padre": {
+   "ok": false,
+   "mensaje": "No hay rango anulable que contenga esos folios",
+   "folio_desde": 100,
+   "folio_hasta": 101
+  }
+ },
+ "situacion_bloqueada": {
+  "33": {
+   "bloqueado": true,
+   "puede_timbrar": false
+  },
+  "61": {
+   "bloqueado": true,
+   "puede_timbrar": false
+  }
+ },
+ "situacion_libre": {
+  "39": {
+   "bloqueado": false,
+   "puede_timbrar": true
+  }
+ },
+ "campos_form": {
+  "RUT_EMP": "77777777",
+  "DV_EMP": "7",
+  "COD_DOCTO": "33",
+  "FOLIO_INI": "18",
+  "FOLIO_FIN": "18",
+  "HORA": "10",
+  "MINUTO": "30",
+  "ACEPTAR": "Generar"
+ },
+ "campos_form_none": null,
+ "diagnosticos": {
+  "sin_propio_exenta": {
+   "rut": "77777777-7",
+   "razon_social": "EMPRESA DEMO SPA",
+   "estado": "sin_propio",
+   "etiqueta": "Emite por el gratuito del SII",
+   "resumen": "EMPRESA DEMO SPA: emite por el gratuito del sii.",
+   "listo_para_emitir": false,
+   "chequeos": [
+    {
+     "id": "empresa",
+     "titulo": "Empresa reconocida en el SII",
+     "estado": "ok",
+     "detalle": "EMPRESA DEMO SPA"
+    },
+    {
+     "id": "facturador",
+     "titulo": "Inscrita como facturadora electrónica",
+     "estado": "ok",
+     "detalle": "Autorizada a emitir: 34, 41"
+    },
+    {
+     "id": "software",
+     "titulo": "Software de facturación actual",
+     "estado": "atencion",
+     "detalle": "Emite con «SII» — hay que cambiarlo a Motor Demo."
+    },
+    {
+     "id": "certificacion",
+     "titulo": "Certificación del software propio",
+     "estado": "falta",
+     "detalle": "No iniciada"
+    },
+    {
+     "id": "folios",
+     "titulo": "Folios / timbraje para el set de pruebas",
+     "estado": "ok",
+     "detalle": "Sin bloqueos detectados"
+    }
+   ],
+   "acciones": [
+    {
+     "titulo": "Registrar tu software en el SII",
+     "detalle": "Declarar «Motor Demo» como tu software de facturación (Actualización de datos del contribuyente).",
+     "modo": "consentimiento",
+     "hecho": false,
+     "urgente": false
+    },
+    {
+     "titulo": "Completar el set de pruebas",
+     "detalle": "Emitir y validar los documentos del set de certificación (el sistema lo hace).",
+     "modo": "auto",
+     "hecho": false,
+     "urgente": false
+    },
+    {
+     "titulo": "Obtener la resolución del SII",
+     "detalle": "Al terminar el set, el SII emite la resolución que autoriza tu software.",
+     "modo": "auto",
+     "hecho": false,
+     "urgente": false
+    },
+    {
+     "titulo": "Activar en producción",
+     "detalle": "Cambiar el software de facturación de «SII» a Motor Demo (Actualización de datos). Requiere tu autorización.",
+     "modo": "consentimiento",
+     "hecho": false,
+     "urgente": false
+    },
+    {
+     "titulo": "Declarar el modelo de emisión de boletas (si cobras con tarjeta)",
+     "detalle": "Hazlo UNA vez por empresa, con RUT y Clave de la EMPRESA (no la persona) en www4.sii.cl/actatributointernetui: marca «Siempre emito Boleta… aún cuando reciba un pago electrónico» (Modelo 1). Ojo: sin declarar, el SII asume que el voucher de la tarjeta ES tu boleta (Modelo 2) y tus ventas quedarían contadas doble. Guía paso a paso: docs/MODELO-EMISION.md.",
+     "modo": "humano",
+     "hecho": false,
+     "urgente": false
+    }
+   ],
+   "notas": [
+    "Hoy estás autorizada a Factura Exenta (34) pero NO a Factura Afecta (33), y emites por el sistema gratuito del SII. Eso es válido, pero para pasar a software propio (o de mercado) la certificación del SET BÁSICO agrega la Factura Afecta (33). No te obliga a emitir afectas — solo queda habilitada. Por eso proveedores como Haulmer piden 'factura' aunque solo emitas exenta."
+   ]
+  },
+  "externo": {
+   "rut": "77777777-7",
+   "razon_social": "EMPRESA DEMO SPA",
+   "estado": "externo",
+   "etiqueta": "Emite con «Haulmer Facturación» (otro proveedor)",
+   "resumen": "EMPRESA DEMO SPA: emite con «haulmer facturación» (otro proveedor).",
+   "listo_para_emitir": false,
+   "chequeos": [
+    {
+     "id": "empresa",
+     "titulo": "Empresa reconocida en el SII",
+     "estado": "ok",
+     "detalle": "EMPRESA DEMO SPA"
+    },
+    {
+     "id": "facturador",
+     "titulo": "Inscrita como facturadora electrónica",
+     "estado": "ok",
+     "detalle": "Autorizada a emitir: 33, 39"
+    },
+    {
+     "id": "software",
+     "titulo": "Software de facturación actual",
+     "estado": "ok",
+     "detalle": "Emite con «Haulmer Facturación»"
+    },
+    {
+     "id": "certificacion",
+     "titulo": "Certificación del software propio",
+     "estado": "falta",
+     "detalle": "No iniciada"
+    },
+    {
+     "id": "folios",
+     "titulo": "Folios / timbraje para el set de pruebas",
+     "estado": "ok",
+     "detalle": "Sin bloqueos detectados"
+    }
+   ],
+   "acciones": [
+    {
+     "titulo": "Completar el set de pruebas",
+     "detalle": "Emitir y validar los documentos del set de certificación (el sistema lo hace).",
+     "modo": "auto",
+     "hecho": false,
+     "urgente": false
+    },
+    {
+     "titulo": "Obtener la resolución del SII",
+     "detalle": "Al terminar el set, el SII emite la resolución que autoriza tu software.",
+     "modo": "auto",
+     "hecho": false,
+     "urgente": false
+    },
+    {
+     "titulo": "Activar en producción",
+     "detalle": "Cambiar el software de facturación de «Haulmer Facturación» a Motor Demo (Actualización de datos). Requiere tu autorización.",
+     "modo": "consentimiento",
+     "hecho": false,
+     "urgente": false
+    },
+    {
+     "titulo": "Declarar el modelo de emisión de boletas (si cobras con tarjeta)",
+     "detalle": "Hazlo UNA vez por empresa, con RUT y Clave de la EMPRESA (no la persona) en www4.sii.cl/actatributointernetui: marca «Siempre emito Boleta… aún cuando reciba un pago electrónico» (Modelo 1). Ojo: sin declarar, el SII asume que el voucher de la tarjeta ES tu boleta (Modelo 2) y tus ventas quedarían contadas doble. Guía paso a paso: docs/MODELO-EMISION.md.",
+     "modo": "humano",
+     "hecho": false,
+     "urgente": false
+    }
+   ],
+   "notas": [
+    "Esta empresa emite hoy con «Haulmer Facturación», otro proveedor de facturación. Mientras siga así, NO emitas facturas con Motor Demo: los folios del CAF los administra ese proveedor y se chocarían. Para migrar hay que cambiar el software registrado en el SII y traspasar (o anular) los folios que le queden."
+   ]
+  },
+  "emitiendo_nuestro": {
+   "rut": "77777777-7",
+   "razon_social": "EMPRESA DEMO SPA",
+   "estado": "emitiendo",
+   "etiqueta": "Emite en producción con «DTE Chile v2»",
+   "resumen": "EMPRESA DEMO SPA: emite en producción con «dte chile v2».",
+   "listo_para_emitir": true,
+   "chequeos": [
+    {
+     "id": "empresa",
+     "titulo": "Empresa reconocida en el SII",
+     "estado": "ok",
+     "detalle": "EMPRESA DEMO SPA"
+    },
+    {
+     "id": "facturador",
+     "titulo": "Inscrita como facturadora electrónica",
+     "estado": "ok",
+     "detalle": "Autorizada a emitir: 33, 39"
+    },
+    {
+     "id": "software",
+     "titulo": "Software de facturación actual",
+     "estado": "ok",
+     "detalle": "Emite con «DTE Chile v2»"
+    },
+    {
+     "id": "certificacion",
+     "titulo": "Certificación del software propio",
+     "estado": "ok",
+     "detalle": "Certificado"
+    },
+    {
+     "id": "folios",
+     "titulo": "Folios / timbraje para el set de pruebas",
+     "estado": "ok",
+     "detalle": "Sin bloqueos detectados"
+    }
+   ],
+   "acciones": [
+    {
+     "titulo": "Todo listo",
+     "detalle": "Ya emites en producción con Motor Demo.",
+     "modo": "auto",
+     "hecho": true,
+     "urgente": false
+    },
+    {
+     "titulo": "Declarar el modelo de emisión de boletas (si cobras con tarjeta)",
+     "detalle": "Hazlo UNA vez por empresa, con RUT y Clave de la EMPRESA (no la persona) en www4.sii.cl/actatributointernetui: marca «Siempre emito Boleta… aún cuando reciba un pago electrónico» (Modelo 1). Ojo: sin declarar, el SII asume que el voucher de la tarjeta ES tu boleta (Modelo 2) y tus ventas quedarían contadas doble. Guía paso a paso: docs/MODELO-EMISION.md.",
+     "modo": "humano",
+     "hecho": false,
+     "urgente": false
+    }
+   ],
+   "notas": []
+  },
+  "certificando_bloqueada": {
+   "rut": "77777777-7",
+   "razon_social": "EMPRESA DEMO SPA",
+   "estado": "certificando",
+   "etiqueta": "En certificación del software propio",
+   "resumen": "EMPRESA DEMO SPA: en certificación del software propio. Hay folios bloqueados que destrabar.",
+   "listo_para_emitir": false,
+   "chequeos": [
+    {
+     "id": "empresa",
+     "titulo": "Empresa reconocida en el SII",
+     "estado": "ok",
+     "detalle": "EMPRESA DEMO SPA"
+    },
+    {
+     "id": "facturador",
+     "titulo": "Inscrita como facturadora electrónica",
+     "estado": "ok",
+     "detalle": "Autorizada a emitir: 33, 39"
+    },
+    {
+     "id": "software",
+     "titulo": "Software de facturación actual",
+     "estado": "atencion",
+     "detalle": "Emite con «SII» — hay que cambiarlo a Motor Demo."
+    },
+    {
+     "id": "certificacion",
+     "titulo": "Certificación del software propio",
+     "estado": "atencion",
+     "detalle": "En curso"
+    },
+    {
+     "id": "folios",
+     "titulo": "Folios / timbraje para el set de pruebas",
+     "estado": "atencion",
+     "detalle": "Bloqueado en: Factura(33)"
+    }
+   ],
+   "acciones": [
+    {
+     "titulo": "Destrabar folios de prueba",
+     "detalle": "El timbraje está bloqueado por anti-acaparamiento. Se gestiona con la Mesa de Ayuda del SII (600 330 3000).",
+     "modo": "humano",
+     "hecho": false,
+     "urgente": true
+    },
+    {
+     "titulo": "Completar el set de pruebas",
+     "detalle": "Emitir y validar los documentos del set de certificación (el sistema lo hace).",
+     "modo": "auto",
+     "hecho": false,
+     "urgente": false
+    },
+    {
+     "titulo": "Obtener la resolución del SII",
+     "detalle": "Al terminar el set, el SII emite la resolución que autoriza tu software.",
+     "modo": "auto",
+     "hecho": false,
+     "urgente": false
+    },
+    {
+     "titulo": "Activar en producción",
+     "detalle": "Cambiar el software de facturación de «SII» a Motor Demo (Actualización de datos). Requiere tu autorización.",
+     "modo": "consentimiento",
+     "hecho": false,
+     "urgente": false
+    },
+    {
+     "titulo": "Declarar el modelo de emisión de boletas (si cobras con tarjeta)",
+     "detalle": "Hazlo UNA vez por empresa, con RUT y Clave de la EMPRESA (no la persona) en www4.sii.cl/actatributointernetui: marca «Siempre emito Boleta… aún cuando reciba un pago electrónico» (Modelo 1). Ojo: sin declarar, el SII asume que el voucher de la tarjeta ES tu boleta (Modelo 2) y tus ventas quedarían contadas doble. Guía paso a paso: docs/MODELO-EMISION.md.",
+     "modo": "humano",
+     "hecho": false,
+     "urgente": false
+    }
+   ],
+   "notas": []
+  },
+  "certificado": {
+   "rut": "77777777-7",
+   "razon_social": "EMPRESA DEMO SPA",
+   "estado": "certificado",
+   "etiqueta": "Software propio certificado — falta activarlo en producción",
+   "resumen": "EMPRESA DEMO SPA: software propio certificado — falta activarlo en producción.",
+   "listo_para_emitir": false,
+   "chequeos": [
+    {
+     "id": "empresa",
+     "titulo": "Empresa reconocida en el SII",
+     "estado": "ok",
+     "detalle": "EMPRESA DEMO SPA"
+    },
+    {
+     "id": "facturador",
+     "titulo": "Inscrita como facturadora electrónica",
+     "estado": "ok",
+     "detalle": "Autorizada a emitir: 33, 39"
+    },
+    {
+     "id": "software",
+     "titulo": "Software de facturación actual",
+     "estado": "atencion",
+     "detalle": "Emite con «SII» — hay que cambiarlo a Motor Demo."
+    },
+    {
+     "id": "certificacion",
+     "titulo": "Certificación del software propio",
+     "estado": "ok",
+     "detalle": "Certificado"
+    },
+    {
+     "id": "folios",
+     "titulo": "Folios / timbraje para el set de pruebas",
+     "estado": "ok",
+     "detalle": "Sin bloqueos detectados"
+    }
+   ],
+   "acciones": [
+    {
+     "titulo": "Completar el set de pruebas",
+     "detalle": "Emitir y validar los documentos del set de certificación (el sistema lo hace).",
+     "modo": "auto",
+     "hecho": true,
+     "urgente": false
+    },
+    {
+     "titulo": "Obtener la resolución del SII",
+     "detalle": "Al terminar el set, el SII emite la resolución que autoriza tu software.",
+     "modo": "auto",
+     "hecho": true,
+     "urgente": false
+    },
+    {
+     "titulo": "Activar en producción",
+     "detalle": "Cambiar el software de facturación de «SII» a Motor Demo (Actualización de datos). Requiere tu autorización.",
+     "modo": "consentimiento",
+     "hecho": false,
+     "urgente": false
+    },
+    {
+     "titulo": "Declarar el modelo de emisión de boletas (si cobras con tarjeta)",
+     "detalle": "Hazlo UNA vez por empresa, con RUT y Clave de la EMPRESA (no la persona) en www4.sii.cl/actatributointernetui: marca «Siempre emito Boleta… aún cuando reciba un pago electrónico» (Modelo 1). Ojo: sin declarar, el SII asume que el voucher de la tarjeta ES tu boleta (Modelo 2) y tus ventas quedarían contadas doble. Guía paso a paso: docs/MODELO-EMISION.md.",
+     "modo": "humano",
+     "hecho": false,
+     "urgente": false
+    }
+   ],
+   "notas": []
+  },
+  "desconocida": {
+   "rut": "77777777-7",
+   "razon_social": "77777777-7",
+   "estado": "sin_propio",
+   "etiqueta": "Emite por el gratuito del SII",
+   "resumen": "77777777-7: emite por el gratuito del sii. Hay folios bloqueados que destrabar.",
+   "listo_para_emitir": false,
+   "chequeos": [
+    {
+     "id": "empresa",
+     "titulo": "Empresa reconocida en el SII",
+     "estado": "desconocido",
+     "detalle": "El RUT 77777777-7 no aparece en el SII."
+    },
+    {
+     "id": "facturador",
+     "titulo": "Inscrita como facturadora electrónica",
+     "estado": "falta",
+     "detalle": "No aparece autorizada a emitir DTE todavía."
+    },
+    {
+     "id": "software",
+     "titulo": "Software de facturación actual",
+     "estado": "atencion",
+     "detalle": "Emite con «el sistema gratuito del SII» — hay que cambiarlo a Motor Demo."
+    },
+    {
+     "id": "certificacion",
+     "titulo": "Certificación del software propio",
+     "estado": "falta",
+     "detalle": "No iniciada"
+    },
+    {
+     "id": "folios",
+     "titulo": "Folios / timbraje para el set de pruebas",
+     "estado": "atencion",
+     "detalle": "Bloqueado en: NotaCrédito(61)"
+    }
+   ],
+   "acciones": [
+    {
+     "titulo": "Inscribir como facturador electrónico",
+     "detalle": "Declarar ante el SII que la empresa emitirá DTE. Requiere tu autorización (se hace con tu certificado).",
+     "modo": "consentimiento",
+     "hecho": false,
+     "urgente": false
+    },
+    {
+     "titulo": "Registrar tu software en el SII",
+     "detalle": "Declarar «Motor Demo» como tu software de facturación (Actualización de datos del contribuyente).",
+     "modo": "consentimiento",
+     "hecho": false,
+     "urgente": false
+    },
+    {
+     "titulo": "Destrabar folios de prueba",
+     "detalle": "El timbraje está bloqueado por anti-acaparamiento. Se gestiona con la Mesa de Ayuda del SII (600 330 3000).",
+     "modo": "humano",
+     "hecho": false,
+     "urgente": true
+    },
+    {
+     "titulo": "Completar el set de pruebas",
+     "detalle": "Emitir y validar los documentos del set de certificación (el sistema lo hace).",
+     "modo": "auto",
+     "hecho": false,
+     "urgente": false
+    },
+    {
+     "titulo": "Obtener la resolución del SII",
+     "detalle": "Al terminar el set, el SII emite la resolución que autoriza tu software.",
+     "modo": "auto",
+     "hecho": false,
+     "urgente": false
+    },
+    {
+     "titulo": "Activar en producción",
+     "detalle": "Cambiar el software de facturación de «el sistema gratuito del SII» a Motor Demo (Actualización de datos). Requiere tu autorización.",
+     "modo": "consentimiento",
+     "hecho": false,
+     "urgente": false
+    }
+   ],
+   "notas": []
+  }
+ },
+ "cartera": [
+  {
+   "rut": "77777777-7",
+   "razon_social": "EMPRESA DEMO SPA",
+   "estado": "sin_propio",
+   "etiqueta": "Emite por el gratuito del SII",
+   "resumen": "EMPRESA DEMO SPA: emite por el gratuito del sii.",
+   "listo_para_emitir": false,
+   "chequeos": [
+    {
+     "id": "empresa",
+     "titulo": "Empresa reconocida en el SII",
+     "estado": "ok",
+     "detalle": "EMPRESA DEMO SPA"
+    },
+    {
+     "id": "facturador",
+     "titulo": "Inscrita como facturadora electrónica",
+     "estado": "ok",
+     "detalle": "Autorizada a emitir: 33, 39"
+    },
+    {
+     "id": "software",
+     "titulo": "Software de facturación actual",
+     "estado": "atencion",
+     "detalle": "Emite con «SII» — hay que cambiarlo a Motor Demo."
+    },
+    {
+     "id": "certificacion",
+     "titulo": "Certificación del software propio",
+     "estado": "falta",
+     "detalle": "No iniciada"
+    },
+    {
+     "id": "folios",
+     "titulo": "Folios / timbraje para el set de pruebas",
+     "estado": "ok",
+     "detalle": "Sin bloqueos detectados"
+    }
+   ],
+   "acciones": [
+    {
+     "titulo": "Registrar tu software en el SII",
+     "detalle": "Declarar «Motor Demo» como tu software de facturación (Actualización de datos del contribuyente).",
+     "modo": "consentimiento",
+     "hecho": false,
+     "urgente": false
+    },
+    {
+     "titulo": "Completar el set de pruebas",
+     "detalle": "Emitir y validar los documentos del set de certificación (el sistema lo hace).",
+     "modo": "auto",
+     "hecho": false,
+     "urgente": false
+    },
+    {
+     "titulo": "Obtener la resolución del SII",
+     "detalle": "Al terminar el set, el SII emite la resolución que autoriza tu software.",
+     "modo": "auto",
+     "hecho": false,
+     "urgente": false
+    },
+    {
+     "titulo": "Activar en producción",
+     "detalle": "Cambiar el software de facturación de «SII» a Motor Demo (Actualización de datos). Requiere tu autorización.",
+     "modo": "consentimiento",
+     "hecho": false,
+     "urgente": false
+    },
+    {
+     "titulo": "Declarar el modelo de emisión de boletas (si cobras con tarjeta)",
+     "detalle": "Hazlo UNA vez por empresa, con RUT y Clave de la EMPRESA (no la persona) en www4.sii.cl/actatributointernetui: marca «Siempre emito Boleta… aún cuando reciba un pago electrónico» (Modelo 1). Ojo: sin declarar, el SII asume que el voucher de la tarjeta ES tu boleta (Modelo 2) y tus ventas quedarían contadas doble. Guía paso a paso: docs/MODELO-EMISION.md.",
+     "modo": "humano",
+     "hecho": false,
+     "urgente": false
+    }
+   ],
+   "notas": []
+  },
+  {
+   "rut": "76111111-6",
+   "razon_social": "EMPRESA DEMO SPA",
+   "estado": "sin_propio",
+   "etiqueta": "Emite por el gratuito del SII",
+   "resumen": "EMPRESA DEMO SPA: emite por el gratuito del sii.",
+   "listo_para_emitir": false,
+   "chequeos": [
+    {
+     "id": "empresa",
+     "titulo": "Empresa reconocida en el SII",
+     "estado": "ok",
+     "detalle": "EMPRESA DEMO SPA"
+    },
+    {
+     "id": "facturador",
+     "titulo": "Inscrita como facturadora electrónica",
+     "estado": "ok",
+     "detalle": "Autorizada a emitir: 33, 39"
+    },
+    {
+     "id": "software",
+     "titulo": "Software de facturación actual",
+     "estado": "atencion",
+     "detalle": "Emite con «SII» — hay que cambiarlo a Motor Demo."
+    },
+    {
+     "id": "certificacion",
+     "titulo": "Certificación del software propio",
+     "estado": "falta",
+     "detalle": "No iniciada"
+    },
+    {
+     "id": "folios",
+     "titulo": "Folios / timbraje para el set de pruebas",
+     "estado": "ok",
+     "detalle": "Sin bloqueos detectados"
+    }
+   ],
+   "acciones": [
+    {
+     "titulo": "Registrar tu software en el SII",
+     "detalle": "Declarar «Motor Demo» como tu software de facturación (Actualización de datos del contribuyente).",
+     "modo": "consentimiento",
+     "hecho": false,
+     "urgente": false
+    },
+    {
+     "titulo": "Completar el set de pruebas",
+     "detalle": "Emitir y validar los documentos del set de certificación (el sistema lo hace).",
+     "modo": "auto",
+     "hecho": false,
+     "urgente": false
+    },
+    {
+     "titulo": "Obtener la resolución del SII",
+     "detalle": "Al terminar el set, el SII emite la resolución que autoriza tu software.",
+     "modo": "auto",
+     "hecho": false,
+     "urgente": false
+    },
+    {
+     "titulo": "Activar en producción",
+     "detalle": "Cambiar el software de facturación de «SII» a Motor Demo (Actualización de datos). Requiere tu autorización.",
+     "modo": "consentimiento",
+     "hecho": false,
+     "urgente": false
+    },
+    {
+     "titulo": "Declarar el modelo de emisión de boletas (si cobras con tarjeta)",
+     "detalle": "Hazlo UNA vez por empresa, con RUT y Clave de la EMPRESA (no la persona) en www4.sii.cl/actatributointernetui: marca «Siempre emito Boleta… aún cuando reciba un pago electrónico» (Modelo 1). Ojo: sin declarar, el SII asume que el voucher de la tarjeta ES tu boleta (Modelo 2) y tus ventas quedarían contadas doble. Guía paso a paso: docs/MODELO-EMISION.md.",
+     "modo": "humano",
+     "hecho": false,
+     "urgente": false
+    }
+   ],
+   "notas": []
+  }
+ ],
+ "clasificar": {
+  "externo_registrado": [
+   "externo",
+   "Emite con «Otro Soft» (otro proveedor)"
+  ],
+  "nuestro_registrado": [
+   "emitiendo",
+   "Emite en producción con «mi registro pro»"
+  ],
+  "propio_sin_config": [
+   "externo",
+   "Emite con «X» (otro proveedor)"
+  ]
+ }
+}
