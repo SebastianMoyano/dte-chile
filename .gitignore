@@ -46,3 +46,6 @@ storage/mipyme_fallidos/
 # El set de pruebas que asigna el SII lleva el RUT real de la empresa: se guarda en storage/set_pruebas_sii/
 SIISetDePruebas*
 dist/
+
+# El certificado FICTICIO del corpus dorado sí se versiona (L14: claves inventadas, EMPRESA DEMO SPA)
+!tests/dorado/fixtures/cert_demo.*

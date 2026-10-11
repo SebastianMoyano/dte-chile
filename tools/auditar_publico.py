@@ -44,7 +44,7 @@ JWT_EJEMPLO = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwi
 # Valores que no son secretos (plantillas, docs, pruebas).
 PLACEHOLDER = re.compile(r"(cambiar|cambia-|tu-|un-|ejemplo|placeholder|xxx|<|\$|\+|\.Clave|secreta-|secreto-|ci-|clave-de-prueba|openssl|os\.environ|getenv|settings\.|\{\{)", re.I)
 # Dónde sí puede haber una clave privada: los CAF ficticios del corpus y el código que los genera.
-RUTAS_CLAVES_OK = re.compile(r"^(tests/dorado/fixtures/caf_[0-9]+\.xml|nucleo/firma/.*|core/caf\.py|tools/generar_.*|tests/dorado/.*\.py)$")
+RUTAS_CLAVES_OK = re.compile(r"^(tests/dorado/fixtures/(caf_[0-9]+\.xml|cert_demo\..*)|nucleo/firma/.*|core/caf\.py|tools/generar_.*|tests/dorado/.*\.py)$")
 
 
 def dv(cuerpo: str) -> str:
