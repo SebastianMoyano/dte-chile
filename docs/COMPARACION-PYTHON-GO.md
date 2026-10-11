@@ -66,17 +66,29 @@ el motor Go cabe donde el Python no.
 - **Tipos y errores explícitos** (`emision.Error`, `sii.ErrRespuesta`) donde
   Python lanzaba `ValueError` y lo envolvía en 502.
 
-## Lo que perdimos (o quedó distinto)
+## Lo que quedó distinto, y la decisión sobre cada cosa (2026-10-11)
 
-- **Swagger / ReDoc**: Go no sirve `/docs` ni `/redoc` ni `openapi.json`. El
-  health de Go todavía dice `"documentacion": "/docs"` (herencia del contrato);
-  la referencia de rutas vive en `nucleo/README.md` y `docs/PLATAFORMA.md`.
+- **Swagger / ReDoc**: Go no sirve `/docs` ni `/redoc` ni `openapi.json`. La
+  referencia de rutas vive en `nucleo/README.md` y `docs/PLATAFORMA.md`.
+  **Decisión: no hace falta que exista en Go.** (El health sigue diciendo
+  `"documentacion": "/docs"` porque el contrato dorado lo compara con Python.)
 - **PDF**: el de Go es equivalente en contenido (timbre PDF417 verificado con
   vectores), pero no es byte a byte el de ReportLab. Fuentes, kerning y
-  márgenes son los de la librería Go. Si alguien comparaba PDFs con hash, ya no.
-- **MCP por HTTP**: es un `POST /mcp` plano con token o JWT, no el transporte
-  *streamable HTTP* completo de la spec (sin SSE ni sesiones). Por stdio es
-  completo.
+  márgenes son los de la librería Go. **Decisión: no necesita ser igual.** El
+  SII solo valida el XML; el PDF es la representación impresa para el receptor,
+  y lo que importa de ella es el timbre, que sí está verificado.
+- **MCP por HTTP**: es el transporte *Streamable HTTP* de la especificación
+  (2025-06-18) en su forma sin estado: `POST /mcp` responde JSON, `202` a las
+  notificaciones, `405` a `GET`/`DELETE` (no abre streams del servidor ni
+  sesiones, ambas opcionales), valida `Origin` contra DNS rebinding y negocia
+  `MCP-Protocol-Version`. Claude Code lo conecta con `--transport http` y lo
+  reporta `Connected` (`nucleo/mcp/mcp_test.go::TestHTTPStreamable`). Lo que
+  no tiene es SSE para mensajes iniciados por el servidor, que ninguna
+  herramienta nuestra necesita. **Decisión: así está bien**; OAuth para los
+  clientes en la nube se monta encima cuando toque.
+- **Despliegue en mediaplex**: sigue con la imagen Docker de Python
+  (`Dockerfile` parte de `python:3.12-slim`). **Decisión: por ahora se queda
+  así**; pasar al binario Go es un cambio pequeño cuando se quiera.
 - **Scripts de investigación en Python** que no se portaron a propósito:
   `verificar_sii.py`, `crear_caf_mock_61.py`, `reenviar_certificacion.py`,
   `diagnostico_cert*.py`, `fase3_envio.py`, `motor_embebido.py`. Son de un uso

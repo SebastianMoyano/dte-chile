@@ -4,8 +4,8 @@
 // Corre el motor (nucleo/servidor) EN EL MISMO PROCESO y llama a sus rutas sin red; las
 // credenciales nunca viajan por el protocolo: cada herramienta recibe un cert_id del keystore.
 //
-// Transportes: ServirStdio (JSON-RPC por líneas, el de los clientes locales) y Handler (HTTP:
-// POST /mcp con Authorization: Bearer). Lo usan nucleo-mcp y la app de escritorio (--mcp).
+// Transportes: ServirStdio (JSON-RPC por líneas, el de los clientes locales) y Handler (Streamable
+// HTTP de la spec, sin estado: POST /mcp con Authorization: Bearer). Lo usan nucleo-mcp y la app de escritorio (--mcp).
 package mcp
 
 import (
@@ -14,7 +14,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"dtechile/nucleo/servidor"
@@ -230,7 +232,7 @@ func (m *Servidor) Atender(raw []byte) any {
 	}
 	switch req.Method {
 	case "initialize":
-		return respuesta(req.ID, map[string]any{"protocolVersion": "2025-06-18", "capabilities": map[string]any{"tools": map[string]any{}},
+		return respuesta(req.ID, map[string]any{"protocolVersion": ProtocolVersion, "capabilities": map[string]any{"tools": map[string]any{}},
 			"serverInfo": map[string]any{"name": "dte-chile", "version": Version}, "instructions": Instrucciones})
 	case "notifications/initialized", "notifications/cancelled":
 		return nil
@@ -305,34 +307,130 @@ func (m *Servidor) ServirStdio(r io.Reader, w io.Writer) {
 	}
 }
 
-// Handler es el transporte HTTP (POST /mcp). Acepta el token fijo (MCP_AUTH_TOKEN) o un JWT
-// del motor. Pensado para 127.0.0.1 o detrás de un proxy con TLS; nunca HTTP plano a internet.
+// Handler es el transporte Streamable HTTP de la especificación MCP (2025-06-18), en su forma
+// sin estado: un solo endpoint /mcp; POST lleva un mensaje JSON-RPC y responde JSON (la spec
+// permite application/json en vez de un stream SSE); una notificación responde 202 sin cuerpo;
+// GET y DELETE responden 405 porque el servidor no abre streams propios ni sesiones (ambas
+// cosas las permite la spec). Protege contra DNS rebinding validando Origin, acepta y devuelve
+// MCP-Protocol-Version, y exige Authorization: Bearer con el token fijo (MCP_AUTH_TOKEN) o un
+// JWT del motor. Pensado para 127.0.0.1 o detrás de un proxy con TLS; nunca HTTP plano a
+// internet. Es el mismo contrato que los clientes "http" (Claude Code, Cursor, Codex…) hablan,
+// y sobre el que después se monta OAuth para los clientes en la nube.
 func (m *Servidor) Handler(token string) http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /mcp", func(w http.ResponseWriter, r *http.Request) {
-		auth := r.Header.Get("Authorization")
-		t := ""
-		if strings.HasPrefix(strings.ToLower(auth), "bearer ") {
-			t = strings.TrimSpace(auth[7:])
-		}
-		ok := t != "" && token != "" && subtle.ConstantTimeCompare([]byte(t), []byte(token)) == 1
-		if !ok && t != "" {
-			ok = m.s.TokenValido(t) // un JWT del proyecto
-		}
-		if !ok {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(401)
-			_, _ = w.Write([]byte(`{"error":{"codigo":"autenticacion","mensaje":"Token MCP invalido o ausente (Authorization: Bearer)."}}`))
+	mux.HandleFunc("/mcp", func(w http.ResponseWriter, r *http.Request) {
+		if !origenPermitido(r) {
+			httpError(w, 403, "origen", "Origin no permitido (protección contra DNS rebinding).")
 			return
 		}
-		b, _ := io.ReadAll(http.MaxBytesReader(w, r.Body, 4<<20))
+		if !m.autorizado(token, r) {
+			w.Header().Set("WWW-Authenticate", `Bearer realm="mcp"`)
+			httpError(w, 401, "autenticacion", "Token MCP invalido o ausente (Authorization: Bearer).")
+			return
+		}
+		if v := r.Header.Get("MCP-Protocol-Version"); v != "" && !versionSoportada(v) {
+			httpError(w, 400, "version", "MCP-Protocol-Version no soportada: "+v)
+			return
+		}
+		w.Header().Set("MCP-Protocol-Version", ProtocolVersion)
+		switch r.Method {
+		case http.MethodPost:
+		case http.MethodGet, http.MethodDelete:
+			w.Header().Set("Allow", "POST")
+			w.WriteHeader(405) // sin stream del servidor ni sesiones que cerrar
+			return
+		default:
+			w.Header().Set("Allow", "POST")
+			w.WriteHeader(405)
+			return
+		}
+		if !aceptaJSON(r.Header.Get("Accept")) {
+			httpError(w, 406, "accept", "El cliente debe aceptar application/json (o text/event-stream).")
+			return
+		}
+		if ct := r.Header.Get("Content-Type"); ct != "" && !strings.HasPrefix(strings.ToLower(ct), "application/json") {
+			httpError(w, 415, "content_type", "El cuerpo debe ser application/json.")
+			return
+		}
+		b, err := io.ReadAll(http.MaxBytesReader(w, r.Body, 4<<20))
+		if err != nil {
+			httpError(w, 413, "tamano", "Mensaje demasiado grande (máximo 4 MB).")
+			return
+		}
 		resp := m.Atender(b)
-		w.Header().Set("Content-Type", "application/json")
-		if resp == nil {
+		if resp == nil { // notificación o respuesta del cliente: la spec pide 202 sin cuerpo
 			w.WriteHeader(202)
 			return
 		}
+		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(resp)
 	})
 	return mux
+}
+
+// ProtocolVersion es la versión de la especificación MCP que habla este servidor.
+const ProtocolVersion = "2025-06-18"
+
+// versionesSoportadas: la actual y las anteriores con las que el transporte es compatible
+// (la spec pide aceptar la versión que el cliente negoció en initialize).
+var versionesSoportadas = map[string]bool{"2025-06-18": true, "2025-03-26": true, "2024-11-05": true}
+
+func versionSoportada(v string) bool { return versionesSoportadas[v] }
+
+func (m *Servidor) autorizado(token string, r *http.Request) bool {
+	auth := r.Header.Get("Authorization")
+	t := ""
+	if strings.HasPrefix(strings.ToLower(auth), "bearer ") {
+		t = strings.TrimSpace(auth[7:])
+	}
+	if t == "" {
+		return false
+	}
+	if token != "" && subtle.ConstantTimeCompare([]byte(t), []byte(token)) == 1 {
+		return true
+	}
+	return m.s.TokenValido(t) // un JWT del proyecto
+}
+
+// origenPermitido: sin Origin (clientes que no son navegador) pasa; con Origin, solo si es
+// loopback o el mismo host al que se le habló. Es la defensa contra DNS rebinding que exige
+// la spec para servidores locales.
+func origenPermitido(r *http.Request) bool {
+	o := r.Header.Get("Origin")
+	if o == "" || o == "null" {
+		return o == ""
+	}
+	u, err := url.Parse(o)
+	if err != nil || u.Host == "" {
+		return false
+	}
+	h := strings.ToLower(u.Hostname())
+	if h == "localhost" || h == "127.0.0.1" || h == "::1" {
+		return true
+	}
+	rh := r.Host
+	if hh, _, err := net.SplitHostPort(rh); err == nil {
+		rh = hh
+	}
+	return strings.EqualFold(h, rh)
+}
+
+func aceptaJSON(accept string) bool {
+	if strings.TrimSpace(accept) == "" {
+		return true // clientes sin Accept: la spec lo exige, pero no castigamos
+	}
+	for _, p := range strings.Split(accept, ",") {
+		mt := strings.ToLower(strings.TrimSpace(strings.SplitN(p, ";", 2)[0]))
+		switch mt {
+		case "application/json", "text/event-stream", "*/*", "application/*":
+			return true
+		}
+	}
+	return false
+}
+
+func httpError(w http.ResponseWriter, code int, codigo, msg string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	_ = json.NewEncoder(w).Encode(map[string]any{"error": map[string]any{"codigo": codigo, "mensaje": msg}})
 }

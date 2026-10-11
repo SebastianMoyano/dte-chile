@@ -83,9 +83,15 @@ autenticar con OAuth. La decisión (2026-10-11) es:
   producto, y lo local cubre a casi todos sin infraestructura.
 - Lo que sí va dentro del motor cuando se haga: OAuth 2.1 (descubrimiento, registro dinámico,
   PKCE) con el login y los usuarios que ya existen, **alcances** (solo lectura vs. emitir), audit
-  de cada llamada, límite de tasa, revocación desde el panel, y el transporte streamable HTTP
-  completo. Mientras tanto, `nucleo-mcp --http` con `MCP_AUTH_TOKEN` sirve para Claude Code o un
-  agente por API detrás de un proxy con TLS; nunca HTTP plano a internet.
+  de cada llamada, límite de tasa y revocación desde el panel. El transporte ya es el de la
+  spec: `nucleo-mcp --http` habla *Streamable HTTP* (sin estado: `POST /mcp` con JSON, `Origin`
+  validado, `MCP-Protocol-Version`), así que cualquier cliente `http` lo conecta hoy, con
+  `MCP_AUTH_TOKEN` como bearer, detrás de un proxy con TLS; nunca HTTP plano a internet.
+
+  ```bash
+  MCP_AUTH_TOKEN=... nucleo-mcp --http 127.0.0.1:8090 --db dte_database.db
+  claude mcp add --transport http dte http://127.0.0.1:8090/mcp --header "Authorization: Bearer $MCP_AUTH_TOKEN"
+  ```
 
 ## REST y CLI
 

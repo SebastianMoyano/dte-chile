@@ -3,6 +3,7 @@ package mcp
 import (
 	"bytes"
 	"encoding/json"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -168,5 +169,65 @@ func TestArrancarCarpetaDatos(t *testing.T) {
 	}
 	if len(m.Herramientas()) != 20 {
 		t.Fatal("herramientas")
+	}
+}
+
+// TestHTTPStreamable: el transporte HTTP cumple la forma sin estado de Streamable HTTP
+// (spec 2025-06-18): Origin validado, versión del protocolo, 202 en notificaciones, 405 en
+// GET/DELETE, JSON en POST, 401 sin token.
+func TestHTTPStreamable(t *testing.T) {
+	s := motorDePrueba(t, t.TempDir())
+	h := Nuevo(s, 1, "certificacion").Handler("token-de-prueba")
+	pide := func(metodo, cuerpo string, cab map[string]string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(metodo, "http://127.0.0.1:8090/mcp", strings.NewReader(cuerpo))
+		req.Header.Set("Authorization", "Bearer token-de-prueba")
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", "application/json, text/event-stream")
+		for k, v := range cab {
+			req.Header.Set(k, v)
+		}
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		return rec
+	}
+	init := `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"t","version":"0"}}}`
+
+	r := pide("POST", init, nil)
+	if r.Code != 200 || r.Header().Get("Content-Type") != "application/json" || r.Header().Get("MCP-Protocol-Version") != ProtocolVersion {
+		t.Fatalf("initialize: %d %v %s", r.Code, r.Header(), r.Body.String())
+	}
+	var resp map[string]any
+	if err := json.Unmarshal(r.Body.Bytes(), &resp); err != nil || resp["result"].(map[string]any)["protocolVersion"] != ProtocolVersion {
+		t.Fatalf("initialize cuerpo: %s", r.Body.String())
+	}
+	if r := pide("POST", `{"jsonrpc":"2.0","method":"notifications/initialized"}`, nil); r.Code != 202 || r.Body.Len() != 0 {
+		t.Fatalf("notificación: %d %q", r.Code, r.Body.String())
+	}
+	if r := pide("POST", `{"jsonrpc":"2.0","id":2,"method":"tools/list"}`, map[string]string{"MCP-Protocol-Version": "2025-06-18"}); r.Code != 200 || !strings.Contains(r.Body.String(), `"tools"`) {
+		t.Fatalf("tools/list: %d %s", r.Code, r.Body.String())
+	}
+	if r := pide("POST", init, map[string]string{"MCP-Protocol-Version": "1999-01-01"}); r.Code != 400 {
+		t.Fatalf("versión rara: %d", r.Code)
+	}
+	if r := pide("GET", "", nil); r.Code != 405 || r.Header().Get("Allow") != "POST" {
+		t.Fatalf("GET: %d", r.Code)
+	}
+	if r := pide("DELETE", "", nil); r.Code != 405 {
+		t.Fatalf("DELETE: %d", r.Code)
+	}
+	if r := pide("POST", init, map[string]string{"Origin": "http://localhost:3000"}); r.Code != 200 {
+		t.Fatalf("Origin localhost: %d", r.Code)
+	}
+	if r := pide("POST", init, map[string]string{"Origin": "http://127.0.0.1:8090"}); r.Code != 200 {
+		t.Fatalf("Origin mismo host: %d", r.Code)
+	}
+	if r := pide("POST", init, map[string]string{"Origin": "http://malo.example"}); r.Code != 403 {
+		t.Fatalf("Origin ajeno: %d", r.Code)
+	}
+	if r := pide("POST", init, map[string]string{"Accept": "text/html"}); r.Code != 406 {
+		t.Fatalf("Accept html: %d", r.Code)
+	}
+	if r := pide("POST", init, map[string]string{"Authorization": "Bearer otro"}); r.Code != 401 || r.Header().Get("WWW-Authenticate") == "" {
+		t.Fatalf("token malo: %d", r.Code)
 	}
 }

@@ -96,10 +96,12 @@ IA opere el SII: `salud`, `diagnostico`, `salud_folios`, `situacion_folios`, `so
 
 ```bash
 # Levantar el MCP por HTTP (auth por bearer)
-MCP_AUTH_TOKEN="<una-clave-larga-aleatoria>" python mcp_server.py http 0.0.0.0 8090
+MCP_AUTH_TOKEN="<una-clave-larga-aleatoria>" nucleo/bin/nucleo-mcp --http 127.0.0.1:8090 --db dte_database.db
+# (la referencia Python: python mcp_server.py http 0.0.0.0 8090)
 ```
 
 - **Auth**: header `Authorization: Bearer <MCP_AUTH_TOKEN>` (o un JWT del proyecto).
+- **Transporte**: Streamable HTTP de la spec MCP (2025-06-18), sin estado: `POST /mcp` responde JSON, `202` a notificaciones, `405` a `GET`/`DELETE`, `Origin` validado, `MCP-Protocol-Version` negociada. Es lo que `claude mcp add --transport http` espera.
 - **Local sin red**: `python mcp_server.py` (stdio) — ideal para un agente en la misma máquina.
 - Una IA solo necesita **la URL del MCP + el token**. Con eso descubre las herramientas y opera.
 
