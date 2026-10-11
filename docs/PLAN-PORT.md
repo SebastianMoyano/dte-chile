@@ -228,6 +228,31 @@ corren los dos motores con el mismo `APP_SHELL_KEY` y se exige "idéntico" antes
 Python. Auth en Go (`servidor/auth.go`): JWT HS256 con `JWT_SECRET_KEY`, `APP_SHELL_KEY` como el
 usuario dueño, API keys `dte_…` por sha256; los mismos tokens sirven en los dos motores.
 
+### Fase 8 — Transcripción final a Rust (decidida como meta, 2026-10-11)
+
+Criterio de quien opera el proyecto: el código es para la IA, no para el humano; lo que importa
+son los docs y los gates; y "lo mejor que se puede hacer" vale aunque no sea estrictamente
+necesario. Con eso, la forma final del producto es **Rust**, y **Go es la fase de iteración
+rápida**: se porta todo a Go primero (fase 7), porque es el camino más corto para tener el
+motor entero bajo gates, y después se transcribe a Rust módulo por módulo contra esos mismos
+gates (corpus dorado, contrato dorado, esquema dorado, paridad de cuerpos son "bytes de entrada
+→ bytes de salida" y no saben en qué lenguaje está el que los pasa).
+
+Orden de transcripción, por valor de la rigidez de Rust: 1) el núcleo puro (totales, TED,
+xmlgen, c14n, firma, sobre): determinista, verificado byte a byte, donde la corrección importa
+más; 2) SII engine y cliente SII (HTTP, cuerpos exactos); 3) servidor HTTP (contrato dorado);
+4) almacén y migraciones; 5) cascarón de escritorio (Tauri en vez de Wails).
+
+Reglas desde hoy para que la transcripción sea barata: módulos puros y chicos con la frontera
+en bytes; biblioteca estándar, sin frameworks ni generadores de código; cada bloque nace con su
+gate automático. Y cadena de suministro vigilada en los dos lenguajes: pocas dependencias,
+versiones fijadas con sumas (go.sum / Cargo.lock), escáner de vulnerabilidades en CI
+(`govulncheck` / `cargo audit`), y revisión de cada dependencia nueva. Dato (2026-10-11): el
+núcleo Go tiene 3 dependencias directas y ~13 con las indirectas; el motor Python, 66 paquetes;
+un servidor Rust equivalente (tokio, axum, reqwest, rustls, serde, rusqlite, RustCrypto, …)
+trae del orden de 100-150 crates transitivos: la biblioteca estándar de Rust es mínima a
+propósito, la de Go trae HTTP, TLS, criptografía, JSON, XML y SQL.
+
 ## Riesgos y cómo se mitigan
 
 - **C14N distinta** entre lxml y la librería del port. Es el riesgo mayor. Mitigación: la fase
