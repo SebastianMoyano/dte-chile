@@ -17,6 +17,7 @@ import (
 
 	"dtechile/nucleo/almacen"
 	"dtechile/nucleo/emision"
+	"dtechile/nucleo/pdf"
 	"dtechile/nucleo/valores"
 )
 
@@ -271,8 +272,10 @@ func (a *App) EmitirNucleo(negocioID int, docJSON string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	// El PDF lo dibuja Python desde el XML firmado (el núcleo no hace PDF).
-	if p, err := a.API("POST", fmt.Sprintf("/api/v1/dte/documentos/%d/pdf", res.DTEID), ""); err == nil && p.Status == 200 {
+	// El PDF lo dibuja el núcleo (nucleo/pdf) desde el XML firmado, con el TED verbatim.
+	if ruta, err := dibujarPDF(alm, res.DTEID, ctx.StoragePath, ctx.Ambiente, ctx.FechaResolucion, ctx.NumeroResolucion); err == nil {
+		res.PDFPath = ruta
+	} else if p, err2 := a.API("POST", fmt.Sprintf("/api/v1/dte/documentos/%d/pdf", res.DTEID), ""); err2 == nil && p.Status == 200 {
 		var pp struct {
 			PDFPath string `json:"pdf_path"`
 		}
@@ -295,4 +298,52 @@ func (a *App) AbrirPanel(pagina string) {
 	if a.motor.URL != "" {
 		wruntime.BrowserOpenURL(a.ctx, a.motor.URL+"/"+strings.TrimLeft(pagina, "/"))
 	}
+}
+
+// dibujarPDF genera el PDF de un documento recién emitido por el núcleo y guarda su ruta en la
+// base (misma ruta y nombre que el orquestador Python: storage[/simulacion]/pdfs/DTE_<t>_<f>.pdf).
+func dibujarPDF(alm *almacen.Almacen, id int64, storage, ambiente, fechaRes string, numRes int) (string, error) {
+	xml, tipo, folio, err := alm.XMLDe(id)
+	if err != nil {
+		return "", err
+	}
+	raw := make([]byte, 0, len(xml))
+	for _, c := range xml {
+		if c > 0xFF {
+			raw = append(raw, '?')
+		} else {
+			raw = append(raw, byte(c))
+		}
+	}
+	doc, ted, err := pdf.DesdeXML(raw)
+	if err != nil {
+		return "", err
+	}
+	base := storage
+	if ambiente == "simulacion" {
+		base = filepath.Join(base, "simulacion")
+	}
+	if err := os.MkdirAll(filepath.Join(base, "pdfs"), 0o755); err != nil {
+		return "", err
+	}
+	var b []byte
+	var ruta string
+	if tipo == 39 || tipo == 41 {
+		ruta = filepath.Join(base, "pdfs", fmt.Sprintf("BOLETA_%d_%d.pdf", tipo, folio))
+		b, err = pdf.Boleta80mm(doc, ted)
+	} else {
+		ruta = filepath.Join(base, "pdfs", fmt.Sprintf("DTE_%d_%d.pdf", tipo, folio))
+		b, err = pdf.Carta(doc, ted, pdf.Opciones{Ambiente: ambiente, ResolucionFecha: fechaRes, ResolucionNum: numRes})
+	}
+	if err != nil {
+		return "", err
+	}
+	if err := os.WriteFile(ruta, b, 0o644); err != nil {
+		return "", err
+	}
+	rel := ruta
+	if r, err := filepath.Rel(filepath.Dir(storage), ruta); err == nil && !strings.HasPrefix(r, "..") {
+		rel = r
+	}
+	return rel, alm.GuardarPDF(id, rel)
 }

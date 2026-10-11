@@ -1,7 +1,7 @@
 package servidor
 
-// /api/v1/dte/documentos* y /api/v1/dte/emisor (solo lectura), réplica de api/routes/dte.py.
-// La (re)generación del PDF (POST …/pdf) sigue en Python mientras el PDF no esté en Go.
+// /api/v1/dte/documentos* y /api/v1/dte/emisor, réplica de api/routes/dte.py. La
+// (re)generación del PDF (POST …/pdf) la hace nucleo/pdf desde el XML firmado.
 
 import (
 	"database/sql"
@@ -11,12 +11,15 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"dtechile/nucleo/pdf"
 )
 
 func (s *Servidor) rutasDocumentos(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/dte/documentos", s.protegido(s.listarDocumentos))
 	mux.HandleFunc("GET /api/v1/dte/documentos/emisores", s.protegido(s.emisoresDocumentos))
 	mux.HandleFunc("GET /api/v1/dte/documentos/{id}/pdf", s.protegido(s.pdfDocumento))
+	mux.HandleFunc("POST /api/v1/dte/documentos/{id}/pdf", s.protegido(s.regenerarPDFDocumento))
 	mux.HandleFunc("GET /api/v1/dte/documentos/{id}/xml", s.protegido(s.xmlDocumento))
 	mux.HandleFunc("GET /api/v1/dte/emisor", s.protegido(s.emisorConfigurado))
 }
@@ -278,4 +281,113 @@ func (s *Servidor) emisorConfigurado(w http.ResponseWriter, r *http.Request) {
 		"giro": get("EMPRESA_GIRO"), "codigo_actividad": cod, "direccion": get("EMPRESA_DIRECCION"), "comuna": get("EMPRESA_COMUNA"),
 		"ciudad": get("EMPRESA_CIUDAD"), "email": oNulo("EMPRESA_EMAIL"), "telefono": oNulo("EMPRESA_TELEFONO"),
 	})
+}
+
+// rutaParaBD es core/orchestrator.py::ruta_para_bd: relativa al padre del storage si cuelga de
+// él ("storage/pdfs/…"); si no, absoluta.
+func (s *Servidor) rutaParaBD(ruta string) string {
+	padre, err := filepath.Abs(filepath.Dir(s.cfg.StoragePath))
+	if err != nil {
+		return ruta
+	}
+	abs, err := filepath.Abs(ruta)
+	if err != nil {
+		return ruta
+	}
+	rel, err := filepath.Rel(padre, abs)
+	if err != nil || strings.HasPrefix(rel, "..") {
+		return abs
+	}
+	return rel
+}
+
+// regenerarPDF dibuja el PDF de un documento desde su XML firmado (boletas en 80 mm, el resto
+// en carta), lo guarda en storage[/simulacion]/pdfs/ y registra la ruta. Devuelve la ruta.
+func (s *Servidor) regenerarPDF(d filaDTE) (string, error) {
+	xml := texto(d, "xml_firmado")
+	if xml == "" {
+		return "", fmt.Errorf("sin xml")
+	}
+	doc, ted, err := pdf.DesdeXML(bytesLatin1(xml))
+	if err != nil {
+		return "", err
+	}
+	ambiente := texto(d, "ambiente")
+	base := s.cfg.StoragePath
+	if ambiente == "simulacion" {
+		base = filepath.Join(base, "simulacion")
+	}
+	if err := os.MkdirAll(filepath.Join(base, "pdfs"), 0o755); err != nil {
+		return "", err
+	}
+	tipo, folio := int(numero(d["tipo_dte"])), int(numero(d["folio"]))
+	var b []byte
+	var ruta string
+	if tipo == 39 || tipo == 41 {
+		ruta = filepath.Join(base, "pdfs", fmt.Sprintf("BOLETA_%d_%d.pdf", tipo, folio))
+		b, err = pdf.Boleta80mm(doc, ted)
+	} else {
+		ruta = filepath.Join(base, "pdfs", fmt.Sprintf("DTE_%d_%d.pdf", tipo, folio))
+		fecha, num := s.resolucionEmisor(doc.Emisor.Rut, ambienteOEnv(ambiente, s.cfg.SIIAmbiente))
+		b, err = pdf.Carta(doc, ted, pdf.Opciones{Ambiente: ambienteOEnv(ambiente, s.cfg.SIIAmbiente), ResolucionFecha: fecha, ResolucionNum: num})
+	}
+	if err != nil {
+		return "", err
+	}
+	if err := os.WriteFile(ruta, b, 0o644); err != nil {
+		return "", err
+	}
+	rel := s.rutaParaBD(ruta)
+	if err := s.alm.GuardarPDF(int64(numero(d["id"])), rel); err != nil {
+		return "", err
+	}
+	return rel, nil
+}
+
+func ambienteOEnv(a, def string) string {
+	if a == "" {
+		return def
+	}
+	return a
+}
+
+func (s *Servidor) regenerarPDFDocumento(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		responderError(w, r, 422, "validacion", "Los datos enviados no son válidos.", nil)
+		return
+	}
+	d, err := s.dtePorID(id)
+	if err != nil {
+		responderError(w, r, 500, "error_interno", "Ocurrió un error interno. Reporta el request_id al soporte.", nil)
+		return
+	}
+	if d == nil {
+		responderError(w, r, 404, "no_encontrado", fmt.Sprintf("Documento %d no existe", id), nil)
+		return
+	}
+	if texto(d, "xml_firmado") == "" {
+		responderError(w, r, 404, "no_encontrado", "Este documento no tiene XML guardado: no se puede dibujar", nil)
+		return
+	}
+	ruta, err := s.regenerarPDF(d)
+	if err != nil {
+		responderError(w, r, 422, "validacion", "No se pudo dibujar el PDF: "+err.Error(), nil)
+		return
+	}
+	responderJSON(w, 200, map[string]any{"dte_id": id, "pdf_path": ruta})
+}
+
+// bytesLatin1 vuelve el texto (decodificado de ISO-8859-1 al guardarse) a esos bytes; lo que no
+// cabe sale como '?' (errors="replace").
+func bytesLatin1(s string) []byte {
+	out := make([]byte, 0, len(s))
+	for _, c := range s {
+		if c > 0xFF {
+			out = append(out, '?')
+		} else {
+			out = append(out, byte(c))
+		}
+	}
+	return out
 }

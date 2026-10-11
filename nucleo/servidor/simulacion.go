@@ -1,10 +1,9 @@
 package servidor
 
 // /api/v1/simulacion/*: la práctica con EMPRESA DEMO SPA, réplica de api/routes/simulacion.py
-// y core/simulacion.py, emitiendo con el núcleo Go (nucleo/emision). Dos cosas siguen en
-// Python mientras no se porten: la validación XSD (POST /api/v1/dte/validar-xml) y el PDF
-// (POST /api/v1/dte/documentos/{id}/pdf); el servidor se las pide al motor Python con la misma
-// autorización de la petición. Sin motor Python, la práctica emite sin XSD y sin PDF.
+// y core/simulacion.py, emitiendo con el núcleo Go (nucleo/emision) y dibujando el PDF con
+// nucleo/pdf. Solo la validación XSD (POST /api/v1/dte/validar-xml) se le pide todavía al motor
+// Python, con la misma autorización de la petición; sin motor Python, la práctica emite sin XSD.
 
 import (
 	"bytes"
@@ -193,8 +192,12 @@ func (s *Servidor) emitirDemo(r *http.Request, tipo int, items []itemDemo, recep
 		return 0, err
 	}
 	s.db.Exec(`UPDATE dtes SET ambiente=?, estado=? WHERE id=?`, ambienteDemo, estadoDemo, res.DTEID)
-	// PDF: lo dibuja Python desde el XML firmado (el núcleo no hace PDF).
-	s.motorPython(r, "POST", fmt.Sprintf("/api/v1/dte/documentos/%d/pdf", res.DTEID), nil)
+	// PDF desde el XML firmado, con nucleo/pdf (como el orquestador Python).
+	if d, err := s.dtePorID(res.DTEID); err == nil && d != nil {
+		if _, err := s.regenerarPDF(d); err != nil {
+			s.log("práctica: PDF del documento %d no generado: %v", res.DTEID, err)
+		}
+	}
 	return res.DTEID, nil
 }
 

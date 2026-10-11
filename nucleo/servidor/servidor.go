@@ -3,6 +3,7 @@ package servidor
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -130,3 +131,5 @@ func RutaApp(raiz string) string {
 	}
 	return ""
 }
+
+func (s *Servidor) log(format string, a ...any) { log.Printf(format, a...) }

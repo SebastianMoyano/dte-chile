@@ -261,3 +261,16 @@ func (a *Almacen) RegistrarCAF(tipo int, rut string, desde, hasta int, fechaAuto
 	}
 	return res.LastInsertId()
 }
+
+// XMLDe devuelve el XML firmado (texto decodificado de ISO-8859-1), tipo y folio de un documento.
+func (a *Almacen) XMLDe(id int64) (string, int, int, error) {
+	var xml sql.NullString
+	var tipo, folio int
+	if err := a.db.QueryRow(`SELECT xml_firmado, tipo_dte, folio FROM dtes WHERE id=?`, id).Scan(&xml, &tipo, &folio); err != nil {
+		return "", 0, 0, fmt.Errorf("leer xml del dte %d: %w", id, err)
+	}
+	if !xml.Valid || xml.String == "" {
+		return "", 0, 0, fmt.Errorf("el documento %d no tiene XML", id)
+	}
+	return xml.String, tipo, folio, nil
+}
