@@ -42,15 +42,18 @@ gate go_build bash -c 'cd nucleo && go build -o bin/nucleo-dorado ./cmd/nucleo-d
 gate corpus_go "$PY" test_dorado.py --port nucleo/bin/nucleo-dorado
 echo "== 5. esquema dorado"; gate esquema "$PY" tools/esquema_dorado.py --go nucleo/bin/nucleo-servidor
 echo "== 6. contrato dorado (dos motores, copia de la base)"
+puerto_libre() { "$PY" -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1]); s.close()'; }
 contrato() {
   cp dte_database.db "$TMP/db.sqlite" && mkdir -p "$TMP/storage"
   local K; K="$(openssl rand -hex 16)"
+  # puertos libres, no fijos: un servidor ajeno en el puerto de siempre hacía fallar el gate con 404 en todo
+  local PPY PGO; PPY="$(puerto_libre)"; PGO="$(puerto_libre)"
   APP_SHELL_KEY=$K DATABASE_URL="sqlite:///$TMP/db.sqlite" STORAGE_PATH="$TMP/storage" RVD_SCHEDULER_ACTIVO=false \
-    "$PY" -m uvicorn main:app --port 8771 >"$TMP/py.log" 2>&1 & echo $! >"$TMP/py.pid"
+    "$PY" -m uvicorn main:app --port "$PPY" >"$TMP/py.log" 2>&1 & echo $! >"$TMP/py.pid"
   APP_SHELL_KEY=$K DATABASE_URL="sqlite:///$TMP/db.sqlite" STORAGE_PATH="$TMP/storage" RVD_SCHEDULER_ACTIVO=false \
-    nucleo/bin/nucleo-servidor servir --puerto 8010 --db "$TMP/db.sqlite" --motor http://127.0.0.1:8771 >"$TMP/go.log" 2>&1 & echo $! >"$TMP/go.pid"
-  for i in $(seq 1 60); do curl -s -o /dev/null http://127.0.0.1:8771/ && curl -s -o /dev/null http://127.0.0.1:8010/ && break; sleep 0.5; done
-  APP_SHELL_KEY=$K "$PY" tools/contrato_api.py --python http://127.0.0.1:8771 --go http://127.0.0.1:8010 --escenario todos $SIN_RED
+    nucleo/bin/nucleo-servidor servir --puerto "$PGO" --db "$TMP/db.sqlite" --motor "http://127.0.0.1:$PPY" >"$TMP/go.log" 2>&1 & echo $! >"$TMP/go.pid"
+  for i in $(seq 1 60); do curl -s -o /dev/null "http://127.0.0.1:$PPY/" && curl -s -o /dev/null "http://127.0.0.1:$PGO/" && break; sleep 0.5; done
+  APP_SHELL_KEY=$K "$PY" tools/contrato_api.py --python "http://127.0.0.1:$PPY" --go "http://127.0.0.1:$PGO" --escenario todos $SIN_RED
   local rc=$?
   kill "$(cat "$TMP/py.pid")" "$(cat "$TMP/go.pid")" 2>/dev/null; rm -f "$TMP"/*.pid
   return $rc
