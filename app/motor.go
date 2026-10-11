@@ -7,6 +7,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io/fs"
+	"log"
 	"net"
 	"net/http"
 	"os"
@@ -16,25 +18,33 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"dtechile/nucleo/servidor"
 )
 
-// Motor es el proceso Python (uvicorn main:app) que esta app arranca y supervisa.
+// Motor es el motor que esta app arranca y supervisa. Desde la fase 7 del port el motor es
+// `nucleo/servidor` EN ESTE PROCESO (sin Python): escucha en un puerto libre de 127.0.0.1 con
+// una clave efímera (APP_SHELL_KEY) y la interfaz le habla por HTTP a través de `App.API`.
 //
-// Dos modos:
-//   - sidecar (normal): localiza la raíz del repo, usa su `.venv` y arranca uvicorn en un
-//     puerto libre con una clave efímera en APP_SHELL_KEY.
-//   - externo: si existen DTE_API_URL (y DTE_API_KEY), no arranca nada y habla con ese motor
-//     (sirve para desarrollo y para el motor desplegado en otra máquina).
+// Modos:
+//   - go (normal): en desarrollo usa el repo (su .env, base y storage); empaquetado, la carpeta
+//     de datos del usuario. Sin procesos hijos.
+//   - python (DTE_MOTOR=python): el sidecar de antes (uvicorn main:app del repo, o el motor
+//     PyInstaller si viene en el bundle). Queda para comparar durante la transición.
+//   - externo: si existen DTE_API_URL (y DTE_API_KEY), no arranca nada y habla con ese motor.
 type Motor struct {
 	Raiz        string // repo (desarrollo) o carpeta de datos (empaquetado)
 	URL         string
 	Clave       string
 	Externo     bool
-	Empaquetado bool   // el motor viene dentro de la app (PyInstaller)
+	Empaquetado bool   // sin repo al lado: datos en la carpeta del usuario
+	Go          bool   // el motor corre en este proceso (nucleo/servidor)
 	ClaveAdmin  string // clave del usuario admin del panel web (solo empaquetado; del .env de datos)
 	LogPath     string
 	cmd         *exec.Cmd
 	logF        *os.File
+	srv         *servidor.Servidor
+	httpSrv     *http.Server
 }
 
 // localizarRaiz busca la carpeta que tiene `main.py` y `core/`: DTE_REPO, o subiendo desde
@@ -108,9 +118,8 @@ func claveEfimera() string {
 	return "app_" + hex.EncodeToString(b)
 }
 
-// motorEmpaquetado devuelve la ruta del motor congelado (PyInstaller) si la app lo lleva
-// dentro: macOS → Contents/Resources/motor/motor; Windows/Linux → motor/motor(.exe) junto
-// al ejecutable. "" si no está (modo desarrollo: se usa el repo y su .venv).
+// motorEmpaquetado devuelve la ruta del motor Python congelado (PyInstaller) si la app lo
+// lleva dentro (modo python). "" si no está.
 func motorEmpaquetado() string {
 	exe, err := os.Executable()
 	if err != nil {
@@ -132,12 +141,16 @@ func motorEmpaquetado() string {
 
 // carpetaDatos es donde vive todo lo que la app escribe cuando va empaquetada:
 // ~/Library/Application Support/DTE Chile (macOS), %AppData%\DTE Chile, ~/.config/DTE Chile.
+// DTE_DATOS la cambia (pruebas, o quien quiera sus datos en otra carpeta).
 func carpetaDatos() (string, error) {
-	base, err := os.UserConfigDir()
-	if err != nil {
-		return "", err
+	d := os.Getenv("DTE_DATOS")
+	if d == "" {
+		base, err := os.UserConfigDir()
+		if err != nil {
+			return "", err
+		}
+		d = filepath.Join(base, "DTE Chile")
 	}
-	d := filepath.Join(base, "DTE Chile")
 	for _, sub := range []string{"", "logs", "storage"} {
 		if err := os.MkdirAll(filepath.Join(d, sub), 0o755); err != nil {
 			return "", err
@@ -190,6 +203,78 @@ func (m *Motor) Iniciar(ctx context.Context) error {
 		m.Externo = true
 		return m.esperar(ctx, 20*time.Second)
 	}
+	if os.Getenv("DTE_MOTOR") == "python" {
+		return m.iniciarPython(ctx)
+	}
+	return m.iniciarGo(ctx)
+}
+
+// iniciarGo levanta nucleo/servidor en este proceso. Con repo al lado (desarrollo) usa su
+// .env, base y storage; si no, la carpeta de datos del usuario (empaquetado).
+func (m *Motor) iniciarGo(ctx context.Context) error {
+	raiz, err := localizarRaiz()
+	if err != nil || os.Getenv("DTE_DATOS") != "" {
+		d, err := carpetaDatos()
+		if err != nil {
+			return err
+		}
+		admin, err := asegurarEnv(d)
+		if err != nil {
+			return err
+		}
+		m.Empaquetado, m.ClaveAdmin, raiz = true, admin, d
+	}
+	m.Raiz, m.Go = raiz, true
+	cfg, err := servidor.CargarConfig(filepath.Join(raiz, ".env"))
+	if err != nil {
+		return err
+	}
+	// Python resolvía las rutas relativas desde su cwd (la raíz); aquí no hay cwd que valga.
+	if !filepath.IsAbs(cfg.DatabasePath) {
+		cfg.DatabasePath = filepath.Join(raiz, cfg.DatabasePath)
+	}
+	if !filepath.IsAbs(cfg.StoragePath) {
+		cfg.StoragePath = filepath.Join(raiz, cfg.StoragePath)
+	}
+	m.Clave = claveEfimera()
+	cfg.AppShellKey = m.Clave
+	cfg.MotorPython = os.Getenv("DTE_MOTOR_PYTHON") // "" = nada reenviado
+	if sub, err := fs.Sub(assets, "frontend/dist"); err == nil {
+		cfg.AppFS = http.FS(sub) // la misma interfaz, en el navegador (/app)
+	}
+	_ = os.MkdirAll(filepath.Join(raiz, "logs"), 0o755)
+	m.LogPath = filepath.Join(raiz, "logs", "app-motor.log")
+	m.logF, err = os.OpenFile(m.LogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	if err != nil {
+		return err
+	}
+	log.SetOutput(m.logF)
+	port, err := puertoLibre()
+	if err != nil {
+		return err
+	}
+	m.URL = "http://127.0.0.1:" + strconv.Itoa(port)
+	fmt.Fprintf(m.logF, "\n==== %s arranque motor Go en %s (base %s) ====\n", time.Now().Format(time.RFC3339), m.URL, cfg.DatabasePath)
+	s, err := servidor.Nuevo(cfg)
+	if err != nil {
+		return fmt.Errorf("no pude arrancar el motor: %w", err)
+	}
+	if s.ClaveAdminGenerada != "" && m.ClaveAdmin == "" {
+		m.ClaveAdmin = s.ClaveAdminGenerada
+	}
+	m.srv = s
+	l, err := net.Listen("tcp", "127.0.0.1:"+strconv.Itoa(port))
+	if err != nil {
+		s.Cerrar()
+		return err
+	}
+	m.httpSrv = &http.Server{Handler: s.Handler(), ReadHeaderTimeout: 10 * time.Second}
+	go func() { _ = m.httpSrv.Serve(l) }()
+	return m.esperar(ctx, 20*time.Second)
+}
+
+// iniciarPython es el sidecar de antes (uvicorn del repo o el motor PyInstaller del bundle).
+func (m *Motor) iniciarPython(ctx context.Context) error {
 	var programa []string
 	var raiz string
 	if emp := motorEmpaquetado(); emp != "" {
@@ -225,7 +310,7 @@ func (m *Motor) Iniciar(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(m.logF, "\n==== %s arranque motor en %s ====\n", time.Now().Format(time.RFC3339), m.URL)
+	fmt.Fprintf(m.logF, "\n==== %s arranque motor Python en %s ====\n", time.Now().Format(time.RFC3339), m.URL)
 
 	// Sin CommandContext: el contexto de Wails se cancela antes de OnShutdown y mataría el
 	// motor sin dejarnos cerrarlo con cuidado. Detener() se encarga.
@@ -288,26 +373,36 @@ func (m *Motor) vivo() bool {
 	return r.StatusCode == 200
 }
 
-// Detener cierra el motor con cuidado (SIGINT → uvicorn apaga programadores y BD) y si no
-// responde en 5 s lo mata.
+// Detener cierra el motor con cuidado: el Go en proceso (apaga el HTTP, el programador y la
+// base); el sidecar Python con SIGINT y, si no responde en 5 s, lo mata.
 func (m *Motor) Detener() {
-	if m.cmd == nil || m.cmd.Process == nil {
-		return
+	if m.httpSrv != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		_ = m.httpSrv.Shutdown(ctx)
+		cancel()
+		m.httpSrv = nil
 	}
-	done := make(chan struct{})
-	go func() { _, _ = m.cmd.Process.Wait(); close(done) }()
-	if runtime.GOOS != "windows" {
-		_ = m.cmd.Process.Signal(os.Interrupt)
-	} else {
-		_ = m.cmd.Process.Kill()
+	if m.srv != nil {
+		m.srv.Cerrar()
+		m.srv = nil
 	}
-	select {
-	case <-done:
-	case <-time.After(5 * time.Second):
-		_ = m.cmd.Process.Kill()
+	if m.cmd != nil && m.cmd.Process != nil {
+		done := make(chan struct{})
+		go func() { _, _ = m.cmd.Process.Wait(); close(done) }()
+		if runtime.GOOS != "windows" {
+			_ = m.cmd.Process.Signal(os.Interrupt)
+		} else {
+			_ = m.cmd.Process.Kill()
+		}
+		select {
+		case <-done:
+		case <-time.After(5 * time.Second):
+			_ = m.cmd.Process.Kill()
+		}
+		m.cmd = nil
 	}
 	if m.logF != nil {
 		m.logF.Close()
+		m.logF = nil
 	}
-	m.cmd = nil
 }

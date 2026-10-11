@@ -1,9 +1,9 @@
-// DTE Chile — cascarón de escritorio (Wails) sobre el motor Python.
+// DTE Chile — cascarón de escritorio (Wails) con el motor Go adentro.
 //
-// El motor (FastAPI, `main.py`) sigue siendo la única fuente de verdad: esta app lo arranca
-// como proceso hijo en un puerto libre de 127.0.0.1, le pasa una clave efímera
-// (APP_SHELL_KEY) y le habla por HTTP. La interfaz (frontend/dist) nunca ve la clave: todas
-// las llamadas pasan por `App.API`, que las firma desde Go.
+// El motor es `nucleo/servidor` corriendo en este mismo proceso (fase 7 del port): escucha en
+// un puerto libre de 127.0.0.1 con una clave efímera (APP_SHELL_KEY) y la interfaz
+// (frontend/dist) le habla por HTTP a través de `App.API`, que firma las llamadas desde Go.
+// La interfaz nunca ve la clave. Con DTE_MOTOR=python se arranca el sidecar Python de antes.
 package main
 
 import (

@@ -78,6 +78,11 @@ Ver [`docs/LECCIONES-SII.md`](docs/LECCIONES-SII.md).
 
 **`core/config.py`** — single `settings` singleton (pydantic-settings, reads `.env`). Import it, don't read env vars directly.
 
+**El motor también existe en Go** (`nucleo/`, fase 7 de `docs/PLAN-PORT.md`, 2026-10-11): `nucleo/servidor` atiende
+las 69 rutas de la API con el mismo contrato que FastAPI (`tools/contrato_api.py` lo exige idéntico), y la app
+de escritorio (`app/`) lo corre en su propio proceso, sin Python. Python sigue siendo la referencia que fija el
+comportamiento (corpus dorado, contrato dorado); cualquier cambio en una ruta se hace en los dos y se mide.
+
 ## Conventions & gotchas
 
 - **XML for the SII is `ISO-8859-1`, not UTF-8**, and sent without pretty-printing. The DB stores the signed XML decoded as ISO-8859-1.

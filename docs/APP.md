@@ -1,6 +1,7 @@
 # App de escritorio (`app/`)
 
-Cascarón multiplataforma en **Go + Wails v2** sobre el motor Python. No reimplementa nada:
+Cascarón multiplataforma en **Go + Wails v2** con el motor Go (`nucleo/servidor`) adentro
+(desde la fase 7 del port, 2026-10-11; antes arrancaba el motor Python como sidecar). No reimplementa nada:
 arranca `main.py` como proceso hijo y le habla por HTTP. La idea de producto está en
 [`aprender/00-plan.md`](aprender/00-plan.md): una app para quien no sabe nada de finanzas,
 con tres acciones ("Cobrarle a alguien", "Mi mes", "Corregir") y una barra que dice siempre
@@ -93,25 +94,49 @@ con el XML registrado, el SII la valida en seco y la app muestra la vista previa
 emitir aparece solo con la cadena 61 verificada desde Go. Los del motor propio siguen por el
 panel web.
 
+## El motor Go dentro de la app (fase 7, paso 9 — 2026-10-11)
+
+La app ya no arranca Python: `app/motor.go::iniciarGo` levanta `nucleo/servidor` **en el mismo
+proceso**, en un puerto libre de 127.0.0.1, con la clave efímera `APP_SHELL_KEY`; `App.API`
+sigue hablándole por HTTP, así que la interfaz y el puente del navegador no cambian. Sin Python,
+sin PyInstaller, sin procesos hijos.
+
+- **Desarrollo** (hay repo al lado): usa el `.env`, la base y el `storage/` del repo (las rutas
+  relativas del `.env` se resuelven desde la raíz del repo, como hacía uvicorn con su cwd).
+- **Empaquetado** (sin repo, o con `DTE_DATOS=<carpeta>`): la carpeta de datos del usuario
+  (`~/Library/Application Support/DTE Chile`, `%AppData%`, `~/.config`), con el `.env` creado por
+  la app la primera vez (secretos generados ahí, `ADMIN_PASSWORD` que Inicio muestra). El
+  servidor Go crea el usuario `admin` en el primer arranque con esa clave (`asegurarAdmin`,
+  lo mismo que hacía `main.py`).
+- **Panel web**: "Abrir el panel" abre `http://127.0.0.1:<puerto>/app/` (la misma interfaz, en el
+  navegador; se entra con `admin` y la clave del panel). Las páginas HTML del panel Python
+  (`/certificados`, `/apikeys`) no existen en el motor Go.
+- `DTE_MOTOR=python` vuelve al sidecar de antes (uvicorn del repo o el motor PyInstaller del
+  bundle), para comparar durante la transición. `DTE_MOTOR_PYTHON=http://…` hace que el Go
+  reenvíe a ese Python lo que no tenga (hoy: nada de la API; sí el buscador público `/consulta`).
+- Gate: `app/motor_test.go::TestMotorGoEnProceso` arranca el motor sobre una carpeta de datos
+  vacía y comprueba `.env`, base, admin, clave efímera (401 sin ella), `/app/` y una boleta de
+  práctica con su PDF, todo sin Python.
+
 ## Empaquetado: la app con el motor adentro
 
 ```bash
-cd app && ./empaquetar-mac.sh      # build/bin/DTE Chile.app (~220 MB), sin repo ni .venv
+cd app && ./empaquetar-mac.sh      # build/bin/DTE Chile.app (motor Go adentro; ~20 MB), sin repo ni .venv
 IDENTIDAD="Developer ID Application: …" ./firmar-mac.sh   # firma y notarización (opcional)
 ```
 
-- `motor.spec` + `motor_embebido.py`: PyInstaller congela el motor (onedir) con `static/` y
-  `core/xsd/` adentro; `empaquetar-mac.sh` lo copia a `Contents/Resources/motor/`.
-- El cascarón detecta el motor empaquetado (`motor.go::motorEmpaquetado`) y lo arranca con
-  **cwd en la carpeta de datos del usuario**: `~/Library/Application Support/DTE Chile`
-  (macOS; `%AppData%` / `~/.config` en los otros). Ahí viven `.env`, `dte_database.db`,
-  `storage/` y `logs/`. Dentro del paquete no se escribe nada.
+- El motor es `nucleo/servidor` compilado dentro del binario (los XSD van embebidos en
+  `nucleo/xsd`). Solo con `DTE_MOTOR_PYTHON_BUNDLE=1` se agrega además el motor Python
+  congelado (`motor.spec` + `motor_embebido.py`, PyInstaller) a `Contents/Resources/motor/`,
+  que se usa únicamente con `DTE_MOTOR=python`.
+- Sin repo al lado, el cascarón trabaja en **la carpeta de datos del usuario**:
+  `~/Library/Application Support/DTE Chile` (macOS; `%AppData%` / `~/.config` en los otros).
+  Ahí viven `.env`, `dte_database.db`, `storage/` y `logs/`. Dentro del paquete no se escribe nada.
 - La primera vez, el cascarón crea el `.env` con secretos generados ahí mismo (`JWT_SECRET_KEY`,
   `DTE_MASTER_KEY` del keystore) y una `ADMIN_PASSWORD` para el panel web, que Inicio muestra.
   Si el `.env` ya existe no se toca: es la configuración del usuario.
-- Sin motor empaquetado (desarrollo), la app sigue usando el repo y su `.venv`.
-- El motor congelado es de la arquitectura donde se compiló (hoy arm64). Para Windows y Linux:
-  mismo spec, `wails build` de esa plataforma y copiar `motor/` junto al ejecutable.
+- Con repo al lado (desarrollo), la app usa el `.env`, la base y el storage del repo.
+- Para Windows y Linux basta `wails build` de esa plataforma: el motor va en el mismo binario.
 - Verificado 2026-10-05: la app empaquetada arrancó desde una carpeta de datos vacía, creó
   `.env`, base y logs, y la simulación completa (firma, XSD, PDF con timbre) funcionó.
 
@@ -187,7 +212,7 @@ lo dice y manda al panel web; no intenta emitir.
 ```bash
 go install github.com/wailsapp/wails/v2/cmd/wails@latest   # una vez
 cd app
-wails dev                      # recarga en caliente; abre el motor como sidecar
+wails dev                      # recarga en caliente; el motor Go arranca en el mismo proceso
 wails build -platform darwin/arm64 -s     # build/bin/DTE Chile.app
 wails build -platform darwin/universal    # Intel + Apple Silicon
 ```
@@ -208,5 +233,5 @@ Registro del motor arrancado por la app: `logs/app-motor.log`.
 4. Cargar las lecciones largas y el quiz (`docs/aprender/`) en la pantalla Aprender (el tour y
    las listas de verificación ya están), enlazados al
    modo práctica (que ya existe).
-5. **Instalador**: hecho para macOS (motor PyInstaller dentro del bundle, carpeta de datos,
-   `.env` generado). Falta: builds Windows/Linux, universal (Intel) y un DMG.
+5. **Instalador**: hecho para macOS (motor Go dentro del binario, carpeta de datos, `.env`
+   generado). Falta: builds Windows/Linux, universal (Intel) y un DMG.

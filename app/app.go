@@ -31,6 +31,7 @@ type Estado struct {
 	Version     string `json:"version"`
 	Externo     bool   `json:"externo"`
 	Empaquetado bool   `json:"empaquetado"`
+	Go          bool   `json:"go"`          // el motor corre dentro de la app (sin Python)
 	ClaveAdmin  string `json:"clave_admin"` // panel web (solo empaquetado)
 	Raiz        string `json:"raiz"`
 	Log         string `json:"log"`
@@ -90,7 +91,7 @@ func (a *App) shutdown(ctx context.Context) {
 
 func (a *App) arrancar() {
 	err := a.motor.Iniciar(a.ctx)
-	e := Estado{URL: a.motor.URL, Externo: a.motor.Externo, Empaquetado: a.motor.Empaquetado,
+	e := Estado{URL: a.motor.URL, Externo: a.motor.Externo, Empaquetado: a.motor.Empaquetado, Go: a.motor.Go,
 		ClaveAdmin: a.motor.ClaveAdmin, Raiz: a.motor.Raiz, Log: a.motor.LogPath}
 	if err != nil {
 		e.Error = err.Error()
@@ -276,11 +277,18 @@ func (a *App) AbrirURL(u string) {
 	wruntime.BrowserOpenURL(a.ctx, u)
 }
 
-// AbrirPanel abre la página web del motor (panel de certificados, documentos, etc.).
+// AbrirPanel abre la versión web del motor en el navegador. Con el motor Go es la misma
+// interfaz servida en /app (entra con admin y la clave del panel); con el sidecar Python,
+// sus páginas del panel (certificados, documentos, etc.).
 func (a *App) AbrirPanel(pagina string) {
-	if a.motor.URL != "" {
-		wruntime.BrowserOpenURL(a.ctx, a.motor.URL+"/"+strings.TrimLeft(pagina, "/"))
+	if a.motor.URL == "" {
+		return
 	}
+	if a.motor.Go {
+		wruntime.BrowserOpenURL(a.ctx, a.motor.URL+"/app/")
+		return
+	}
+	wruntime.BrowserOpenURL(a.ctx, a.motor.URL+"/"+strings.TrimLeft(pagina, "/"))
 }
 
 // dibujarPDF genera el PDF de un documento recién emitido por el núcleo y guarda su ruta en la

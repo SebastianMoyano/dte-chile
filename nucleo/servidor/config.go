@@ -6,6 +6,7 @@ package servidor
 
 import (
 	"bufio"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -30,14 +31,16 @@ type Config struct {
 	ResolucionNumero     int
 	ResolucionFechaCert  string // SII_FECHA_RESOLUCION_CERT
 	ResolucionNumeroCert int
-	MotorPython          string // URL del motor Python para el reenvío ("" = sin reenvío)
-	CertificadoPath      string // CERTIFICADO_PATH (.p12 del emisor, respaldo cuando la petición no trae uno)
-	CertificadoPassword  string // CERTIFICADO_PASSWORD
-	RelojFijo            string // RELOJ_FIJO: hora fija ISO para salidas reproducibles (nunca en producción)
-	RVDSchedulerActivo   bool   // RVD_SCHEDULER_ACTIVO
-	RVDIntervaloSeg      int    // RVD_INTERVALO_SEG
-	NombreSoftware       string // NOMBRE_SOFTWARE: nombre(s) con que este motor se registra en el SII (coma)
-	CarpetaApp           string // app/frontend/dist, servida en /app
+	MotorPython          string          // URL del motor Python para el reenvío ("" = sin reenvío)
+	CertificadoPath      string          // CERTIFICADO_PATH (.p12 del emisor, respaldo cuando la petición no trae uno)
+	CertificadoPassword  string          // CERTIFICADO_PASSWORD
+	RelojFijo            string          // RELOJ_FIJO: hora fija ISO para salidas reproducibles (nunca en producción)
+	RVDSchedulerActivo   bool            // RVD_SCHEDULER_ACTIVO
+	RVDIntervaloSeg      int             // RVD_INTERVALO_SEG
+	NombreSoftware       string          // NOMBRE_SOFTWARE: nombre(s) con que este motor se registra en el SII (coma)
+	AdminPassword        string          // ADMIN_PASSWORD: clave del usuario admin al crearlo (vacía = aleatoria, se registra una vez)
+	AppFS                http.FileSystem // la interfaz (/app) desde un FS embebido; si es nil se usa CarpetaApp
+	CarpetaApp           string          // app/frontend/dist, servida en /app
 	Valores              map[string]string
 }
 
@@ -101,6 +104,7 @@ func CargarConfig(rutaEnv string) (*Config, error) {
 		RVDSchedulerActivo:   !strings.EqualFold(get("RVD_SCHEDULER_ACTIVO", "true"), "false") && get("RVD_SCHEDULER_ACTIVO", "true") != "0",
 		RVDIntervaloSeg:      entero(get("RVD_INTERVALO_SEG", "1800"), 1800),
 		NombreSoftware:       get("NOMBRE_SOFTWARE", ""),
+		AdminPassword:        get("ADMIN_PASSWORD", ""),
 		Valores:              vals,
 	}
 	if c.JWTSecret == "" {

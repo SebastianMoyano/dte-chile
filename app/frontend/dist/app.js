@@ -105,7 +105,7 @@ vistas.inicio = async (el) => {
     ${negocios.length ? "" : `<div class="card"><b>Todavía no hay ninguna empresa real.</b><p class="mut">Practica con la demo todo lo que quieras. Cuando tengas tu certificado digital, agrégalo en el panel del motor y tu empresa aparecerá arriba.</p>
       <button class="sec" data-tour="panel" onclick="window.go.main.App.AbrirPanel('certificados')">Abrir el panel</button></div>`}
     <p class="mut" id="valores_hoy"></p>
-    <p class="mut">Motor v${esc(estado.version)} en <code>${esc(estado.url)}</code>${estado.externo ? " (externo)" : estado.empaquetado ? " (dentro de la app)" : " (desde el repo)"}.
+    <p class="mut">Motor v${esc(estado.version)} en <code>${esc(estado.url)}</code>${estado.externo ? " (externo)" : estado.go ? (estado.empaquetado ? " (dentro de la app, en Go)" : " (en Go, datos del repo)") : estado.empaquetado ? " (dentro de la app)" : " (desde el repo)"}.
       ${estado.empaquetado ? `Tus datos están en <code>${esc(estado.raiz)}</code>. Panel web: usuario <code>admin</code>, clave <code>${esc(estado.clave_admin)}</code>.` : ""}</p>`;
   pintarValores();
 };
