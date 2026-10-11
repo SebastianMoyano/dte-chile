@@ -108,9 +108,10 @@ sin PyInstaller, sin procesos hijos.
   la app la primera vez (secretos generados ahí, `ADMIN_PASSWORD` que Inicio muestra). El
   servidor Go crea el usuario `admin` en el primer arranque con esa clave (`asegurarAdmin`,
   lo mismo que hacía `main.py`).
-- **Panel web**: "Abrir el panel" abre `http://127.0.0.1:<puerto>/app/` (la misma interfaz, en el
-  navegador; se entra con `admin` y la clave del panel). Las páginas HTML del panel Python
-  (`/certificados`, `/apikeys`) no existen en el motor Go.
+- **Panel web**: "Abrir el panel" abre las páginas del panel (`/certificados`, `/documentos`,
+  `/apikeys`, `/onboarding`), que el motor Go sirve igual que Python (copias en
+  `nucleo/servidor/static/`); también está `/app/` (esta misma interfaz, en el navegador). Se
+  entra con `admin` y la clave del panel.
 - `DTE_MOTOR=python` vuelve al sidecar de antes (uvicorn del repo o el motor PyInstaller del
   bundle), para comparar durante la transición. `DTE_MOTOR_PYTHON=http://…` hace que el Go
   reenvíe a ese Python lo que no tenga (hoy: nada de la API; sí el buscador público `/consulta`).

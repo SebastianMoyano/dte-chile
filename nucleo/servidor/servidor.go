@@ -105,7 +105,7 @@ func (s *Servidor) asegurarAdmin() error {
 func (s *Servidor) Cerrar() { s.detenerProgramadorRVD(); s.db.Close(); s.alm.Cerrar() }
 
 // Handler es el servidor HTTP completo (con request-id, CORS y reenvío).
-func (s *Servidor) Handler() http.Handler { return conRequestID(s.cors(s.mux)) }
+func (s *Servidor) Handler() http.Handler { return conRequestID(s.dominioPublico(s.cors(s.mux))) }
 
 func (s *Servidor) rutas() {
 	s.mux.HandleFunc("GET /{$}", s.raiz)
@@ -124,6 +124,7 @@ func (s *Servidor) rutas() {
 	s.rutasMonitoreo(s.mux)
 	s.rutasMipyme(s.mux)
 	s.rutasPortal(s.mux)
+	s.rutasConsulta(s.mux)
 	s.mux.HandleFunc("POST /api/v1/estado/lote", s.protegido(s.estadoLote))
 	var appFS http.FileSystem
 	if s.cfg.AppFS != nil {

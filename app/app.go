@@ -277,18 +277,12 @@ func (a *App) AbrirURL(u string) {
 	wruntime.BrowserOpenURL(a.ctx, u)
 }
 
-// AbrirPanel abre la versión web del motor en el navegador. Con el motor Go es la misma
-// interfaz servida en /app (entra con admin y la clave del panel); con el sidecar Python,
-// sus páginas del panel (certificados, documentos, etc.).
+// AbrirPanel abre la página web del motor (panel de certificados, documentos, etc.); el motor
+// Go sirve las mismas páginas que Python (nucleo/servidor/static) y además /app (la interfaz).
 func (a *App) AbrirPanel(pagina string) {
-	if a.motor.URL == "" {
-		return
+	if a.motor.URL != "" {
+		wruntime.BrowserOpenURL(a.ctx, a.motor.URL+"/"+strings.TrimLeft(pagina, "/"))
 	}
-	if a.motor.Go {
-		wruntime.BrowserOpenURL(a.ctx, a.motor.URL+"/app/")
-		return
-	}
-	wruntime.BrowserOpenURL(a.ctx, a.motor.URL+"/"+strings.TrimLeft(pagina, "/"))
 }
 
 // dibujarPDF genera el PDF de un documento recién emitido por el núcleo y guarda su ruta en la

@@ -5,7 +5,7 @@ error y el JSON completo (ignorando campos volátiles).
 
 Uso (los dos motores corriendo, con el MISMO APP_SHELL_KEY en el entorno de ambos):
   APP_SHELL_KEY=… .venv/bin/python tools/contrato_api.py --python http://127.0.0.1:8771 --go http://127.0.0.1:8010
-  … --escenario valores|auth|apikeys|simulacion|xsd|emitir|rutas|portal|keystore|todos   (default: todos)
+  … --escenario valores|auth|apikeys|simulacion|xsd|emitir|rutas|portal|consulta|keystore|todos   (default: todos)
   … --token <jwt o api key>                            (si no, APP_SHELL_KEY del entorno)
   … --sin-auth                                         (además, cada GET sin token → 401)
 
@@ -265,6 +265,28 @@ ESCENARIOS = {
         paso("GET", "/api/v1/onboarding/cartera?cert_id=999999"),
         paso("GET", "/api/v1/onboarding/cartera"),
     ],
+    # buscador público de boletas (sin JWT) + páginas del panel: tras la práctica hay boletas de 77777777-7 en la base
+    "consulta": [
+        paso("POST", "/api/v1/simulacion/reiniciar", {}, ignorar={"documentos_borrados", "cafs_borrados"}),
+        paso("POST", "/api/v1/simulacion/emitir", {"tipo_dte": 39, "items": [{"nombre": "Café", "precio_unitario": 1190}]}, ignorar={"dte_id", "folio", "pdf_path", "pdf_b64"}, guarda="folio"),
+        paso("GET", "/consulta/api?rut=77777777-7&tipo=39&folio={folio}&monto=1190", ignorar={"folio", "links", "track_id"}),
+        paso("GET", "/consulta/api?rut=77.777.777-7&tipo=39&folio={folio}&monto=1190&fecha=2026-01-15", ignorar={"folio", "links", "track_id"}),
+        paso("GET", "/consulta/api?rut=77777777-7&tipo=39&folio={folio}&monto=1"),
+        paso("GET", "/consulta/api?rut=77777777-7&tipo=33&folio=1&monto=1190"),
+        paso("GET", "/consulta/api?rut=77777777-7&tipo=39&folio=abc&monto=1190"),
+        paso("GET", "/consulta/api?rut=77777777-7"),
+        paso("GET", "/consulta/xml?rut=77777777-7&tipo=39&folio={folio}&monto=1190", ignorar={"*"}),
+        paso("GET", "/consulta/xml?rut=77777777-7&tipo=39&folio=999999&monto=1190"),
+        paso("GET", "/consulta/pdf?rut=77777777-7&tipo=39&folio={folio}&monto=1190", ignorar={"*"}),
+        paso("GET", "/consulta/pdf?rut=77777777-7&tipo=39&folio=999999&monto=1190"),
+        paso("GET", "/consulta", ignorar={"*"}),
+        paso("GET", "/consulta/", ignorar={"*"}),
+        paso("GET", "/certificados", ignorar={"*"}),
+        paso("GET", "/onboarding", ignorar={"*"}),
+        paso("GET", "/apikeys", ignorar={"*"}),
+        paso("GET", "/documentos", ignorar={"*"}),
+        paso("GET", "/favicon.ico", ignorar={"*"}),
+    ],
     "keystore": [
         paso("POST", "/api/v1/keystore/certificados", {"password": "demo", "nombre": "demo {motor}"}, archivo=str(CERT_DEMO), ignorar={"id", "nombre"}, guarda="id"),
         paso("POST", "/api/v1/keystore/certificados", {"password": "mala"}, archivo=str(CERT_DEMO)),
@@ -414,7 +436,10 @@ def main() -> int:
                 if sp != sg:
                     print(f"✗ {etiqueta}: status python {sp} ≠ go {sg}  (py: {bp[:120]!r} | go: {bg[:120]!r})"); fallas += 1; continue
                 if sp >= 400:
-                    cp, cg = (jp or {}).get("error", {}).get("codigo"), (jg or {}).get("error", {}).get("codigo")
+                    def _cod(j):  # el envoltorio {"error": {"codigo"}} o, en el buscador público, "error": "texto"
+                        e = (j or {}).get("error") if isinstance(j, dict) else None
+                        return e.get("codigo") if isinstance(e, dict) else e
+                    cp, cg = _cod(jp), _cod(jg)
                     if cp != cg:
                         print(f"✗ {etiqueta}: {sp} codigo python {cp!r} ≠ go {cg!r}"); fallas += 1
                     else:
