@@ -1,0 +1,339 @@
+[
+ {
+  "nombre": "4943173-1",
+  "tipo_dte": 33,
+  "folio": 1,
+  "items": [
+   {
+    "nombre": "Cajón AFECTO",
+    "cantidad": 118,
+    "precio": 628,
+    "descuento_pct": 0,
+    "exento": false,
+    "unidad": ""
+   },
+   {
+    "nombre": "Relleno AFECTO",
+    "cantidad": 51,
+    "precio": 975,
+    "descuento_pct": 0,
+    "exento": false,
+    "unidad": ""
+   }
+  ]
+ },
+ {
+  "nombre": "4943173-2",
+  "tipo_dte": 33,
+  "folio": 2,
+  "items": [
+   {
+    "nombre": "Pañuelo AFECTO",
+    "cantidad": 175,
+    "precio": 1472,
+    "descuento_pct": 3,
+    "exento": false,
+    "unidad": ""
+   },
+   {
+    "nombre": "ITEM 2 AFECTO",
+    "cantidad": 99,
+    "precio": 538,
+    "descuento_pct": 3,
+    "exento": false,
+    "unidad": ""
+   }
+  ]
+ },
+ {
+  "nombre": "4943173-3",
+  "tipo_dte": 33,
+  "folio": 3,
+  "items": [
+   {
+    "nombre": "Pintura B&W AFECTO",
+    "cantidad": 23,
+    "precio": 1298,
+    "descuento_pct": 0,
+    "exento": false,
+    "unidad": ""
+   },
+   {
+    "nombre": "ITEM 2 AFECTO",
+    "cantidad": 138,
+    "precio": 2915,
+    "descuento_pct": 0,
+    "exento": false,
+    "unidad": ""
+   },
+   {
+    "nombre": "ITEM 3 SERVICIO EXENTO",
+    "cantidad": 1,
+    "precio": 34637,
+    "descuento_pct": 0,
+    "exento": true,
+    "unidad": ""
+   }
+  ]
+ },
+ {
+  "nombre": "4943173-4",
+  "tipo_dte": 33,
+  "folio": 4,
+  "items": [
+   {
+    "nombre": "ITEM 1 AFECTO",
+    "cantidad": 43,
+    "precio": 1184,
+    "descuento_pct": 0,
+    "exento": false,
+    "unidad": ""
+   },
+   {
+    "nombre": "ITEM 2 AFECTO",
+    "cantidad": 19,
+    "precio": 739,
+    "descuento_pct": 0,
+    "exento": false,
+    "unidad": ""
+   },
+   {
+    "nombre": "ITEM 3 SERVICIO EXENTO",
+    "cantidad": 2,
+    "precio": 6760,
+    "descuento_pct": 0,
+    "exento": true,
+    "unidad": ""
+   }
+  ]
+ },
+ {
+  "nombre": "4943173-5",
+  "tipo_dte": 61,
+  "folio": 80,
+  "items": [],
+  "referencia": {
+   "tipo_dte_ref": 33,
+   "folio_ref": 1,
+   "razon": "CORRIGE GIRO DEL RECEPTOR"
+  }
+ },
+ {
+  "nombre": "4943173-6",
+  "tipo_dte": 61,
+  "folio": 81,
+  "items": [
+   {
+    "nombre": "Pañuelo AFECTO",
+    "cantidad": 64,
+    "precio": 1472,
+    "descuento_pct": 0,
+    "exento": false,
+    "unidad": ""
+   },
+   {
+    "nombre": "ITEM 2 AFECTO",
+    "cantidad": 67,
+    "precio": 538,
+    "descuento_pct": 0,
+    "exento": false,
+    "unidad": ""
+   }
+  ],
+  "referencia": {
+   "tipo_dte_ref": 33,
+   "folio_ref": 2,
+   "razon": "DEVOLUCION DE MERCADERIAS"
+  }
+ },
+ {
+  "nombre": "4943173-7",
+  "tipo_dte": 61,
+  "folio": 82,
+  "items": [
+   {
+    "nombre": "Pintura B&W AFECTO",
+    "cantidad": 23,
+    "precio": 1298,
+    "descuento_pct": 0,
+    "exento": false,
+    "unidad": ""
+   },
+   {
+    "nombre": "ITEM 2 AFECTO",
+    "cantidad": 138,
+    "precio": 2915,
+    "descuento_pct": 0,
+    "exento": false,
+    "unidad": ""
+   },
+   {
+    "nombre": "ITEM 3 SERVICIO EXENTO",
+    "cantidad": 1,
+    "precio": 34637,
+    "descuento_pct": 0,
+    "exento": true,
+    "unidad": ""
+   }
+  ],
+  "referencia": {
+   "tipo_dte_ref": 33,
+   "folio_ref": 3,
+   "razon": "ANULA FACTURA"
+  }
+ },
+ {
+  "nombre": "4943173-8",
+  "tipo_dte": 56,
+  "folio": 80,
+  "items": [],
+  "referencia": {
+   "tipo_dte_ref": 61,
+   "folio_ref": 80,
+   "razon": "ANULA NOTA DE CREDITO ELECTRONICA"
+  }
+ },
+ {
+  "nombre": "4943176-1",
+  "tipo_dte": 34,
+  "folio": 1,
+  "items": [
+   {
+    "nombre": "HORAS PROGRAMADOR",
+    "cantidad": 3,
+    "precio": 2844,
+    "descuento_pct": 0,
+    "exento": false,
+    "unidad": "Hora"
+   }
+  ]
+ },
+ {
+  "nombre": "4943176-2",
+  "tipo_dte": 61,
+  "folio": 83,
+  "items": [
+   {
+    "nombre": "HORAS PROGRAMADOR",
+    "cantidad": 3,
+    "precio": 355,
+    "descuento_pct": 0,
+    "exento": true,
+    "unidad": ""
+   }
+  ],
+  "referencia": {
+   "tipo_dte_ref": 34,
+   "folio_ref": 1,
+   "razon": "MODIFICA MONTO"
+  }
+ },
+ {
+  "nombre": "4943176-3",
+  "tipo_dte": 34,
+  "folio": 2,
+  "items": [
+   {
+    "nombre": "SERV CONSULTORIA FACT ELECTRONICA",
+    "cantidad": 1,
+    "precio": 191355,
+    "descuento_pct": 0,
+    "exento": false,
+    "unidad": ""
+   },
+   {
+    "nombre": "SERV CONSULTORIA GUIA DESPACHO ELECT",
+    "cantidad": 1,
+    "precio": 200358,
+    "descuento_pct": 0,
+    "exento": false,
+    "unidad": ""
+   }
+  ]
+ },
+ {
+  "nombre": "4943176-4",
+  "tipo_dte": 61,
+  "folio": 84,
+  "items": [],
+  "referencia": {
+   "tipo_dte_ref": 34,
+   "folio_ref": 2,
+   "razon": "CORRIGE GIRO"
+  }
+ },
+ {
+  "nombre": "4943176-5",
+  "tipo_dte": 56,
+  "folio": 81,
+  "items": [],
+  "referencia": {
+   "tipo_dte_ref": 61,
+   "folio_ref": 84,
+   "razon": "ANULA NOTA DE CREDITO ELECTRONICA"
+  }
+ },
+ {
+  "nombre": "4943176-6",
+  "tipo_dte": 34,
+  "folio": 3,
+  "items": [
+   {
+    "nombre": "CAPACITACION USO CIGUEÑALES",
+    "cantidad": 1,
+    "precio": 277924,
+    "descuento_pct": 0,
+    "exento": false,
+    "unidad": ""
+   },
+   {
+    "nombre": "CAPACITACION USO PLC's CNC",
+    "cantidad": 1,
+    "precio": 176009,
+    "descuento_pct": 0,
+    "exento": false,
+    "unidad": ""
+   }
+  ]
+ },
+ {
+  "nombre": "4943176-7",
+  "tipo_dte": 61,
+  "folio": 85,
+  "items": [
+   {
+    "nombre": "CAPACITACION USO CIGUEÑALES",
+    "cantidad": 1,
+    "precio": 138962,
+    "descuento_pct": 0,
+    "exento": true,
+    "unidad": ""
+   }
+  ],
+  "referencia": {
+   "tipo_dte_ref": 34,
+   "folio_ref": 3,
+   "razon": "MODIFICA MONTO"
+  }
+ },
+ {
+  "nombre": "4943176-8",
+  "tipo_dte": 56,
+  "folio": 82,
+  "items": [
+   {
+    "nombre": "CAPACITACION USO PLC's CNC",
+    "cantidad": 1,
+    "precio": 35202,
+    "descuento_pct": 0,
+    "exento": true,
+    "unidad": ""
+   }
+  ],
+  "referencia": {
+   "tipo_dte_ref": 34,
+   "folio_ref": 3,
+   "razon": "MODIFICA MONTO"
+  }
+ }
+]

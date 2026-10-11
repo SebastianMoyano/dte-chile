@@ -130,6 +130,9 @@ type Datos struct {
 	RazonSocialReceptor string
 	PrimerItem          string
 	Marca               string // hora del reloj, YYYY-MM-DDTHH:MM:SS
+	// PrimerItemLiteral: PrimerItem ya viene escapado (como lo manda certificacion_sii.py,
+	// que escapa ANTES de recortar a 40): se recorta y no se vuelve a escapar.
+	PrimerItemLiteral bool
 }
 
 // Generar devuelve el TED como string (runas; el archivo se escribe en ISO-8859-1).
@@ -144,7 +147,7 @@ func Generar(c *CAF, d Datos) (string, error) {
 		"<RR>" + d.RutReceptor + "</RR>\n" +
 		"<RSR>" + EscaparTexto(recortar(d.RazonSocialReceptor, 40)) + "</RSR>\n" +
 		fmt.Sprintf("<MNT>%d</MNT>\n", d.MontoTotal) +
-		"<IT1>" + EscaparTexto(recortar(d.PrimerItem, 40)) + "</IT1>\n" +
+		"<IT1>" + it1(d) + "</IT1>\n" +
 		c.Serializado + "\n" +
 		"<TSTED>" + d.Marca + "</TSTED>\n" +
 		"</DD>"
@@ -161,4 +164,14 @@ func Generar(c *CAF, d Datos) (string, error) {
 	}
 	return "<TED version=\"1.0\">\n" + dd + "\n<FRMT algoritmo=\"SHA1withRSA\">" +
 		base64.StdEncoding.EncodeToString(firma) + "</FRMT>\n</TED>", nil
+}
+
+// it1 es el texto del IT1. En modo literal viene pre-escapado por el script (& < > " ') y
+// recortado DESPUÉS de escapar; Python luego parsea el DD y firma su C14N, que escribe las
+// comillas sin escapar (&apos; → ', &quot; → "), así que eso es lo que se firma y lo que sale.
+func it1(d Datos) string {
+	if d.PrimerItemLiteral {
+		return strings.NewReplacer("&apos;", "'", "&quot;", `"`).Replace(recortar(d.PrimerItem, 40))
+	}
+	return EscaparTexto(recortar(d.PrimerItem, 40))
 }

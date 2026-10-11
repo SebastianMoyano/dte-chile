@@ -37,6 +37,7 @@ Código y comentarios **en español**.
 | **Propuesta de F29 desde el RCV, en Go** | `nucleo/rcv/` → `GET /api/v1/keystore/negocios/{id}/f29?periodo=` (mismo contrato que Python); vector `tests/dorado/rcv/` |
 | **Buscador público de boletas en Go** (`/consulta`, `/consulta/api`, descarga PDF/XML, host público acotado) | `nucleo/servidor/consulta.go` (= `api/routes/consulta.py`); páginas del panel en `nucleo/servidor/static/` |
 | **Correr TODOS los gates de una vez** (corpus, práctica, Go, esquema, contrato, app) | `./tools/prueba_final.sh` (`--sin-red` para CI, `--app` compila Wails); el detalle en `docs/PLAN-PORT.md` |
+| **Set de certificación con el núcleo Go** (dry run y envío) | `nucleo/certificacion/` + `nucleo-certificacion` (`--enviar` gasta folios; clave por `NUCLEO_CLAVE_CERTIFICADO` o Llavero); vector `tests/dorado/certificacion/` |
 | **Validar un XML contra el XSD del SII** (en Python y en Go, mismo veredicto) | `core/schema_validator.py` (lxml) · `nucleo/xsd/` (sin libxml2; vectores de paridad `tools/generar_xsd_vectores.py`) · `POST /api/v1/dte/validar-xml` en los dos motores |
 | **Verificar que la salida no cambió / probar un port** (byte a byte, sin SII) | [`DORADO.md`](DORADO.md) → `test_dorado.py`, `tests/dorado/`, `core/reloj.py` |
 | **Practicar sin riesgo** (EMPRESA DEMO SPA: mismo pipeline, CAF y certificado ficticios, sin envío) | [`APP.md`](APP.md) → `core/simulacion.py`, `test_simulacion.py` |
