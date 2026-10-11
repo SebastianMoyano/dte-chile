@@ -45,3 +45,4 @@ storage/mipyme_fallidos/
 
 # El set de pruebas que asigna el SII lleva el RUT real de la empresa: se guarda en storage/set_pruebas_sii/
 SIISetDePruebas*
+dist/

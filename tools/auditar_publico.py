@@ -40,6 +40,7 @@ SECRETOS = [
     ("cookie/token SII", re.compile(r"\bTOKEN=[A-Z0-9]{10,}\b")),
     ("clave tributaria literal", re.compile(r"clave_tributaria['\"]?\s*[:=]\s*['\"][^'\"]{6,}['\"]")),
 ]
+JWT_EJEMPLO = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIn0"
 # Valores que no son secretos (plantillas, docs, pruebas).
 PLACEHOLDER = re.compile(r"(cambiar|cambia-|tu-|un-|ejemplo|placeholder|xxx|<|\$|\+|\.Clave|secreta-|secreto-|ci-|clave-de-prueba|openssl|os\.environ|getenv|settings\.|\{\{)", re.I)
 # Dónde sí puede haber una clave privada: los CAF ficticios del corpus y el código que los genera.
@@ -84,6 +85,8 @@ def revisar(texto: str, donde: str, ruta: str, hallazgos: list[str], terminos: l
                 continue
             if nombre == "clave tributaria literal" and PLACEHOLDER.search(frag):
                 continue
+            if nombre == "JWT" and frag.startswith(JWT_EJEMPLO):
+                continue  # el ejemplo público de jwt.io ("John Doe"), usado en las pruebas de tachado
             hallazgos.append(f"{nombre} ({frag[:18]}…) en {donde}: {ruta}")
     for t in terminos:
         if t.lower() in texto.lower():
@@ -108,7 +111,8 @@ def arbol(terminos: list[str]) -> list[str]:
 
 def historia(terminos: list[str]) -> list[str]:
     h: list[str] = []
-    p = subprocess.run(["git", "log", "--all", "-p", "--format=COMMIT %h %s%n%b"], capture_output=True, check=True)
+    # ramas y tags locales: lo que se va a subir (las referencias remotas son el pasado ya publicado)
+    p = subprocess.run(["git", "log", "--branches", "--tags", "-p", "--format=COMMIT %h %s%n%b"], capture_output=True, check=True)
     ruta, commit = "", ""
     for linea in p.stdout.decode("utf-8", "replace").split("\n"):
         if linea.startswith("COMMIT "):

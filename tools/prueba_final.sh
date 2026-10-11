@@ -73,6 +73,8 @@ mcp_stdio() {
   HOME="$TMP/home" nucleo/bin/nucleo-mcp clientes | grep -q '^cursor .*conectado'
 }
 gate mcp mcp_stdio
+echo "== 6c. público: ni RUTs reales, ni personas, ni secretos (árbol + historia)"
+gate publico "$PY" tools/auditar_publico.py
 echo "== 7. la app (motor Go en proceso)"
 gate app_vet bash -c 'cd app && go vet .'; gate app_test bash -c 'cd app && go test -count=1 . && rm -f app'
 if [ "$APP" = 1 ]; then gate app_wails bash -c 'cd app && PATH="$PATH:$HOME/go/bin" wails build -platform darwin/arm64 -s'; fi

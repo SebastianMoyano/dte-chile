@@ -5,7 +5,7 @@ name: corpus dorado
 # Los mismos gates, en local y de una vez: ./tools/prueba_final.sh (con red) — aquí sin red.
 on:
   push:
-    paths: ["core/**", "api/**", "nucleo/**", "tests/dorado/**", "tools/**", "test_dorado.py", "test_simulacion.py", "main.py", "requirements.txt", ".github/workflows/dorado.yml"]
+    paths: ["core/**", "api/**", "nucleo/**", "tests/dorado/**", "tools/**", "docs/**", "*.py", "*.md", "requirements.txt", ".github/workflows/dorado.yml"]
   pull_request:
 
 jobs:
@@ -13,9 +13,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }   # la auditoría pública recorre toda la historia
       - uses: actions/setup-python@v5
         with: { python-version: "3.13", cache: pip }
       - run: pip install -r requirements.txt
+      - name: Público (ni RUTs reales, ni personas, ni secretos; árbol e historia)
+        run: python tools/auditar_publico.py
       - name: Python puro == esperado (15 casos)
         run: python test_dorado.py
       - uses: actions/setup-go@v5
