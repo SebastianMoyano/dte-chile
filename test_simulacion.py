@@ -9,7 +9,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from core import simulacion as sim
+from core.database import init_db
 from core.models import obtener_dte, listar_dtes
+
+init_db()   # en una máquina limpia (CI) la base todavía no existe
 
 ok = 0
 def check(cond, msg):
