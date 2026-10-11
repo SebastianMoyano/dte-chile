@@ -201,6 +201,19 @@ type rpcReq struct {
 	Params  json.RawMessage `json:"params"`
 }
 
+// estructurado: el protocolo MCP exige que structuredContent sea un objeto JSON. Las rutas
+// que devuelven una lista (negocios, certificados, timbrajes…) van envueltas en {"items": …}
+// y un escalar en {"valor": …}; el texto del content lleva siempre el valor tal cual.
+func estructurado(v any) any {
+	switch v.(type) {
+	case map[string]any:
+		return v
+	case []any:
+		return map[string]any{"items": v}
+	}
+	return map[string]any{"valor": v}
+}
+
 func respuesta(id json.RawMessage, result any) map[string]any {
 	return map[string]any{"jsonrpc": "2.0", "id": id, "result": result}
 }
@@ -247,7 +260,7 @@ func (m *Servidor) Atender(raw []byte) any {
 				return respuesta(req.ID, map[string]any{"content": []map[string]any{{"type": "text", "text": err.Error()}}, "isError": true})
 			}
 			b, _ := json.Marshal(v)
-			return respuesta(req.ID, map[string]any{"content": []map[string]any{{"type": "text", "text": string(b)}}, "structuredContent": v})
+			return respuesta(req.ID, map[string]any{"content": []map[string]any{{"type": "text", "text": string(b)}}, "structuredContent": estructurado(v)})
 		}
 		return errorRPC(req.ID, -32602, "herramienta desconocida: "+p.Name)
 	}

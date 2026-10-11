@@ -76,6 +76,35 @@ func TestStdio(t *testing.T) {
 	}
 }
 
+// structuredContent tiene que ser un objeto aunque la ruta devuelva una lista (Claude Code
+// rechazaba listar_negocios por esto); el texto sigue llevando la lista tal cual.
+func TestStructuredContentSiempreObjeto(t *testing.T) {
+	s := motorDePrueba(t, t.TempDir())
+	defer s.Cerrar()
+	m := Nuevo(s, 1, "certificacion")
+	for _, tool := range []string{"listar_negocios", "listar_certificados"} {
+		r := m.Atender([]byte(`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"` + tool + `","arguments":{}}}`)).(map[string]any)
+		res, ok := r["result"].(map[string]any)
+		if !ok || res["isError"] == true {
+			t.Fatalf("%s: %v", tool, r)
+		}
+		sc, ok := res["structuredContent"].(map[string]any)
+		if !ok {
+			t.Fatalf("%s: structuredContent no es objeto: %T", tool, res["structuredContent"])
+		}
+		if _, ok := sc["items"].([]any); !ok {
+			t.Fatalf("%s: falta items: %v", tool, sc)
+		}
+		texto := res["content"].([]map[string]any)[0]["text"].(string)
+		if !strings.HasPrefix(texto, "[") {
+			t.Fatalf("%s: el texto debía ser la lista tal cual: %s", tool, texto)
+		}
+	}
+	if estructurado(3.0).(map[string]any)["valor"] != 3.0 {
+		t.Fatal("escalar")
+	}
+}
+
 // La app y un cliente MCP abren la misma base a la vez (dos motores, dos conexiones SQLite):
 // emitir en uno mientras el otro consulta no puede romper ni bloquear.
 func TestDosMotoresMismaBase(t *testing.T) {
