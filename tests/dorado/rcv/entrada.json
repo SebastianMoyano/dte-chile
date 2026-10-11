@@ -1,0 +1,61 @@
+{
+ "csv_ventas": {
+  "data": [
+   "Nro;Tipo Doc;Tipo Compra;RUT cliente;Razon Social;Folio;Fecha Docto;Fecha Recepcion;Monto Exento;Monto Neto;Monto IVA;Monto Total;IVA Retenido Total;Monto Neto Activo Fijo",
+   "1;33;;76111111-6;CLIENTE DEMO SPA;12;15/01/2026;15/01/2026 10:00;0;100000;19000;119000;0;",
+   "2;34;;76111111-6;CLIENTE DEMO SPA;3;20/01/2026;20/01/2026;50000;0;0;50000;0;",
+   "3;61;;76111111-6;CLIENTE DEMO SPA;7;25/01/2026;25/01/2026;0;20000;3800;23800;0;",
+   "4;39;;66666666-6;;100;26/01/2026;;0;10000;1900;11900;0;",
+   "5;56;;76111111-6;CLIENTE DEMO SPA;2;27-01-2026;;0;5000;950;5950;0;",
+   "6;33;;76111111-6;SIN FOLIO;;28/01/2026;;0;1;0;1;0;",
+   ""
+  ]
+ },
+ "dict_compras": {
+  "data": [
+   {
+    "detTipoDoc": 33,
+    "detNroDoc": 501,
+    "detFchDoc": "2026-01-10",
+    "detRutDoc": 12345678,
+    "detDvDoc": "5",
+    "detRznSoc": "PROVEEDOR UNO",
+    "detMntExe": 0,
+    "detMntNeto": 40000,
+    "detMntIVA": 7600,
+    "detMntIVANoRec": 1000,
+    "detMntIVAUsoComun": null,
+    "detMntTotal": 47600,
+    "detEventoReceptor": "REGISTRO"
+   },
+   {
+    "tipoDoc": "61",
+    "nroDoc": "9",
+    "fchDoc": "12/01/2026",
+    "rutDoc": "12345678",
+    "dvDoc": "5",
+    "rznSoc": "PROVEEDOR UNO",
+    "mntExe": "0",
+    "mntNeto": "10.000",
+    "mntIVA": "1.900",
+    "mntTotal": "11.900"
+   },
+   {
+    "tipoDoc": 34,
+    "folio": 77,
+    "fecha": "2026-01-30T00:00:00",
+    "rut": "",
+    "dv": "",
+    "razonSocial": "EXENTO",
+    "montoExento": 8000.4,
+    "montoNeto": "",
+    "montoIva": null,
+    "montoTotal": 8000
+   },
+   "no es dict"
+  ],
+  "respEstado": {
+   "codRespuesta": 0
+  }
+ }
+}

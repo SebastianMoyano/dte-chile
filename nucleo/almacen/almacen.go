@@ -274,3 +274,6 @@ func (a *Almacen) XMLDe(id int64) (string, int, int, error) {
 	}
 	return xml.String, tipo, folio, nil
 }
+
+// DB expone la conexión (para los módulos que consultan tablas propias, como rcv).
+func (a *Almacen) DB() *sql.DB { return a.db }

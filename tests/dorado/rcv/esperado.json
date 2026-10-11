@@ -1,0 +1,686 @@
+{
+ "ventas": [
+  {
+   "rut_empresa": "77777777-7",
+   "tipo_operacion": "VENTA",
+   "periodo": "202601",
+   "tipo_dte": 33,
+   "folio": 12,
+   "fecha_doc": "2026-01-15",
+   "rut_contraparte": "76111111-6",
+   "razon_social": "CLIENTE DEMO SPA",
+   "monto_exento": 0,
+   "monto_neto": 100000,
+   "monto_iva": 19000,
+   "monto_iva_no_rec": 0,
+   "monto_iva_uso_comun": 0,
+   "monto_total": 119000,
+   "estado_sii": "REGISTRO",
+   "clasificacion": null,
+   "origen": "rcv"
+  },
+  {
+   "rut_empresa": "77777777-7",
+   "tipo_operacion": "VENTA",
+   "periodo": "202601",
+   "tipo_dte": 34,
+   "folio": 3,
+   "fecha_doc": "2026-01-20",
+   "rut_contraparte": "76111111-6",
+   "razon_social": "CLIENTE DEMO SPA",
+   "monto_exento": 50000,
+   "monto_neto": 0,
+   "monto_iva": 0,
+   "monto_iva_no_rec": 0,
+   "monto_iva_uso_comun": 0,
+   "monto_total": 50000,
+   "estado_sii": "REGISTRO",
+   "clasificacion": null,
+   "origen": "rcv"
+  },
+  {
+   "rut_empresa": "77777777-7",
+   "tipo_operacion": "VENTA",
+   "periodo": "202601",
+   "tipo_dte": 61,
+   "folio": 7,
+   "fecha_doc": "2026-01-25",
+   "rut_contraparte": "76111111-6",
+   "razon_social": "CLIENTE DEMO SPA",
+   "monto_exento": 0,
+   "monto_neto": 20000,
+   "monto_iva": 3800,
+   "monto_iva_no_rec": 0,
+   "monto_iva_uso_comun": 0,
+   "monto_total": 23800,
+   "estado_sii": "REGISTRO",
+   "clasificacion": null,
+   "origen": "rcv"
+  },
+  {
+   "rut_empresa": "77777777-7",
+   "tipo_operacion": "VENTA",
+   "periodo": "202601",
+   "tipo_dte": 39,
+   "folio": 100,
+   "fecha_doc": "2026-01-26",
+   "rut_contraparte": "66666666-6",
+   "razon_social": "",
+   "monto_exento": 0,
+   "monto_neto": 10000,
+   "monto_iva": 1900,
+   "monto_iva_no_rec": 0,
+   "monto_iva_uso_comun": 0,
+   "monto_total": 11900,
+   "estado_sii": "REGISTRO",
+   "clasificacion": null,
+   "origen": "rcv"
+  },
+  {
+   "rut_empresa": "77777777-7",
+   "tipo_operacion": "VENTA",
+   "periodo": "202601",
+   "tipo_dte": 56,
+   "folio": 2,
+   "fecha_doc": "2026-01-27",
+   "rut_contraparte": "76111111-6",
+   "razon_social": "CLIENTE DEMO SPA",
+   "monto_exento": 0,
+   "monto_neto": 5000,
+   "monto_iva": 950,
+   "monto_iva_no_rec": 0,
+   "monto_iva_uso_comun": 0,
+   "monto_total": 5950,
+   "estado_sii": "REGISTRO",
+   "clasificacion": null,
+   "origen": "rcv"
+  }
+ ],
+ "compras": [
+  {
+   "rut_empresa": "77777777-7",
+   "tipo_operacion": "COMPRA",
+   "periodo": "202601",
+   "tipo_dte": 33,
+   "folio": 501,
+   "fecha_doc": "2026-01-10",
+   "rut_contraparte": "12345678-5",
+   "razon_social": "PROVEEDOR UNO",
+   "monto_exento": 0,
+   "monto_neto": 40000,
+   "monto_iva": 7600,
+   "monto_iva_no_rec": 1000,
+   "monto_iva_uso_comun": 0,
+   "monto_total": 47600,
+   "estado_sii": "REGISTRO",
+   "clasificacion": null,
+   "origen": "csv"
+  },
+  {
+   "rut_empresa": "77777777-7",
+   "tipo_operacion": "COMPRA",
+   "periodo": "202601",
+   "tipo_dte": 61,
+   "folio": 9,
+   "fecha_doc": "2026-01-12",
+   "rut_contraparte": "12345678-5",
+   "razon_social": "PROVEEDOR UNO",
+   "monto_exento": 0,
+   "monto_neto": 10000,
+   "monto_iva": 1900,
+   "monto_iva_no_rec": 0,
+   "monto_iva_uso_comun": 0,
+   "monto_total": 11900,
+   "estado_sii": "REGISTRO",
+   "clasificacion": null,
+   "origen": "csv"
+  },
+  {
+   "rut_empresa": "77777777-7",
+   "tipo_operacion": "COMPRA",
+   "periodo": "202601",
+   "tipo_dte": 34,
+   "folio": 77,
+   "fecha_doc": "2026-01-30",
+   "rut_contraparte": "",
+   "razon_social": "EXENTO",
+   "monto_exento": 8000,
+   "monto_neto": 0,
+   "monto_iva": 0,
+   "monto_iva_no_rec": 0,
+   "monto_iva_uso_comun": 0,
+   "monto_total": 8000,
+   "estado_sii": "REGISTRO",
+   "clasificacion": null,
+   "origen": "csv"
+  }
+ ],
+ "lista_directa": [
+  {
+   "rut_empresa": "77777777-7",
+   "tipo_operacion": "VENTA",
+   "periodo": "202601",
+   "tipo_dte": 33,
+   "folio": 1,
+   "fecha_doc": null,
+   "rut_contraparte": "",
+   "razon_social": "",
+   "monto_exento": 0,
+   "monto_neto": 0,
+   "monto_iva": 0,
+   "monto_iva_no_rec": 0,
+   "monto_iva_uso_comun": 0,
+   "monto_total": 0,
+   "estado_sii": "REGISTRO",
+   "clasificacion": null,
+   "origen": "rcv"
+  }
+ ],
+ "vacios": [
+  [],
+  []
+ ],
+ "num": [
+  0,
+  0,
+  12,
+  13,
+  1234,
+  1234,
+  0,
+  -4
+ ],
+ "fecha": [
+  null,
+  null,
+  "2026-01-15",
+  "2026-01-15",
+  "2026-01-15",
+  "2026-01-15",
+  "garbage!!!",
+  null
+ ],
+ "periodo": [
+  "202601",
+  "202601",
+  "202601",
+  "202601"
+ ],
+ "payload": {
+  "venta": {
+   "metaData": {
+    "namespace": "cl.sii.sdi.lob.diii.consdcv.data.api.interfaces.FacadeService/getDetalleVentaExport",
+    "conversationId": "TOK",
+    "transactionId": "<uuid>",
+    "page": null
+   },
+   "data": {
+    "rutEmisor": "77777777",
+    "dvEmisor": "7",
+    "ptributario": "202601",
+    "estadoContab": "",
+    "operacion": "VENTA",
+    "codTipoDoc": 0,
+    "accionRecaptcha": "RCV_DDETV",
+    "tokenRecaptcha": "t-o-k-e-n-web"
+   }
+  },
+  "compra": {
+   "metaData": {
+    "namespace": "cl.sii.sdi.lob.diii.consdcv.data.api.interfaces.FacadeService/getDetalleCompraExport",
+    "conversationId": "TOK",
+    "transactionId": "<uuid>",
+    "page": null
+   },
+   "data": {
+    "rutEmisor": "77777777",
+    "dvEmisor": "7",
+    "ptributario": "202601",
+    "estadoContab": "REGISTRO",
+    "operacion": "COMPRA",
+    "codTipoDoc": 0,
+    "accionRecaptcha": "RCV_DDETC",
+    "tokenRecaptcha": "t-o-k-e-n-web"
+   }
+  },
+  "resumen": {
+   "metaData": {
+    "namespace": "cl.sii.sdi.lob.diii.consdcv.data.api.interfaces.FacadeService/getResumen",
+    "conversationId": "TOK",
+    "transactionId": "<uuid>",
+    "page": null
+   },
+   "data": {
+    "rutEmisor": "77777777",
+    "dvEmisor": "7",
+    "ptributario": "202601",
+    "estadoContab": "REGISTRO",
+    "operacion": "VENTA",
+    "busquedaInicial": true
+   }
+  }
+ },
+ "payload_cookies": {
+  "metaData": {
+   "namespace": "cl.sii.sdi.lob.diii.consdcv.data.api.interfaces.FacadeService/getDetalleVentaExport",
+   "conversationId": "CS",
+   "transactionId": "<uuid>",
+   "page": null
+  },
+  "data": {
+   "rutEmisor": "77777777",
+   "dvEmisor": "7",
+   "ptributario": "202601",
+   "estadoContab": "",
+   "operacion": "VENTA",
+   "codTipoDoc": 0,
+   "accionRecaptcha": "RCV_DDETV",
+   "tokenRecaptcha": "t-o-k-e-n-web"
+  }
+ },
+ "headers": {
+  "User-Agent": "Mozilla/5.0 (compatible; PROG 1.0; +https://github.com/SebastianMoyano/dte-chile)",
+  "Cookie": "TOKEN=TOK;RUT_NS=77777777;DV_NS=7",
+  "Content-Type": "application/json;charset=UTF-8",
+  "Accept": "*/*"
+ },
+ "endpoints": {
+  "COMPRA": "https://www4.sii.cl/consdcvinternetui/services/data/facadeService/getDetalleCompraExport",
+  "VENTA": "https://www4.sii.cl/consdcvinternetui/services/data/facadeService/getDetalleVentaExport",
+  "resumen": "https://www4.sii.cl/consdcvinternetui/services/data/facadeService/getResumen"
+ },
+ "guardados": 8,
+ "guardados_otra_vez": 8,
+ "filas_en_bd": 8,
+ "desglose": {
+  "rut_empresa": "77777777-7",
+  "periodo": "202601",
+  "fact_emitidas_cant": 2,
+  "fact_emitidas_debito": 19000,
+  "boletas_cant": 1,
+  "boletas_debito": 1900,
+  "nc_emitidas_cant": 1,
+  "nc_emitidas_debito": 3800,
+  "nd_emitidas_cant": 1,
+  "nd_emitidas_debito": 950,
+  "ventas_exentas": 50000,
+  "exentas_cant": 1,
+  "total_debitos": 18050,
+  "fact_recibidas_cant": 2,
+  "fact_recibidas_credito": 6600,
+  "nc_recibidas_cant": 1,
+  "nc_recibidas_credito": 1900,
+  "iva_no_recuperable": 1000,
+  "total_creditos": 4700,
+  "remanente_anterior": 500,
+  "ppm": 1234,
+  "iva_determinado": 12850,
+  "remanente_siguiente": 0,
+  "base_ppm": 185000,
+  "total_a_pagar": 14084
+ },
+ "casilleros": [
+  {
+   "codigo": "503",
+   "glosa": "Facturas emitidas — cantidad",
+   "valor": 2,
+   "confianza": "OK"
+  },
+  {
+   "codigo": "502",
+   "glosa": "Facturas emitidas — débito",
+   "valor": 19000,
+   "confianza": "OK"
+  },
+  {
+   "codigo": "110",
+   "glosa": "Boletas — cantidad",
+   "valor": 1,
+   "confianza": "OK"
+  },
+  {
+   "codigo": "111",
+   "glosa": "Boletas — débito",
+   "valor": 1900,
+   "confianza": "OK"
+  },
+  {
+   "codigo": "512",
+   "glosa": "Notas de débito emitidas — cantidad",
+   "valor": 1,
+   "confianza": "OK"
+  },
+  {
+   "codigo": "513",
+   "glosa": "Notas de débito emitidas — débito",
+   "valor": 950,
+   "confianza": "OK"
+  },
+  {
+   "codigo": "509",
+   "glosa": "Notas de crédito emitidas por facturas — cantidad",
+   "valor": 1,
+   "confianza": "OK"
+  },
+  {
+   "codigo": "510",
+   "glosa": "Notas de crédito emitidas por facturas — rebaja al débito",
+   "valor": 3800,
+   "confianza": "OK"
+  },
+  {
+   "codigo": "586",
+   "glosa": "Ventas/servicios exentos o no gravados — cantidad",
+   "valor": 1,
+   "confianza": "OK"
+  },
+  {
+   "codigo": "142",
+   "glosa": "Ventas/servicios exentos o no gravados — monto neto",
+   "valor": 50000,
+   "confianza": "OK"
+  },
+  {
+   "codigo": "538",
+   "glosa": "TOTAL DÉBITOS",
+   "valor": 18050,
+   "confianza": "OK"
+  },
+  {
+   "codigo": "519",
+   "glosa": "Facturas recibidas del giro — cantidad",
+   "valor": 2,
+   "confianza": "OK"
+  },
+  {
+   "codigo": "520",
+   "glosa": "Facturas recibidas del giro — crédito recuperable",
+   "valor": 6600,
+   "confianza": "OK"
+  },
+  {
+   "codigo": "527",
+   "glosa": "Notas de crédito recibidas — cantidad",
+   "valor": 1,
+   "confianza": "OK"
+  },
+  {
+   "codigo": "528",
+   "glosa": "Notas de crédito recibidas — rebaja al crédito",
+   "valor": 1900,
+   "confianza": "OK"
+  },
+  {
+   "codigo": "504",
+   "glosa": "Remanente crédito fiscal mes anterior",
+   "valor": 500,
+   "confianza": "OK"
+  },
+  {
+   "codigo": "537",
+   "glosa": "TOTAL CRÉDITOS",
+   "valor": 4700,
+   "confianza": "OK"
+  },
+  {
+   "codigo": "89",
+   "glosa": "IVA determinado (a pagar)",
+   "valor": 12850,
+   "confianza": "OK"
+  },
+  {
+   "codigo": "563",
+   "glosa": "Base imponible PPM (ingresos brutos del giro)",
+   "valor": 185000,
+   "confianza": "OK"
+  },
+  {
+   "codigo": "62",
+   "glosa": "PPM neto determinado",
+   "valor": 1234,
+   "confianza": "OK"
+  },
+  {
+   "codigo": "91",
+   "glosa": "TOTAL A PAGAR dentro del plazo legal",
+   "valor": 14084,
+   "confianza": "OK"
+  }
+ ],
+ "casilleros_remanente": [
+  {
+   "codigo": "503",
+   "glosa": "Facturas emitidas — cantidad",
+   "valor": 2,
+   "confianza": "OK"
+  },
+  {
+   "codigo": "502",
+   "glosa": "Facturas emitidas — débito",
+   "valor": 19000,
+   "confianza": "OK"
+  },
+  {
+   "codigo": "110",
+   "glosa": "Boletas — cantidad",
+   "valor": 1,
+   "confianza": "OK"
+  },
+  {
+   "codigo": "111",
+   "glosa": "Boletas — débito",
+   "valor": 1900,
+   "confianza": "OK"
+  },
+  {
+   "codigo": "512",
+   "glosa": "Notas de débito emitidas — cantidad",
+   "valor": 1,
+   "confianza": "OK"
+  },
+  {
+   "codigo": "513",
+   "glosa": "Notas de débito emitidas — débito",
+   "valor": 950,
+   "confianza": "OK"
+  },
+  {
+   "codigo": "509",
+   "glosa": "Notas de crédito emitidas por facturas — cantidad",
+   "valor": 1,
+   "confianza": "OK"
+  },
+  {
+   "codigo": "510",
+   "glosa": "Notas de crédito emitidas por facturas — rebaja al débito",
+   "valor": 3800,
+   "confianza": "OK"
+  },
+  {
+   "codigo": "586",
+   "glosa": "Ventas/servicios exentos o no gravados — cantidad",
+   "valor": 1,
+   "confianza": "OK"
+  },
+  {
+   "codigo": "142",
+   "glosa": "Ventas/servicios exentos o no gravados — monto neto",
+   "valor": 50000,
+   "confianza": "OK"
+  },
+  {
+   "codigo": "538",
+   "glosa": "TOTAL DÉBITOS",
+   "valor": 18050,
+   "confianza": "OK"
+  },
+  {
+   "codigo": "519",
+   "glosa": "Facturas recibidas del giro — cantidad",
+   "valor": 2,
+   "confianza": "OK"
+  },
+  {
+   "codigo": "520",
+   "glosa": "Facturas recibidas del giro — crédito recuperable",
+   "valor": 6600,
+   "confianza": "OK"
+  },
+  {
+   "codigo": "527",
+   "glosa": "Notas de crédito recibidas — cantidad",
+   "valor": 1,
+   "confianza": "OK"
+  },
+  {
+   "codigo": "528",
+   "glosa": "Notas de crédito recibidas — rebaja al crédito",
+   "valor": 1900,
+   "confianza": "OK"
+  },
+  {
+   "codigo": "504",
+   "glosa": "Remanente crédito fiscal mes anterior",
+   "valor": 900000,
+   "confianza": "OK"
+  },
+  {
+   "codigo": "537",
+   "glosa": "TOTAL CRÉDITOS",
+   "valor": 4700,
+   "confianza": "OK"
+  },
+  {
+   "codigo": "77",
+   "glosa": "Remanente crédito fiscal para el período siguiente",
+   "valor": 886650,
+   "confianza": "OK"
+  },
+  {
+   "codigo": "563",
+   "glosa": "Base imponible PPM (ingresos brutos del giro)",
+   "valor": 185000,
+   "confianza": "OK"
+  }
+ ],
+ "resumen": {
+  "rut_empresa": "77777777-7",
+  "periodo": "202601",
+  "ventas_netas": 95000,
+  "ventas_exentas": 50000,
+  "debito_fiscal": 18050,
+  "n_docs_venta": 5,
+  "compras_netas": 30000,
+  "compras_exentas": 8000,
+  "credito_fiscal": 4700,
+  "iva_no_recuperable": 1000,
+  "n_docs_compra": 3,
+  "ppm": 10,
+  "remanente_anterior": 0,
+  "iva_determinado": 13350,
+  "remanente_siguiente": 0,
+  "total_a_pagar": 13360
+ },
+ "codigos_f29": {
+  "503": [
+   "Facturas emitidas — cantidad",
+   "OK"
+  ],
+  "502": [
+   "Facturas emitidas — débito",
+   "OK"
+  ],
+  "110": [
+   "Boletas — cantidad",
+   "OK"
+  ],
+  "111": [
+   "Boletas — débito",
+   "OK"
+  ],
+  "512": [
+   "Notas de débito emitidas — cantidad",
+   "OK"
+  ],
+  "513": [
+   "Notas de débito emitidas — débito",
+   "OK"
+  ],
+  "509": [
+   "Notas de crédito emitidas por facturas — cantidad",
+   "OK"
+  ],
+  "510": [
+   "Notas de crédito emitidas por facturas — rebaja al débito",
+   "OK"
+  ],
+  "586": [
+   "Ventas/servicios exentos o no gravados — cantidad",
+   "OK"
+  ],
+  "142": [
+   "Ventas/servicios exentos o no gravados — monto neto",
+   "OK"
+  ],
+  "538": [
+   "TOTAL DÉBITOS",
+   "OK"
+  ],
+  "519": [
+   "Facturas recibidas del giro — cantidad",
+   "OK"
+  ],
+  "520": [
+   "Facturas recibidas del giro — crédito recuperable",
+   "OK"
+  ],
+  "524": [
+   "Facturas activo fijo — cantidad",
+   "OK"
+  ],
+  "525": [
+   "Facturas activo fijo — crédito",
+   "OK"
+  ],
+  "527": [
+   "Notas de crédito recibidas — cantidad",
+   "OK"
+  ],
+  "528": [
+   "Notas de crédito recibidas — rebaja al crédito",
+   "OK"
+  ],
+  "504": [
+   "Remanente crédito fiscal mes anterior",
+   "OK"
+  ],
+  "537": [
+   "TOTAL CRÉDITOS",
+   "OK"
+  ],
+  "89": [
+   "IVA determinado (a pagar)",
+   "OK"
+  ],
+  "77": [
+   "Remanente crédito fiscal para el período siguiente",
+   "OK"
+  ],
+  "563": [
+   "Base imponible PPM (ingresos brutos del giro)",
+   "OK"
+  ],
+  "62": [
+   "PPM neto determinado",
+   "OK"
+  ],
+  "595": [
+   "Subtotal impuesto determinado anverso",
+   "OK"
+  ],
+  "91": [
+   "TOTAL A PAGAR dentro del plazo legal",
+   "OK"
+  ]
+ }
+}
