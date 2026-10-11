@@ -49,3 +49,24 @@ byte a byte iguales a Python y a las emisiones aceptadas (`go test ./siiengine/`
 
 Regla (L15): si un byte difiere del corpus, el error está aquí o en Python, y se averigua cuál
 contra el SII antes de tocar lo esperado. Plan y fases en `docs/PLAN-PORT.md`.
+
+## Herramientas de línea de comando (`nucleo/cmd`)
+
+Todo lo que el operador hacía con scripts Python tiene su binario Go; la clave del certificado nunca
+va por flag (`NUCLEO_CLAVE_CERTIFICADO` o el Llavero de macOS, servicio `dte-cert-firma`).
+
+| binario | reemplaza a | qué hace |
+|---|---|---|
+| `nucleo-servidor` | `uvicorn main:app` | el motor HTTP (`servir`, `migrar`) |
+| `nucleo-emitir` | `nucleo-emitir` (fase 3) | emitir un documento desde JSON con el núcleo |
+| `nucleo-dorado` | — | el port externo que mide `test_dorado.py` |
+| `nucleo-pdf` | — | la representación gráfica desde el XML firmado |
+| `nucleo-sii` | `verificar_sii.py`, `fase3_envio.py` | token, estado por TrackID y envío por DTEUpload |
+| `nucleo-siiengine` | `emitir_mipyme.py` | el SII engine: sesión, listar, importar, factura, NC |
+| `nucleo-valores` | — | UF/UTM/dólar (actualizar, histórico, demonio) |
+| `nucleo-certificacion` | `dry_run_certificacion.py`, `certificacion_sii.py` | el Set de Pruebas: dry run y `--enviar` |
+| `nucleo-cafs` | `load_cafs.py` | listar/cargar los CAF de `storage/cafs/` en la base |
+| `nucleo-portal` | `solicitar_caf_sii.py` (y el portal del MCP) | empresa autorizada, timbrajes, situación, software, empresas del certificado, anulables, anular, solicitar CAF |
+
+Siguen en Python, por decisión: `mcp_server.py` (integración con IA), `keystore_cli.py`/`rotar_claves.py`
+(mantenimiento del keystore) y los diagnósticos de certificado.
