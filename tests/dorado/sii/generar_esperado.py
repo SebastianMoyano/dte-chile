@@ -17,3 +17,11 @@ xml = cli._firmar_semilla(SEMILLA)
 (Path(__file__).parent / "semilla.txt").write_text(SEMILLA)
 (Path(__file__).parent / "semilla_firmada.xml").write_text(xml, encoding="utf-8")
 print("escrito semilla_firmada.xml", len(xml), "bytes")
+
+# Variante REST de boletas (core/sii_boleta.py::_firmar_semilla): mismo <getToken> firmado pero
+# compacto (sin saltos de línea) y mandado directo como body, no escapado dentro de un SOAP.
+from core.sii_boleta import ClienteBoletaSII  # noqa: E402
+
+xml_boleta = ClienteBoletaSII(cert, AmbienteSII.CERTIFICACION)._firmar_semilla(SEMILLA)
+(Path(__file__).parent / "semilla_firmada_boleta.xml").write_bytes(xml_boleta)
+print("escrito semilla_firmada_boleta.xml", len(xml_boleta), "bytes")

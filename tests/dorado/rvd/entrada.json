@@ -1,0 +1,88 @@
+{
+ "rut_emisor": "77777777-7",
+ "rut_envia": "12345678-5",
+ "fecha_resolucion": "2026-01-01",
+ "numero_resolucion": 0,
+ "dia": "2026-01-23",
+ "tipos": [
+  39,
+  41,
+  61
+ ],
+ "sec_envio": 1,
+ "marca": "2026-01-24T08:00:00",
+ "documentos": [
+  {
+   "tipo_dte": 39,
+   "folio": 1,
+   "monto_neto": 1000,
+   "iva": 190,
+   "monto_exento": 0,
+   "monto_total": 1190,
+   "estado": "aceptado"
+  },
+  {
+   "tipo_dte": 39,
+   "folio": 2,
+   "monto_neto": 2000,
+   "iva": 380,
+   "monto_exento": 0,
+   "monto_total": 2380,
+   "estado": "enviado"
+  },
+  {
+   "tipo_dte": 39,
+   "folio": 3,
+   "monto_neto": 0,
+   "iva": 0,
+   "monto_exento": 0,
+   "monto_total": 0,
+   "estado": "anulado"
+  },
+  {
+   "tipo_dte": 39,
+   "folio": 5,
+   "monto_neto": 500,
+   "iva": 95,
+   "monto_exento": 0,
+   "monto_total": 595,
+   "estado": "generado"
+  },
+  {
+   "tipo_dte": 41,
+   "folio": 1,
+   "monto_neto": 0,
+   "iva": 0,
+   "monto_exento": 5000,
+   "monto_total": 5000,
+   "estado": "aceptado"
+  },
+  {
+   "tipo_dte": 41,
+   "folio": 2,
+   "monto_neto": 0,
+   "iva": 0,
+   "monto_exento": 0,
+   "monto_total": 0,
+   "estado": "anulado"
+  },
+  {
+   "tipo_dte": 41,
+   "folio": 3,
+   "monto_neto": 0,
+   "iva": 0,
+   "monto_exento": 0,
+   "monto_total": 0,
+   "estado": "anulado"
+  },
+  {
+   "tipo_dte": 41,
+   "folio": 7,
+   "monto_neto": 0,
+   "iva": 0,
+   "monto_exento": 1200,
+   "monto_total": 1200,
+   "estado": "aceptado"
+  }
+ ]
+}

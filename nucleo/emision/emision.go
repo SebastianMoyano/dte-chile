@@ -40,46 +40,28 @@ type Resultado struct {
 	XMLEnvioPath string `json:"xml_envio_path"`
 	Ambiente     string `json:"ambiente"`
 	Mensaje      string `json:"mensaje"`
+	Envio        []byte `json:"-"` // el sobre firmado (ISO-8859-1), para xml_envio_b64 de la API
 }
 
 func esBoleta(t int) bool { return t == 39 || t == 41 }
 
-// Emitir procesa un documento. Si d.Folio == 0 lo asigna atómicamente desde el CAF activo.
-func Emitir(c Contexto, d xmlgen.Documento) (*Resultado, error) {
+// Preparado es el documento listo: totales, TED, DTE firmado y sobre (lo que comparten la
+// emisión real y la previsualización).
+type Preparado struct {
+	Documento   xmlgen.Documento
+	MontoNeto   int64
+	MontoExento int64
+	IVA         int64
+	MontoTotal  int64
+	TED         string
+	DTEFirmado  string // el DTE tal como se firmó (string; ISO-8859-1 al escribirlo)
+	Envio       []byte // el sobre, ISO-8859-1
+	Raiz        string // EnvioDTE | EnvioBOLETA
+}
+
+// preparar: pasos 5-8b (totales → TED → XML → firma standalone → sobre por string → XSD).
+func preparar(c Contexto, d xmlgen.Documento, caf *ted.CAF) (*Preparado, error) {
 	rut, tipo := d.Emisor.Rut, d.TipoDTE
-	// 1-2. folio (auto: atómico) y CAF activo
-	auto := d.Folio <= 0
-	if auto {
-		f, err := c.Almacen.ConsumirSiguienteFolio(rut, tipo)
-		if errors.Is(err, almacen.ErrSinFolios) {
-			return nil, fmt.Errorf("no hay folios disponibles para el emisor %s y tipo DTE %d", rut, tipo)
-		}
-		if err != nil {
-			return nil, err
-		}
-		d.Folio = f
-	}
-	cafDB, err := c.Almacen.CAFActivo(rut, tipo)
-	if err != nil {
-		return nil, err
-	}
-	if cafDB == nil {
-		return nil, fmt.Errorf("no se encontró un CAF activo para el emisor %s y tipo DTE %d", rut, tipo)
-	}
-	caf, err := ted.ParsearCAF(cafDB.XML)
-	if err != nil {
-		return nil, err
-	}
-	if d.Folio < caf.FolioDesde || d.Folio > caf.FolioHasta {
-		return nil, fmt.Errorf("el folio %d no está en el rango del CAF activo [%d-%d]", d.Folio, caf.FolioDesde, caf.FolioHasta)
-	}
-	if !auto {
-		ok, err := c.Almacen.ConsumirFolio(rut, tipo, d.Folio)
-		if err != nil || !ok {
-			return nil, fmt.Errorf("no se pudo consumir el folio %d (¿ya fue usado?)", d.Folio)
-		}
-	}
-	// 5-6. totales y TED
 	its := make([]totales.Item, len(d.Items))
 	for i, it := range d.Items {
 		its[i] = totales.Item{Cantidad: it.Cantidad, PrecioUnitario: it.PrecioUnitario,
@@ -91,13 +73,13 @@ func Emitir(c Contexto, d xmlgen.Documento) (*Resultado, error) {
 		primer = d.Items[0].Nombre
 	}
 	d.Marca = c.Marca
+	var err error
 	d.TED, err = ted.Generar(caf, ted.Datos{Folio: d.Folio, RutEmisor: rut, RutReceptor: d.Receptor.Rut,
 		TipoDTE: tipo, FechaEmision: d.FechaEmision, MontoTotal: tot.MontoTotal,
 		RazonSocialReceptor: d.Receptor.RazonSocial, PrimerItem: primer, Marca: c.Marca})
 	if err != nil {
-		return nil, err
+		return nil, errCAF("No se pudo generar el TED: " + err.Error())
 	}
-	// 7-8. XML, firma standalone, sobre por string
 	var arbol *xmlgen.Nodo
 	if esBoleta(tipo) {
 		arbol = xmlgen.GenerarBoleta(d)
@@ -106,26 +88,90 @@ func Emitir(c Contexto, d xmlgen.Documento) (*Resultado, error) {
 	}
 	firmado, err := c.Cert.FirmarDTE(arbol.String(), arbol.Hijos[0].String(), tipo, d.Folio)
 	if err != nil {
-		return nil, err
+		return nil, ErrCertificado("No se pudo firmar el DTE: " + err.Error())
 	}
 	rutEnvia, err := c.Cert.RutEmisor()
 	if err != nil {
-		return nil, err
+		return nil, ErrCertificado("El certificado no trae RUT: " + err.Error())
 	}
-	raiz, pDoc, pEnv := "EnvioDTE", "DTE", "EnvioDTE"
+	raiz := "EnvioDTE"
 	if esBoleta(tipo) {
-		raiz, pDoc, pEnv = "EnvioBOLETA", "BOLETA", "EnvioBOLETA"
+		raiz = "EnvioBOLETA"
 	}
 	envio, err := c.Cert.Sobre([]string{firmado}, map[int]int{tipo: 1}, rut, rutEnvia,
 		c.FechaResolucion, c.NumeroResolucion, raiz, c.Marca)
 	if err != nil {
-		return nil, err
+		return nil, ErrValidacion("No se pudo armar el sobre: " + err.Error())
 	}
-	// 8b. XSD (por el motor Python), antes de tocar disco o BD.
+	// 8b. XSD (nucleo/xsd), antes de tocar disco o BD.
 	if c.Validar != nil {
 		if err := c.Validar(envio); err != nil {
-			return nil, fmt.Errorf("el sobre no valida contra el XSD del SII: %w", err)
+			return nil, ErrValidacion("el sobre no valida contra el XSD del SII: " + err.Error())
 		}
+	}
+	return &Preparado{Documento: d, MontoNeto: tot.MontoNeto, MontoExento: tot.MontoExento, IVA: tot.IvaMonto,
+		MontoTotal: tot.MontoTotal, TED: d.TED, DTEFirmado: firmado, Envio: envio, Raiz: raiz}, nil
+}
+
+// Previsualizar es core/preview.py: firma + TED + XSD con el CAF dado, SIN consumir folio ni
+// tocar disco/BD. Si d.Folio <= 0 usa el primer folio del CAF (solo para mirar).
+func Previsualizar(c Contexto, d xmlgen.Documento, caf *ted.CAF) (*Preparado, error) {
+	if d.Folio <= 0 {
+		d.Folio = caf.FolioDesde
+	}
+	if d.Folio < caf.FolioDesde || d.Folio > caf.FolioHasta {
+		return nil, errFolio(fmt.Sprintf("El folio %d no está en el rango del CAF [%d-%d].", d.Folio, caf.FolioDesde, caf.FolioHasta),
+			map[string]any{"folio": d.Folio, "desde": caf.FolioDesde, "hasta": caf.FolioHasta})
+	}
+	return preparar(c, d, caf)
+}
+
+// Emitir procesa un documento. Si d.Folio == 0 lo asigna atómicamente desde el CAF activo.
+func Emitir(c Contexto, d xmlgen.Documento) (*Resultado, error) {
+	rut, tipo := d.Emisor.Rut, d.TipoDTE
+	// 1-2. folio (auto: atómico) y CAF activo
+	auto := d.Folio <= 0
+	if auto {
+		f, err := c.Almacen.ConsumirSiguienteFolio(rut, tipo)
+		if errors.Is(err, almacen.ErrSinFolios) {
+			return nil, errSinFolios(rut, tipo)
+		}
+		if err != nil {
+			return nil, err
+		}
+		d.Folio = f
+	}
+	cafDB, err := c.Almacen.CAFActivo(rut, tipo)
+	if err != nil {
+		return nil, err
+	}
+	if cafDB == nil {
+		return nil, errFolio(fmt.Sprintf("No se encontró un CAF activo en la base de datos para el emisor %s y tipo DTE %d.", rut, tipo),
+			map[string]any{"rut_emisor": rut, "tipo_dte": tipo})
+	}
+	caf, err := ted.ParsearCAF(cafDB.XML)
+	if err != nil {
+		return nil, errCAF("No se pudo procesar el CAF: " + err.Error())
+	}
+	if d.Folio < caf.FolioDesde || d.Folio > caf.FolioHasta {
+		return nil, errFolio(fmt.Sprintf("El folio %d no está en el rango autorizado por el CAF activo [%d-%d].", d.Folio, caf.FolioDesde, caf.FolioHasta),
+			map[string]any{"folio": d.Folio, "desde": caf.FolioDesde, "hasta": caf.FolioHasta})
+	}
+	if !auto {
+		ok, err := c.Almacen.ConsumirFolio(rut, tipo, d.Folio)
+		if err != nil || !ok {
+			return nil, errConflicto(fmt.Sprintf("No se pudo consumir el folio %d en la base de datos (¿ya fue usado?).", d.Folio), map[string]any{"folio": d.Folio})
+		}
+	}
+	// 5-8b. totales, TED, XML, firma, sobre, XSD
+	p, err := preparar(c, d, caf)
+	if err != nil {
+		return nil, err
+	}
+	d = p.Documento
+	pDoc, pEnv := "DTE", "EnvioDTE"
+	if esBoleta(tipo) {
+		pDoc, pEnv = "BOLETA", "EnvioBOLETA"
 	}
 	// 9-11. disco (bytes exactos que se firmaron)
 	dtes := filepath.Join(c.StorageBase, "dtes")
@@ -133,7 +179,7 @@ func Emitir(c Contexto, d xmlgen.Documento) (*Resultado, error) {
 		return nil, err
 	}
 	_ = os.MkdirAll(filepath.Join(c.StorageBase, "pdfs"), 0o755)
-	xmlDTE, err := ted.Latin1(firmado)
+	xmlDTE, err := ted.Latin1(p.DTEFirmado)
 	if err != nil {
 		return nil, err
 	}
@@ -142,18 +188,18 @@ func Emitir(c Contexto, d xmlgen.Documento) (*Resultado, error) {
 	if err := os.WriteFile(pathDTE, xmlDTE, 0o644); err != nil {
 		return nil, err
 	}
-	if err := os.WriteFile(pathEnv, envio, 0o644); err != nil {
+	if err := os.WriteFile(pathEnv, p.Envio, 0o644); err != nil {
 		return nil, err
 	}
 	// 12. BD (xml_firmado se guarda como texto decodificado de ISO-8859-1, igual que Python)
 	id, err := c.Almacen.CrearDTE(almacen.DTE{TipoDTE: tipo, Folio: d.Folio, RutEmisor: rut,
 		RutReceptor: d.Receptor.Rut, RazonSocialReceptor: d.Receptor.RazonSocial, FechaEmision: d.FechaEmision,
-		MontoNeto: tot.MontoNeto, MontoExento: tot.MontoExento, IVA: tot.IvaMonto, MontoTotal: tot.MontoTotal,
-		XMLFirmado: firmado, Ambiente: c.Ambiente})
+		MontoNeto: p.MontoNeto, MontoExento: p.MontoExento, IVA: p.IVA, MontoTotal: p.MontoTotal,
+		XMLFirmado: p.DTEFirmado, Ambiente: c.Ambiente})
 	if err != nil {
 		return nil, err
 	}
-	return &Resultado{DTEID: id, Folio: d.Folio, TipoDTE: tipo, MontoTotal: tot.MontoTotal,
-		XMLDTEPath: pathDTE, XMLEnvioPath: pathEnv, Ambiente: c.Ambiente,
+	return &Resultado{DTEID: id, Folio: d.Folio, TipoDTE: tipo, MontoTotal: p.MontoTotal,
+		XMLDTEPath: pathDTE, XMLEnvioPath: pathEnv, Ambiente: c.Ambiente, Envio: p.Envio,
 		Mensaje: fmt.Sprintf("DTE emitido exitosamente. Folio %d.", d.Folio)}, nil
 }

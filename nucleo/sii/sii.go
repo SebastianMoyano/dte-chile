@@ -58,6 +58,20 @@ func (c *Cliente) url(ruta string) string { return hosts[c.Ambiente] + ruta }
 // enveloped-signature, firma RSA-SHA1, KeyInfo sin envolver a 64.
 func FirmarSemilla(cert *firma.Certificado, semilla string) (string, error) {
 	doc := "<getToken>\n<item>\n<Semilla>" + semilla + "</Semilla>\n</item>\n</getToken>"
+	firmaXML, err := firmaGetToken(cert, doc)
+	if err != nil {
+		return "", err
+	}
+	// lxml anexa la firma tras el último hijo: el "\n" (cola de <item>) queda antes de <Signature>
+	// y no hay nada entre </Signature> y </getToken>.
+	return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+		"<getToken>\n<item>\n<Semilla>" + semilla + "</Semilla>\n</item>\n" + firmaXML + "</getToken>", nil
+}
+
+// firmaGetToken es firmar_documento_xml sobre un <getToken>: digest del documento canonicalizado
+// (tal cual, con o sin saltos de línea), SignedInfo con transform enveloped-signature, firma
+// RSA-SHA1, KeyInfo sin envolver a 64. Devuelve solo el <Signature>.
+func firmaGetToken(cert *firma.Certificado, doc string) (string, error) {
 	can, err := c14n.Canonicalizar(doc, nil)
 	if err != nil {
 		return "", err
@@ -88,18 +102,14 @@ func FirmarSemilla(cert *firma.Certificado, semilla string) (string, error) {
 	// Dentro de <Signature> el xmlns del SignedInfo es redundante y lxml no lo serializa
 	// (sí está en lo canonicalizado y firmado, arriba).
 	signedInfoEmbebido := strings.Replace(signedInfo, " xmlns=\""+nsDsig+"\"", "", 1)
-	firmaXML := "<Signature xmlns=\"" + nsDsig + "\">\n" + signedInfoEmbebido + "\n" +
+	return "<Signature xmlns=\"" + nsDsig + "\">\n" + signedInfoEmbebido + "\n" +
 		"<SignatureValue>" + base64.StdEncoding.EncodeToString(sig) + "</SignatureValue>\n" +
 		"<KeyInfo>\n<KeyValue>\n<RSAKeyValue>\n" +
 		"<Modulus>" + base64.StdEncoding.EncodeToString(pub.N.Bytes()) + "</Modulus>\n" +
 		"<Exponent>" + base64.StdEncoding.EncodeToString(exp) + "</Exponent>\n" +
 		"</RSAKeyValue>\n</KeyValue>\n<X509Data>\n" +
 		"<X509Certificate>" + base64.StdEncoding.EncodeToString(cert.Cert.Raw) + "</X509Certificate>\n" +
-		"</X509Data>\n</KeyInfo>\n</Signature>"
-	// lxml anexa la firma tras el último hijo: el "\n" (cola de <item>) queda antes de <Signature>
-	// y no hay nada entre </Signature> y </getToken>.
-	return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
-		"<getToken>\n<item>\n<Semilla>" + semilla + "</Semilla>\n</item>\n" + firmaXML + "</getToken>", nil
+		"</X509Data>\n</KeyInfo>\n</Signature>", nil
 }
 
 // soap hace el POST con hasta 3 intentos ante 5xx o error de red (Maullín devuelve 503
@@ -166,7 +176,7 @@ func (c *Cliente) Semilla() (string, error) {
 	}
 	s := valor(resp, "SEMILLA")
 	if s == "" {
-		return "", fmt.Errorf("no se pudo obtener la semilla: %.300s", resp)
+		return "", &ErrRespuesta{fmt.Sprintf("No se pudo obtener la semilla del SII. Respuesta: %.300s", resp)}
 	}
 	return s, nil
 }
@@ -198,7 +208,7 @@ func (c *Cliente) Token() (string, error) {
 	}
 	t := valor(resp, "TOKEN")
 	if t == "" {
-		return "", fmt.Errorf("no se pudo obtener el token: %.300s", resp)
+		return "", &ErrRespuesta{fmt.Sprintf("No se pudo obtener el token del SII. Respuesta: %.300s", resp)}
 	}
 	c.token, c.expira = t, time.Now().Add(50*time.Minute)
 	return t, nil
@@ -250,7 +260,7 @@ func (c *Cliente) EnviarDTE(xmlEnvio []byte, rutEmpresa, dvEmpresa string) (int6
 	var track int64
 	fmt.Sscan(valor(resp, "TRACKID"), &track)
 	if estado != "0" {
-		return track, resp, fmt.Errorf("el SII rechazó el envío: STATUS %q", estado)
+		return track, resp, &ErrRespuesta{fmt.Sprintf("El SII rechazó el envío. Estado: %s. Respuesta: %.300s", estado, resp)}
 	}
 	return track, resp, nil
 }
@@ -297,3 +307,44 @@ func (c *Cliente) EstadoTrack(track int64, rutEmpresa, dvEmpresa string) (*Estad
 	}
 	return e, nil
 }
+
+// EstadoDTE es consultar_estado_dte: estado de un documento por sus datos (getEstDte).
+// fechaEmision va como YYYYMMDD.
+func (c *Cliente) EstadoDTE(rutEmisor, dvEmisor string, tipo, folio int, fechaEmision string, montoTotal int64, rutReceptor, dvReceptor string) (*Estado, error) {
+	tok, err := c.Token()
+	if err != nil {
+		return nil, err
+	}
+	resp, err := c.soap("/DTEWS/services/wsDTECorreo", fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+  <soapenv:Body>
+    <getEstDte>
+      <RutEmisor>%s</RutEmisor>
+      <DvEmisor>%s</DvEmisor>
+      <TipoDte>%d</TipoDte>
+      <FolioDte>%d</FolioDte>
+      <FechaEmisionDte>%s</FechaEmisionDte>
+      <MontoDte>%d</MontoDte>
+      <RutReceptor>%s</RutReceptor>
+      <DvReceptor>%s</DvReceptor>
+      <Token>%s</Token>
+    </getEstDte>
+  </soapenv:Body>
+</soapenv:Envelope>`, rutEmisor, dvEmisor, tipo, folio, fechaEmision, montoTotal, rutReceptor, dvReceptor, tok))
+	if err != nil {
+		return nil, err
+	}
+	e := &Estado{Estado: valor(resp, "ESTADO"), Glosa: valor(resp, "GLOSA"), Crudo: resp}
+	if e.Estado == "" {
+		e.Estado = valor(resp, "estado")
+		e.Glosa = valor(resp, "glosa")
+	}
+	return e, nil
+}
+
+// ErrRespuesta: el SII respondió, pero sin lo esperado (sin semilla/token, STATUS distinto de 0).
+// Es el ValueError de core/sii.py, que la API traduce a 422 sii_rechazo; los errores de red o
+// HTTP son 502 sii_comunicacion.
+type ErrRespuesta struct{ Msg string }
+
+func (e *ErrRespuesta) Error() string { return e.Msg }

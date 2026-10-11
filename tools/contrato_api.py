@@ -5,7 +5,7 @@ error y el JSON completo (ignorando campos volátiles).
 
 Uso (los dos motores corriendo, con el MISMO APP_SHELL_KEY en el entorno de ambos):
   APP_SHELL_KEY=… .venv/bin/python tools/contrato_api.py --python http://127.0.0.1:8771 --go http://127.0.0.1:8010
-  … --escenario valores|auth|apikeys|simulacion|xsd|keystore|todos   (default: todos)
+  … --escenario valores|auth|apikeys|simulacion|xsd|emitir|keystore|todos   (default: todos)
   … --token <jwt o api key>                            (si no, APP_SHELL_KEY del entorno)
   … --sin-auth                                         (además, cada GET sin token → 401)
 
@@ -36,6 +36,26 @@ SOBRE_BOLETAS = RAIZ / "tests" / "dorado" / "esperado" / "14_sobre_dos_boletas" 
 def b64(datos: bytes) -> str:
     import base64
     return base64.b64encode(datos).decode("ascii")
+
+
+CERT_DEMO_B64 = b64(CERT_DEMO.read_bytes()) if CERT_DEMO.exists() else ""
+EMISOR_DEMO = {"rut": "77777777-7", "razon_social": "EMPRESA DEMO SPA", "giro": "Cafetería", "codigo_actividad": 561000,
+               "direccion": "Calle Ficticia 123", "comuna": "Santiago", "ciudad": "Santiago", "email": "hola@empresademo.cl"}
+CLIENTE_DEMO = {"rut": "76111111-6", "razon_social": "CLIENTE DEMO SPA", "giro": "Oficina", "direccion": "Avenida Imaginaria 456",
+                "comuna": "Providencia", "ciudad": "Santiago"}
+
+
+def dte_demo(tipo, items, receptor=None, folio=0, emisor=None, **extra):
+    """Un DTEInput de EMPRESA DEMO SPA (el emisor de la práctica, con CAF demo en la base)."""
+    if receptor is None:
+        receptor = {"rut": "66666666-6", "razon_social": "CONSUMIDOR FINAL"} if tipo in (39, 41) else CLIENTE_DEMO
+    items = [dict(it, numero_linea=i + 1) for i, it in enumerate(items)]
+    d = {"tipo_dte": tipo, "folio": folio, "fecha_emision": "2026-01-15", "emisor": emisor or EMISOR_DEMO, "receptor": receptor, "items": items}
+    d.update(extra)
+    return d
+
+
+IGNORAR_EMISION = {"dte_id", "folio", "xml_dte_path", "pdf_path", "xml_envio_path", "xml_envio_b64", "mensaje"}
 
 
 def sobre(ruta, reemplazo=None) -> str:
@@ -129,6 +149,45 @@ ESCENARIOS = {
         paso("POST", "/api/v1/dte/validar-xml", {"xml_b64": b64(b"<Otro/>")}, ignorar={"errores", "mensaje"}),
         paso("POST", "/api/v1/dte/validar-xml", {"xml_b64": "no-es-base64!!"}, ignorar={"mensaje"}),
         paso("POST", "/api/v1/dte/validar-xml", {}),
+    ],
+    # motor propio: emitir (folio → TED → firma → sobre → XSD → disco → BD → PDF), previsualizar, enviar, estado.
+    # Cada motor consume su propio folio del CAF demo → se ignora lo que depende del folio. Enviar/estado con
+    # el certificado ficticio: el SII no lo conoce → 502 en los dos (el texto del error es de cada cliente).
+    "emitir": [
+        paso("POST", "/api/v1/simulacion/reiniciar", {}, ignorar={"documentos_borrados", "cafs_borrados"}),
+        paso("POST", "/api/v1/dte/emitir", {"dte": dte_demo(33, [{"nombre": "Café para reunión", "cantidad": 1, "precio_unitario": 20000}]),
+                                            "certificado_p12_b64": CERT_DEMO_B64, "password_certificado": "demo"}, ignorar=IGNORAR_EMISION),
+        paso("POST", "/api/v1/dte/emitir", {"dte": dte_demo(34, [{"nombre": "Taller", "cantidad": 2, "precio_unitario": 15000, "exento": True}]),
+                                            "certificado_p12_b64": CERT_DEMO_B64, "password_certificado": "demo"}, ignorar=IGNORAR_EMISION),
+        paso("POST", "/api/v1/dte/emitir", {"dte": dte_demo(39, [{"nombre": "Café", "cantidad": 1, "precio_unitario": 1190}]),
+                                            "certificado_p12_b64": CERT_DEMO_B64, "password_certificado": "demo"}, ignorar=IGNORAR_EMISION),
+        paso("POST", "/api/v1/dte/emitir", {"dte": dte_demo(33, [{"nombre": "x", "precio_unitario": 1000}], emisor=dict(EMISOR_DEMO, rut="76111111-6")),
+                                            "certificado_p12_b64": CERT_DEMO_B64, "password_certificado": "demo"}),
+        paso("POST", "/api/v1/dte/emitir", {"dte": dte_demo(33, [{"nombre": "x", "precio_unitario": 1000}])}),
+        paso("POST", "/api/v1/dte/emitir", {"dte": dte_demo(33, [{"nombre": "x", "precio_unitario": 1000}]), "certificado_p12_b64": "no-es-b64!!", "password_certificado": "demo"}, ignorar={"mensaje"}),
+        paso("POST", "/api/v1/dte/emitir", {"dte": dte_demo(33, [{"nombre": "x", "precio_unitario": 1000}]), "certificado_p12_b64": CERT_DEMO_B64, "password_certificado": "mala"}, ignorar={"mensaje"}),
+        paso("POST", "/api/v1/dte/emitir", {"dte": dte_demo(99, [{"nombre": "x", "precio_unitario": 1000}]), "certificado_p12_b64": CERT_DEMO_B64, "password_certificado": "demo"}, ignorar={"detalle"}),
+        paso("POST", "/api/v1/dte/emitir", {}),
+        # previsualizar usa el certificado del keystore (fila única por cuenta+RUT): cada motor por turnos
+        paso("POST", "/api/v1/keystore/certificados", {"password": "demo", "nombre": "demo py"}, archivo=str(CERT_DEMO), solo="py", espera=201, guarda="id"),
+        paso("POST", "/api/v1/dte/previsualizar", {"dte": dte_demo(33, [{"nombre": "Café", "cantidad": 1, "precio_unitario": 20000}]), "cert_id": "{id}"}, solo="py", espera=200),
+        paso("DELETE", "/api/v1/keystore/certificados/{id}", solo="py", espera=200),
+        paso("POST", "/api/v1/keystore/certificados", {"password": "demo", "nombre": "demo go"}, archivo=str(CERT_DEMO), solo="go", espera=201, guarda="id"),
+        paso("POST", "/api/v1/dte/previsualizar", {"dte": dte_demo(33, [{"nombre": "Café", "cantidad": 1, "precio_unitario": 20000}]), "cert_id": "{id}"}, solo="go", espera=200),
+        paso("DELETE", "/api/v1/keystore/certificados/{id}", solo="go", espera=200),
+        paso("POST", "/api/v1/dte/previsualizar", {"dte": dte_demo(33, [{"nombre": "x", "precio_unitario": 1}]), "cert_id": 999999}),
+        paso("POST", "/api/v1/dte/previsualizar", {"dte": dte_demo(33, [{"nombre": "x", "precio_unitario": 1}])}),
+        paso("POST", "/api/v1/dte/enviar", {"xml_envio_b64": sobre(SOBRE_FACTURA), "certificado_p12_b64": CERT_DEMO_B64, "password_certificado": "demo",
+                                            "rut_empresa": "77777777", "dv_empresa": "7", "tipo_dte": 39}),
+        paso("POST", "/api/v1/dte/enviar", {"xml_envio_b64": sobre(SOBRE_FACTURA, (b"<RutEmisor>77777777-7", b"<RutEmisor>77777777-X")), "certificado_p12_b64": CERT_DEMO_B64,
+                                            "password_certificado": "demo", "rut_empresa": "77777777", "dv_empresa": "7"}, ignorar={"mensaje"}),
+        paso("POST", "/api/v1/dte/enviar", {"xml_envio_b64": sobre(SOBRE_FACTURA), "certificado_p12_b64": CERT_DEMO_B64, "password_certificado": "demo",
+                                            "rut_empresa": "77777777", "dv_empresa": "7"}, ignorar={"mensaje"}),
+        paso("POST", "/api/v1/dte/enviar", {"xml_envio_b64": sobre(SOBRE_FACTURA)}),
+        paso("POST", "/api/v1/estado/track", {"track_id": 1, "rut_empresa": "77777777", "dv_empresa": "7", "certificado_p12_b64": CERT_DEMO_B64, "password_certificado": "demo"}, ignorar={"mensaje"}),
+        paso("POST", "/api/v1/estado/track", {"track_id": 1}),
+        paso("POST", "/api/v1/estado/dte", {"rut_emisor": "77777777", "dv_emisor": "7", "tipo_dte": 33, "folio": 1, "fecha_emision": "20260115", "monto_total": 23800,
+                                            "rut_receptor": "76111111", "dv_receptor": "6", "certificado_p12_b64": CERT_DEMO_B64, "password_certificado": "demo"}, ignorar={"mensaje"}),
     ],
     "keystore": [
         paso("POST", "/api/v1/keystore/certificados", {"password": "demo", "nombre": "demo {motor}"}, archivo=str(CERT_DEMO), ignorar={"id", "nombre"}, guarda="id"),

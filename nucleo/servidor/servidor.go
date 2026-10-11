@@ -26,6 +26,7 @@ type Servidor struct {
 	mux      *http.ServeMux
 	fernet   *fernet
 	certDemo *firma.Certificado // el de la práctica, en memoria
+	rvd      *programadorRVD    // RVD diario de boletas (solo con el Go solo, sin motor Python)
 }
 
 // Nuevo abre (y migra) la base, prepara el reenvío y arma las rutas.
@@ -54,11 +55,12 @@ func Nuevo(cfg *Config) (*Servidor, error) {
 		}
 	}
 	s.rutas()
+	s.iniciarProgramadorRVD()
 	return s, nil
 }
 
 // Cerrar libera la base.
-func (s *Servidor) Cerrar() { s.db.Close(); s.alm.Cerrar() }
+func (s *Servidor) Cerrar() { s.detenerProgramadorRVD(); s.db.Close(); s.alm.Cerrar() }
 
 // Handler es el servidor HTTP completo (con request-id, CORS y reenvío).
 func (s *Servidor) Handler() http.Handler { return conRequestID(s.cors(s.mux)) }
@@ -72,6 +74,8 @@ func (s *Servidor) rutas() {
 	s.rutasDocumentos(s.mux)
 	s.rutasSimulacion(s.mux)
 	s.rutasXSD(s.mux)
+	s.rutasEmision(s.mux)
+	s.rutasRVD(s.mux)
 	if s.cfg.CarpetaApp != "" {
 		if st, err := os.Stat(s.cfg.CarpetaApp); err == nil && st.IsDir() {
 			fs := http.StripPrefix("/app/", http.FileServer(http.Dir(s.cfg.CarpetaApp)))

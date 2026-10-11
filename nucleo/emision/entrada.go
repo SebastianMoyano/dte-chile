@@ -69,6 +69,11 @@ func DocumentoDesdeJSON(raw []byte) (xmlgen.Documento, error) {
 	if e.TipoDTE == 0 || e.FechaEmision == "" || e.Emisor.Rut == "" || len(e.Items) == 0 {
 		return xmlgen.Documento{}, fmt.Errorf("faltan tipo_dte, fecha_emision, emisor.rut o items")
 	}
+	switch e.TipoDTE { // TipoDTE de core/dte.py
+	case 33, 34, 39, 41, 52, 56, 61:
+	default:
+		return xmlgen.Documento{}, fmt.Errorf("tipo_dte %d no soportado (33, 34, 39, 41, 52, 56, 61)", e.TipoDTE)
+	}
 	doc := xmlgen.Documento{TipoDTE: e.TipoDTE, Folio: e.Folio, FechaEmision: e.FechaEmision, FormaPago: 1,
 		FechaVencimiento: e.FechaVencimiento, IndicadorServicio: e.IndicadorServicio, IndServicioBoleta: e.IndServicio,
 		Emisor: xmlgen.Emisor{Rut: e.Emisor.Rut, RazonSocial: e.Emisor.RazonSocial, Giro: e.Emisor.Giro,
