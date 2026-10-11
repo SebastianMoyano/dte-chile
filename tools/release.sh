@@ -33,7 +33,7 @@ echo "→ .mcpb (app de Claude)"
 if [ "$(uname)" = Darwin ] && command -v wails >/dev/null 2>&1 || [ -x "$HOME/go/bin/wails" ]; then
   echo "→ app de escritorio (macOS, universal, sin firmar)"
   (cd app && PATH="$PATH:$HOME/go/bin" wails build -platform darwin/universal -s >/dev/null)
-  (cd app/build/bin && zip -qr "$OLDPWD/../../$OUT/DTE-Chile-$V-macos.zip" "DTE Chile.app")
+  (cd app/build/bin && zip -qr "$OLDPWD/$OUT/DTE-Chile-$V-macos.zip" "DTE Chile.app")
 fi
 (cd "$OUT" && shasum -a 256 ./* > SHA256SUMS.txt)
 ls -la "$OUT" | awk 'NR>1{printf "   %-40s %6.1f MB\n", $NF, $5/1048576}'
