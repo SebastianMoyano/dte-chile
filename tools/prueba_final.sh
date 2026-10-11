@@ -12,6 +12,7 @@
 #   4. corpus dorado: Go == esperado, byte a byte (port externo)        test_dorado.py --port
 #   5. esquema dorado: la base que crea Go == la que crea Python        tools/esquema_dorado.py
 #   6. contrato dorado: los dos motores sobre una COPIA de la base     tools/contrato_api.py todos
+#   6b. el MCP en Go por stdio (tools/list y salud sobre una base vacía)
 #   7. la app: vet + test (el motor Go en proceso sobre una carpeta de datos vacía) [+ wails build]
 # Sale 0 solo si TODO pasa. Nada toca la base real: el contrato corre sobre una copia temporal.
 set -u
@@ -55,6 +56,15 @@ contrato() {
   return $rc
 }
 gate contrato contrato
+echo "== 6b. MCP en Go (stdio, base vacía)"
+mcp_stdio() {
+  (cd nucleo && go build -o bin/nucleo-mcp ./cmd/nucleo-mcp) || return 1
+  local out
+  out=$(printf '%s\n%s\n' '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"salud","arguments":{}}}' \
+    | nucleo/bin/nucleo-mcp --env "$TMP/no.env" --db "$TMP/mcp.db" 2>/dev/null)
+  echo "$out" | grep -q '"name":"emitir_dte"' && echo "$out" | grep -q 'dte-chile-mcp'
+}
+gate mcp mcp_stdio
 echo "== 7. la app (motor Go en proceso)"
 gate app_vet bash -c 'cd app && go vet .'; gate app_test bash -c 'cd app && go test -count=1 . && rm -f app'
 if [ "$APP" = 1 ]; then gate app_wails bash -c 'cd app && PATH="$PATH:$HOME/go/bin" wails build -platform darwin/arm64 -s'; fi
