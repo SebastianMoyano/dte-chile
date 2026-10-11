@@ -223,6 +223,26 @@ Cuando el último endpoint pasa, se quita el sidecar (PyInstaller) y queda un bi
 
 No se porta: `mcp_server.py`, la skill de correos y `tools/captura-sii` (herramientas del operador).
 
+**Herramientas del operador y el MCP, también en Go** (2026-10-11): `nucleo-mcp` (= `mcp_server.py`, stdio
+y HTTP con bearer; 19 herramientas sobre el motor en proceso, con rutas solo-Go `/api/v1/portal/*` y
+`/dte/enviar-keystore` para operar con el certificado del keystore), `nucleo-keystore`, `nucleo-servidor
+rotar-claves` (re-cifra TAMBIÉN `claves_sii`, que el script Python dejaba huérfanas), `nucleo-rvd`,
+`nucleo-sii boleta-enviar|boleta-estado`, `nucleo-cafs`, `nucleo-portal`, `nucleo-certificacion`.
+
+**Las tres transacciones que faltan, en el ambiente de pruebas del SII** (las lanza quien opera):
+
+1. **RVD en certificación** (Moyoli Tech tiene 5 boletas de certificación del 2026-07-21 sin reportar):
+   `nucleo/bin/nucleo-rvd --rut <RUT Moyoli Tech> --dia 2026-07-21 --cert-id 2 --ambiente certificacion --enviar`
+   y el veredicto con `nucleo-sii estado --track <TrackID> --rut … --ambiente certificacion --cert-id 2`.
+2. **Boleta por REST en certificación**: los CAF 39 de certificación están agotados (folios 1-25) →
+   `nucleo-portal solicitar --rut … --tipo 39 --cantidad 5 --cert-id 2 --ambiente certificacion --db dte_database.db`,
+   emitir una boleta con el motor Go (`POST /api/v1/dte/emitir` con `cert_id: 2`, o la app) y
+   `nucleo-sii boleta-enviar --archivo storage/dtes/EnvioBOLETA_39_<folio>.xml --rut … --ambiente certificacion --cert-id 2`;
+   el veredicto con `nucleo-sii boleta-estado --track-boleta <TrackID> …`.
+3. **SII engine desde Go**: no hay ambiente de pruebas (el portal MIPYME es solo producción, L1);
+   la corrida real cuesta un folio: `nucleo-siiengine factura … --emitir --acepto-riesgo-folio --guardar --db dte_database.db`
+   y después `nc-anular`. Con eso se puebla `siiengine.CadenasVerificadas`.
+
 **La prueba final, en un solo comando** (2026-10-11): `./tools/prueba_final.sh` corre todos los gates en
 orden —corpus dorado en Python y en Go (byte a byte), práctica sin red, `go vet` + `go test` del núcleo
 (xsd 1.070 vectores, pdf417, portal, rcv, rvd, sii, siiengine, servidor), esquema dorado, contrato dorado

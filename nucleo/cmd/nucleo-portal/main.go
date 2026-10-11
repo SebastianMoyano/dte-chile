@@ -10,8 +10,8 @@
 //	nucleo-portal anular    --rut … --tipo 33 --desde 5 --hasta 9 --cert …        (irreversible)
 //	nucleo-portal solicitar --rut … --tipo 61 [--cantidad 1] --cert … [--db dte_database.db]  (TIMBRA folios)
 //
-// La clave del certificado NUNCA va por flag: NUCLEO_CLAVE_CERTIFICADO o el Llavero de macOS
-// (DTE_KEYCHAIN_SERVICE, default dte-cert-firma). `solicitar` respeta los guardarraíles
+// Certificado: --cert ruta.p12 (clave por NUCLEO_CLAVE_CERTIFICADO, Llavero o prompt oculto) o
+// --cert-id N (el keystore cifrado del motor, con --env/--db). La clave NUNCA va por flag. `solicitar` respeta los guardarraíles
 // anti-acaparamiento del portal (tope por sesión, chequeo de bloqueo) y guarda el CAF en
 // storage/cafs/ (y en la base con --db).
 //
@@ -25,14 +25,13 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
 	"dtechile/nucleo/almacen"
-	"dtechile/nucleo/firma"
+	"dtechile/nucleo/cliutil"
 	"dtechile/nucleo/portal"
 	"dtechile/nucleo/ted"
 )
@@ -48,6 +47,9 @@ func main() {
 	tipos := fs.String("tipos", "", "tipos separados por coma (situacion)")
 	ambiente := fs.String("ambiente", "certificacion", "certificacion | produccion")
 	certPath := fs.String("cert", os.Getenv("DTE_CERT_PATH"), ".pfx/.p12 del mandatario")
+	certID := fs.Int64("cert-id", 0, "certificado del keystore del motor (en vez de --cert)")
+	cuenta := fs.Int64("cuenta", 1, "cuenta dueña del keystore")
+	env := fs.String("env", ".env", "archivo .env del motor (para --cert-id)")
 	desde := fs.Int("desde", 0, "folio inicial (anular)")
 	hasta := fs.Int("hasta", 0, "folio final (anular)")
 	cantidad := fs.Int("cantidad", 1, "folios a pedir (solicitar)")
@@ -79,23 +81,7 @@ func main() {
 		imprimir(e)
 		return
 	}
-	if *certPath == "" {
-		fatal(fmt.Errorf("falta --cert (o DTE_CERT_PATH)"))
-	}
-	clave := os.Getenv("NUCLEO_CLAVE_CERTIFICADO")
-	if clave == "" {
-		if out, err := exec.Command("security", "find-generic-password", "-s", envO("DTE_KEYCHAIN_SERVICE", "dte-cert-firma"), "-w").Output(); err == nil {
-			clave = strings.TrimSpace(string(out))
-		}
-	}
-	if clave == "" {
-		fatal(fmt.Errorf("falta la clave del certificado: NUCLEO_CLAVE_CERTIFICADO o el Llavero"))
-	}
-	p12, err := os.ReadFile(*certPath)
-	if err != nil {
-		fatal(err)
-	}
-	cert, err := firma.CargarP12(p12, clave)
+	cert, err := cliutil.CargarCertificado(*certPath, *certID, *cuenta, *env, *db)
 	if err != nil {
 		fatal(fmt.Errorf("certificado: %w", err))
 	}
@@ -192,13 +178,6 @@ func main() {
 	default:
 		fatal(fmt.Errorf("subcomando desconocido: %s", cmd))
 	}
-}
-
-func envO(k, def string) string {
-	if v := os.Getenv(k); v != "" {
-		return v
-	}
-	return def
 }
 
 func fatal(err error) {

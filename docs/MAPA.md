@@ -39,6 +39,8 @@ Código y comentarios **en español**.
 | **Correr TODOS los gates de una vez** (corpus, práctica, Go, esquema, contrato, app) | `./tools/prueba_final.sh` (`--sin-red` para CI, `--app` compila Wails); el detalle en `docs/PLAN-PORT.md` |
 | **Set de certificación con el núcleo Go** (dry run y envío) | `nucleo/certificacion/` + `nucleo-certificacion` (`--enviar` gasta folios; clave por `NUCLEO_CLAVE_CERTIFICADO` o Llavero); vector `tests/dorado/certificacion/` |
 | **Cargar CAF en la base / pedir folios al SII sin Python** | `nucleo-cafs cargar` (= `load_cafs.py`) · `nucleo-portal solicitar --rut … --tipo … --cert …` (timbra por el portal con los guardarraíles anti-acaparamiento; `--db` lo registra) · `nucleo-portal anular|anulables|situacion|timbrajes|empresa|empresas|software` |
+| **IA sobre el motor (MCP) sin Python** | `nucleo-mcp` (stdio para Claude Desktop; `--http` con `MCP_AUTH_TOKEN`); mismas 19 herramientas que `mcp_server.py` |
+| **Rotar secretos / gestionar certificados sin Python** | `nucleo-servidor rotar-claves`, `nucleo-keystore add|list|test|portal|remove|info` |
 | **Validar un XML contra el XSD del SII** (en Python y en Go, mismo veredicto) | `core/schema_validator.py` (lxml) · `nucleo/xsd/` (sin libxml2; vectores de paridad `tools/generar_xsd_vectores.py`) · `POST /api/v1/dte/validar-xml` en los dos motores |
 | **Verificar que la salida no cambió / probar un port** (byte a byte, sin SII) | [`DORADO.md`](DORADO.md) → `test_dorado.py`, `tests/dorado/`, `core/reloj.py` |
 | **Practicar sin riesgo** (EMPRESA DEMO SPA: mismo pipeline, CAF y certificado ficticios, sin envío) | [`APP.md`](APP.md) → `core/simulacion.py`, `test_simulacion.py` |

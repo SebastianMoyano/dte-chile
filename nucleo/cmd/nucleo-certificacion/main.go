@@ -18,13 +18,12 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"dtechile/nucleo/certificacion"
-	"dtechile/nucleo/firma"
+	"dtechile/nucleo/cliutil"
 	"dtechile/nucleo/pdf"
 	"dtechile/nucleo/sii"
 	"dtechile/nucleo/ted"
@@ -36,6 +35,10 @@ func main() {
 	razon := flag.String("razon-social", envO("DTE_RAZON_SOCIAL", "EMPRESA DEMO SPA"), "razón social del emisor")
 	email := flag.String("email", envO("DTE_EMAIL", "contacto@ejemplo.cl"), "correo del emisor")
 	certPath := flag.String("cert", envO("DTE_CERT_PATH", "firma.pfx"), ".pfx/.p12 del mandatario")
+	certID := flag.Int64("cert-id", 0, "certificado del keystore del motor (en vez de --cert)")
+	cuenta := flag.Int64("cuenta", 1, "cuenta dueña del keystore")
+	env := flag.String("env", ".env", "archivo .env del motor (para --cert-id)")
+	db := flag.String("db", "", "SQLite del motor (para --cert-id)")
 	cafs := flag.String("cafs", "storage/cafs", "carpeta con los CAF (xml) de 33, 34, 56 y 61")
 	salida := flag.String("salida", "storage", "raíz de salida (dtes_cert/, pdfs_cert/, resultados)")
 	fecha := flag.String("fecha", time.Now().Format("2006-01-02"), "fecha de emisión y de las referencias")
@@ -44,18 +47,7 @@ func main() {
 	ambiente := flag.String("ambiente", "certificacion", "certificacion | produccion (solo con --enviar)")
 	flag.Parse()
 
-	clave := os.Getenv("NUCLEO_CLAVE_CERTIFICADO")
-	if clave == "" {
-		clave = claveLlavero(envO("DTE_KEYCHAIN_SERVICE", "dte-cert-firma"))
-	}
-	if clave == "" {
-		fatal(fmt.Errorf("falta la clave del certificado: NUCLEO_CLAVE_CERTIFICADO o el Llavero (%s)", envO("DTE_KEYCHAIN_SERVICE", "dte-cert-firma")))
-	}
-	p12, err := os.ReadFile(*certPath)
-	if err != nil {
-		fatal(err)
-	}
-	cert, err := firma.CargarP12(p12, clave)
+	cert, err := cliutil.CargarCertificado(*certPath, *certID, *cuenta, *env, *db)
 	if err != nil {
 		fatal(fmt.Errorf("certificado: %w", err))
 	}
@@ -187,15 +179,6 @@ func envO(k, def string) string {
 		return v
 	}
 	return def
-}
-
-// claveLlavero lee la clave del Llavero de macOS (security find-generic-password); "" si no hay.
-func claveLlavero(servicio string) string {
-	out, err := exec.Command("security", "find-generic-password", "-s", servicio, "-w").Output()
-	if err != nil {
-		return ""
-	}
-	return strings.TrimSpace(string(out))
 }
 
 func fatal(err error) {

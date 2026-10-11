@@ -107,6 +107,7 @@ func (s *Servidor) emitirDTE(w http.ResponseWriter, r *http.Request) {
 		DTE      json.RawMessage `json:"dte"`
 		P12B64   string          `json:"certificado_p12_b64"`
 		Password string          `json:"password_certificado"`
+		CertID   *int64          `json:"cert_id"` // solo Go: el certificado del keystore (lo que usa el MCP)
 	}
 	if !leerJSON(w, r, &cuerpo) {
 		return
@@ -120,8 +121,14 @@ func (s *Servidor) emitirDTE(w http.ResponseWriter, r *http.Request) {
 		responderError(w, r, 422, "validacion", "Los datos enviados no son válidos.", map[string]any{"errores": []map[string]any{{"loc": []any{"body", "dte"}, "msg": err.Error(), "type": "value_error"}}})
 		return
 	}
-	cert, err := s.certificadoEmision(cuerpo.P12B64, cuerpo.Password)
-	if err != nil {
+	var cert *firma.Certificado
+	if cuerpo.CertID != nil {
+		cuenta, _ := s.cuentaID(w, r)
+		if cert, err = s.CertificadoDelKeystore(*cuerpo.CertID, cuenta); err != nil {
+			responderError(w, r, 404, "no_encontrado", err.Error(), nil)
+			return
+		}
+	} else if cert, err = s.certificadoEmision(cuerpo.P12B64, cuerpo.Password); err != nil {
 		responderDominio(w, r, err)
 		return
 	}

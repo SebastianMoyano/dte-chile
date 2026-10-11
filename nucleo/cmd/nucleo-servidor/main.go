@@ -22,7 +22,7 @@ import (
 func main() {
 	cmd := "servir"
 	args := os.Args[1:]
-	if len(args) > 0 && (args[0] == "servir" || args[0] == "migrar") {
+	if len(args) > 0 && (args[0] == "servir" || args[0] == "migrar" || args[0] == "rotar-claves") {
 		cmd, args = args[0], args[1:]
 	}
 	fs := flag.NewFlagSet(cmd, flag.ExitOnError)
@@ -52,6 +52,24 @@ func main() {
 		}
 		v, _ := alm.VersionEsquema()
 		fmt.Printf("base %s: esquema versión %d (aplicadas ahora: %v)\n", cfg.DatabasePath, v, aplicadas)
+		return
+	}
+	if cmd == "rotar-claves" {
+		// rotar_claves.py: re-cifra certificados y claves del SII con una DTE_MASTER_KEY nueva,
+		// renueva JWT_SECRET_KEY, acota CORS y resetea la clave de admin (ADMIN_PASSWORD o aleatoria).
+		cfg.RVDSchedulerActivo = false
+		s, err := servidor.Nuevo(cfg)
+		if err != nil {
+			fatal(err)
+		}
+		defer s.Cerrar()
+		admin, err := s.RotarClaves(*env, os.Getenv("ADMIN_PASSWORD"))
+		if err != nil {
+			fatal(err)
+		}
+		fmt.Println("ENDURECIMIENTO COMPLETO")
+		fmt.Printf("  Contraseña de admin (guárdala, se muestra 1 vez): %s\n", admin)
+		fmt.Printf("  JWT y master key nuevos escritos en %s (los tokens viejos ya no valen). Reinicia el motor.\n", *env)
 		return
 	}
 	cfg.MotorPython = *motor

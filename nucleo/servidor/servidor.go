@@ -125,6 +125,7 @@ func (s *Servidor) rutas() {
 	s.rutasMipyme(s.mux)
 	s.rutasPortal(s.mux)
 	s.rutasConsulta(s.mux)
+	s.rutasPortalKeystore(s.mux)
 	s.mux.HandleFunc("POST /api/v1/estado/lote", s.protegido(s.estadoLote))
 	var appFS http.FileSystem
 	if s.cfg.AppFS != nil {

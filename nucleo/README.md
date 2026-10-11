@@ -52,21 +52,27 @@ contra el SII antes de tocar lo esperado. Plan y fases en `docs/PLAN-PORT.md`.
 
 ## Herramientas de línea de comando (`nucleo/cmd`)
 
-Todo lo que el operador hacía con scripts Python tiene su binario Go; la clave del certificado nunca
-va por flag (`NUCLEO_CLAVE_CERTIFICADO` o el Llavero de macOS, servicio `dte-cert-firma`).
+Todo lo que el operador hacía con scripts Python tiene su binario Go. El certificado se da con
+`--cert ruta.p12` (clave por `NUCLEO_CLAVE_CERTIFICADO`, el Llavero de macOS `dte-cert-firma` o un
+prompt oculto) o con `--cert-id N` (el keystore cifrado del motor, `--env`/`--db`). La clave nunca
+va por flag (`nucleo/cliutil`).
 
 | binario | reemplaza a | qué hace |
 |---|---|---|
-| `nucleo-servidor` | `uvicorn main:app` | el motor HTTP (`servir`, `migrar`) |
-| `nucleo-emitir` | `nucleo-emitir` (fase 3) | emitir un documento desde JSON con el núcleo |
+| `nucleo-servidor` | `uvicorn main:app`, `rotar_claves.py` | el motor HTTP (`servir`, `migrar`) y `rotar-claves` (re-cifra certificados y claves del SII con una master key nueva, renueva el JWT, resetea admin) |
+| `nucleo-mcp` | `mcp_server.py` | el servidor MCP (stdio o `--http` con bearer): 19 herramientas para una IA, sobre el motor en proceso |
+| `nucleo-keystore` | `keystore_cli.py`, `diagnostico_cert.py` | `add`/`list`/`test`/`portal`/`remove` certificados del keystore; `info` de un .p12 |
+| `nucleo-emitir` | — | emitir un documento desde JSON con el núcleo |
 | `nucleo-dorado` | — | el port externo que mide `test_dorado.py` |
 | `nucleo-pdf` | — | la representación gráfica desde el XML firmado |
-| `nucleo-sii` | `verificar_sii.py`, `fase3_envio.py` | token, estado por TrackID y envío por DTEUpload |
+| `nucleo-sii` | `verificar_sii.py`, `fase3_envio.py` | token, estado por TrackID, envío por DTEUpload; `boleta-enviar`/`boleta-estado` por el REST de boletas |
+| `nucleo-rvd` | el programador de `main.py`, a mano | el ConsumoFolios de un día (XSD) y `--enviar` por DTEUpload |
 | `nucleo-siiengine` | `emitir_mipyme.py` | el SII engine: sesión, listar, importar, factura, NC |
 | `nucleo-valores` | — | UF/UTM/dólar (actualizar, histórico, demonio) |
 | `nucleo-certificacion` | `dry_run_certificacion.py`, `certificacion_sii.py` | el Set de Pruebas: dry run y `--enviar` |
 | `nucleo-cafs` | `load_cafs.py` | listar/cargar los CAF de `storage/cafs/` en la base |
-| `nucleo-portal` | `solicitar_caf_sii.py` (y el portal del MCP) | empresa autorizada, timbrajes, situación, software, empresas del certificado, anulables, anular, solicitar CAF |
+| `nucleo-portal` | `solicitar_caf_sii.py` | empresa autorizada, timbrajes, situación, software, empresas del certificado, anulables, anular, solicitar CAF |
 
-Siguen en Python, por decisión: `mcp_server.py` (integración con IA), `keystore_cli.py`/`rotar_claves.py`
-(mantenimiento del keystore) y los diagnósticos de certificado.
+En Python quedan solo scripts de investigación/diagnóstico de una vez (`verificar_sii.py`,
+`crear_caf_mock_61.py`, `reenviar_certificacion.py`) y `main.py` como referencia que fijan el
+corpus y el contrato dorado.
