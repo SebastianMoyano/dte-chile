@@ -87,6 +87,9 @@ func timbrePNG(ted string) ([]byte, error) { return TimbrePNG(ted) }
 // (x, y, w, h) en mm: sin interpolación al rasterizar ni al imprimir, el código se lee a
 // cualquier resolución. Mismas filas de códigos que el PNG (pdf417.Codificar, 12 col, nivel 5).
 func dibujarTimbre(p *fpdf.Fpdf, ted string, x, y, w, h float64) bool {
+	if ted == "" {
+		return false
+	}
 	filas, err := pdf417.Codificar([]byte(ted), 12, 5)
 	if err != nil {
 		return false

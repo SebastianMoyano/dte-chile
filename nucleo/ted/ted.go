@@ -14,19 +14,27 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 )
 
 // CAF es lo mínimo que el TED necesita del archivo de autorización de folios.
 type CAF struct {
 	// Elemento <CAF …>…</CAF> tal cual aparece en el archivo, MÁS el texto que lo sigue
 	// hasta el siguiente '<' (lxml serializa el elemento con su "tail").
-	Serializado string
-	FolioDesde  int
-	FolioHasta  int
-	Clave       *rsa.PrivateKey
+	Serializado       string
+	FolioDesde        int
+	FolioHasta        int
+	Clave             *rsa.PrivateKey
+	TipoDTE           int    // <DA><TD>
+	RutEmisor         string // <DA><RE>
+	FechaAutorizacion string // <DA><FA> (YYYY-MM-DD)
 }
 
 var (
+	reDA     = regexp.MustCompile(`(?s)<DA>(.*?)</DA>`)
+	reRE     = regexp.MustCompile(`<RE>([^<]*)</RE>`)
+	reTD     = regexp.MustCompile(`<TD>([^<]*)</TD>`)
+	reFA     = regexp.MustCompile(`<FA>([^<]*)</FA>`)
 	reRNG    = regexp.MustCompile(`<RNG>\s*<D>(\d+)</D>\s*<H>(\d+)</H>\s*</RNG>`)
 	reRSASK  = regexp.MustCompile(`(?s)<RSASK>(.*?)</RSASK>`)
 	reBlanco = regexp.MustCompile(`>\s+<`)
@@ -45,15 +53,26 @@ func ParsearCAF(contenido string) (*CAF, error) {
 		cola = cola[:k]
 	}
 	c := &CAF{Serializado: contenido[ini:fin] + cola}
-	m := reRNG.FindStringSubmatch(contenido)
-	if m == nil {
-		return nil, errors.New("el CAF no tiene rango <RNG>")
+	da := reDA.FindStringSubmatch(contenido)
+	if da == nil {
+		return nil, errors.New("El XML no parece ser un CAF válido: falta el elemento <DA>")
+	}
+	m := reRNG.FindStringSubmatch(da[1])
+	re_, td, fa := reRE.FindStringSubmatch(da[1]), reTD.FindStringSubmatch(da[1]), reFA.FindStringSubmatch(da[1])
+	if m == nil || re_ == nil || td == nil || fa == nil {
+		return nil, errors.New("El CAF está incompleto o tiene una estructura incorrecta.")
 	}
 	fmt.Sscan(m[1], &c.FolioDesde)
 	fmt.Sscan(m[2], &c.FolioHasta)
+	fmt.Sscan(strings.TrimSpace(td[1]), &c.TipoDTE)
+	c.RutEmisor = strings.TrimSpace(re_[1])
+	c.FechaAutorizacion = strings.TrimSpace(fa[1])
+	if _, err := time.Parse("2006-01-02", c.FechaAutorizacion); err != nil {
+		return nil, fmt.Errorf("Invalid isoformat string: '%s'", c.FechaAutorizacion)
+	}
 	k := reRSASK.FindStringSubmatch(contenido)
-	if k == nil {
-		return nil, errors.New("el CAF no contiene la clave privada RSASK")
+	if k == nil || strings.TrimSpace(k[1]) == "" {
+		return nil, errors.New("El CAF no contiene la clave privada RSASK.")
 	}
 	bloque, _ := pem.Decode([]byte(strings.TrimSpace(k[1])))
 	if bloque == nil {

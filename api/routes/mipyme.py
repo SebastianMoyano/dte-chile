@@ -112,7 +112,7 @@ def _diagnosticar(d: DiagnosticoIn) -> dict:
 
 
 @router.post("/diagnostico", summary="Entrar al portal MIPYME y leer (sin emitir)")
-async def diagnostico(d: DiagnosticoIn) -> dict:
+async def diagnostico(d: DiagnosticoIn, usuario: dict = Depends(requerir_autenticacion)) -> dict:
     """Login + selección de empresa + lectura del form y del menú. **Producción**, sin
     efecto: no gasta folio. Errores de dominio (`AutenticacionError`, `SIIRechazoError`)
     salen por el manejador global con su código."""

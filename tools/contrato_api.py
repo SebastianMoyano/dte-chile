@@ -5,7 +5,7 @@ error y el JSON completo (ignorando campos volátiles).
 
 Uso (los dos motores corriendo, con el MISMO APP_SHELL_KEY en el entorno de ambos):
   APP_SHELL_KEY=… .venv/bin/python tools/contrato_api.py --python http://127.0.0.1:8771 --go http://127.0.0.1:8010
-  … --escenario valores|auth|apikeys|simulacion|xsd|emitir|keystore|todos   (default: todos)
+  … --escenario valores|auth|apikeys|simulacion|xsd|emitir|rutas|keystore|todos   (default: todos)
   … --token <jwt o api key>                            (si no, APP_SHELL_KEY del entorno)
   … --sin-auth                                         (además, cada GET sin token → 401)
 
@@ -30,6 +30,7 @@ IGNORAR_SIEMPRE = {"request_id", "actualizado", "creado", "creado_en", "ultimo_a
 RAIZ = pathlib.Path(__file__).resolve().parent.parent
 CERT_DEMO = RAIZ / "tests" / "dorado" / "fixtures" / "cert_demo.p12"
 SOBRE_FACTURA = RAIZ / "tests" / "dorado" / "esperado" / "02_factura_reunion" / "envio.xml"
+CAF_DEMO_33 = RAIZ / "tests" / "dorado" / "fixtures" / "caf_33.xml"
 SOBRE_BOLETAS = RAIZ / "tests" / "dorado" / "esperado" / "14_sobre_dos_boletas" / "envio.xml"
 
 
@@ -65,11 +66,12 @@ def sobre(ruta, reemplazo=None) -> str:
     return b64(datos)
 
 
-def paso(metodo, ruta, cuerpo=None, ignorar=(), guarda=None, archivo=None, solo=None, espera=None):
+def paso(metodo, ruta, cuerpo=None, ignorar=(), guarda=None, archivo=None, solo=None, espera=None, archivo_campo="archivo", archivos_extra=None, multipart=False):
     """guarda: campo de la respuesta → variable del mismo nombre; "access_token" se usa como Bearer en los pasos
     siguientes del escenario. solo="py"|"go": el paso corre en un solo motor (preparación), sin comparar;
     espera: status exigido en ese caso."""
-    return {"metodo": metodo, "ruta": ruta, "cuerpo": cuerpo, "ignorar": set(ignorar), "guarda": guarda, "archivo": archivo, "solo": solo, "espera": espera}
+    return {"metodo": metodo, "ruta": ruta, "cuerpo": cuerpo, "ignorar": set(ignorar), "guarda": guarda, "archivo": archivo, "solo": solo, "espera": espera,
+            "archivo_campo": archivo_campo, "archivos_extra": archivos_extra or {}, "multipart": multipart}
 
 
 ESCENARIOS = {
@@ -189,6 +191,58 @@ ESCENARIOS = {
         paso("POST", "/api/v1/estado/dte", {"rut_emisor": "77777777", "dv_emisor": "7", "tipo_dte": 33, "folio": 1, "fecha_emision": "20260115", "monto_total": 23800,
                                             "rut_receptor": "76111111", "dv_receptor": "6", "certificado_p12_b64": CERT_DEMO_B64, "password_certificado": "demo"}, ignorar={"mensaje"}),
     ],
+    # utilidades sin estado y consultas a tablas: CAF, certificado, generar/pdf, db/*, monitoreo, lote, mipyme (solo la validación local)
+    "rutas": [
+        paso("POST", "/api/v1/caf/info", {}, archivo=str(CAF_DEMO_33)),
+        paso("POST", "/api/v1/caf/info", {}, archivo=str(CERT_DEMO)),
+        paso("POST", "/api/v1/caf/info", {}),
+        paso("POST", "/api/v1/caf/validar-folio", {"caf_xml_b64": b64(CAF_DEMO_33.read_bytes()), "folio": 5}),
+        paso("POST", "/api/v1/caf/validar-folio", {"caf_xml_b64": b64(CAF_DEMO_33.read_bytes()), "folio": 999999}),
+        paso("POST", "/api/v1/caf/validar-folio", {"caf_xml_b64": "no-es-b64!!", "folio": 1}, ignorar={"mensaje"}),
+        paso("POST", "/api/v1/caf/validar-folio", {"folio": 1}),
+        paso("POST", "/api/v1/certificado/validar", {"password": "demo"}, archivo=str(CERT_DEMO)),
+        paso("POST", "/api/v1/certificado/validar", {"password": "mala"}, archivo=str(CERT_DEMO), ignorar={"mensaje"}),
+        paso("POST", "/api/v1/certificado/validar", {"password": "demo"}, archivo=str(CAF_DEMO_33)),
+        paso("POST", "/api/v1/certificado/firmar-datos", {"datos_b64": b64(b"hola"), "password": "demo", "certificado_p12_b64": CERT_DEMO_B64}),
+        paso("POST", "/api/v1/certificado/firmar-datos", {"datos_b64": "x!!", "password": "demo", "certificado_p12_b64": CERT_DEMO_B64}, ignorar={"mensaje"}),
+        paso("POST", "/api/v1/certificado/firmar-datos", {"datos_b64": b64(b"hola")}),
+        paso("POST", "/api/v1/dte/generar-simple", dte_demo(33, [{"nombre": "Café", "cantidad": 1, "precio_unitario": 20000}], folio=7)),
+        paso("POST", "/api/v1/dte/generar-simple", dte_demo(39, [{"nombre": "Café", "cantidad": 2, "precio_unitario": 1190}], folio=3)),
+        paso("POST", "/api/v1/dte/generar-simple", {"tipo_dte": 33}),
+        paso("POST", "/api/v1/dte/generar", {"dte_json": json.dumps(dte_demo(33, [{"nombre": "Café", "cantidad": 1, "precio_unitario": 20000}], folio=7)), "password_certificado": "demo"}, archivo=str(CERT_DEMO), archivo_campo="certificado_p12", archivos_extra={"caf_xml": str(CAF_DEMO_33)}),
+        paso("POST", "/api/v1/dte/generar", {"dte_json": json.dumps(dte_demo(33, [{"nombre": "Café", "cantidad": 1, "precio_unitario": 20000}], folio=7)), "password_certificado": "demo"}, archivo=str(CERT_DEMO), archivo_campo="certificado_p12"),
+        paso("POST", "/api/v1/dte/generar", {"dte_json": json.dumps(dte_demo(33, [{"nombre": "Café", "cantidad": 1, "precio_unitario": 20000}], folio=999999)), "password_certificado": "demo"}, archivo=str(CERT_DEMO), archivo_campo="certificado_p12", archivos_extra={"caf_xml": str(CAF_DEMO_33)}),
+        paso("POST", "/api/v1/dte/generar", {"dte_json": json.dumps(dte_demo(34, [{"nombre": "x", "precio_unitario": 1}], folio=1)), "password_certificado": "demo"}, archivo=str(CERT_DEMO), archivo_campo="certificado_p12", archivos_extra={"caf_xml": str(CAF_DEMO_33)}),
+        paso("POST", "/api/v1/dte/generar", {"dte_json": "{no es json", "password_certificado": "demo"}, archivo=str(CERT_DEMO), archivo_campo="certificado_p12", ignorar={"mensaje"}),
+        paso("POST", "/api/v1/dte/generar", {"dte_json": json.dumps(dte_demo(33, [{"nombre": "x", "precio_unitario": 1}])), "password_certificado": "mala"}, archivo=str(CERT_DEMO), archivo_campo="certificado_p12", ignorar={"mensaje"}),
+        paso("POST", "/api/v1/dte/pdf-simple", dte_demo(33, [{"nombre": "Café", "cantidad": 1, "precio_unitario": 20000}], folio=7), ignorar={"*"}),
+        paso("POST", "/api/v1/dte/pdf", {"dte_json": json.dumps(dte_demo(39, [{"nombre": "Café", "precio_unitario": 1190}], folio=3))}, multipart=True, ignorar={"*"}),
+        paso("POST", "/api/v1/dte/pdf", {"dte_json": "{"}, multipart=True, ignorar={"mensaje"}),
+        paso("GET", "/api/v1/db/dtes?limite=3", ignorar={"dtes", "total"}),
+        paso("GET", "/api/v1/db/dtes?rut_emisor=77777777-7&tipo_dte=33&limite=2", ignorar={"id", "folio", "pdf_path", "creado_en", "total", "track_id"}),
+        paso("GET", "/api/v1/db/dtes?limite=0"),
+        paso("GET", "/api/v1/db/dtes?limite=abc"),
+        paso("GET", "/api/v1/db/dtes?limite=5000"),
+        paso("GET", "/api/v1/db/dtes/999999"),
+        paso("GET", "/api/v1/db/dtes/abc"),
+        paso("GET", "/api/v1/db/dtes/buscar/77777777-7/33/999999"),
+        paso("GET", "/api/v1/db/cafs?rut_emisor=77777777-7", ignorar={"id", "folio_siguiente", "creado_en", "fecha_autorizacion", "activo"}),
+        paso("GET", "/api/v1/db/cafs?tipo_dte=abc"),
+        paso("GET", "/api/v1/db/cafs/activo/77777777-7/33", ignorar={"id", "folio_siguiente", "creado_en", "fecha_autorizacion"}),
+        paso("GET", "/api/v1/db/cafs/activo/77777777-7/99"),
+        paso("GET", "/api/v1/db/folios/siguiente/77777777-7/33", ignorar={"folio_disponible", "mensaje"}),
+        paso("GET", "/api/v1/db/folios/siguiente/77777777-7/99"),
+        paso("GET", "/api/v1/db/logs?limite=2", ignorar={"*"}),
+        paso("GET", "/api/v1/db/logs?limite=abc"),
+        paso("GET", "/api/v1/monitoreo/folios?rut=77777777-7", ignorar={"folio_siguiente", "restantes", "detalle", "estado", "por_estado", "verdict", "meses", "fecha_autorizacion"}),
+        paso("GET", "/api/v1/monitoreo/folios"),
+        paso("GET", "/api/v1/monitoreo/folios/cartera", ignorar={"*"}),
+        paso("POST", "/api/v1/estado/lote", {"track_ids": [1], "rut_empresa": "77777777-7", "cert_id": 999999}),
+        paso("POST", "/api/v1/estado/lote", {"track_ids": [1]}),
+        paso("POST", "/api/v1/mipyme/diagnostico", {"rut_empresa": "77777777-7"}),
+        paso("POST", "/api/v1/mipyme/importar", {"rut_empresa": "77777777-7", "rut_usuario": "12345678-5"}),
+        paso("POST", "/api/v1/mipyme/sincronizar", {}),
+    ],
     "keystore": [
         paso("POST", "/api/v1/keystore/certificados", {"password": "demo", "nombre": "demo {motor}"}, archivo=str(CERT_DEMO), ignorar={"id", "nombre"}, guarda="id"),
         paso("POST", "/api/v1/keystore/certificados", {"password": "mala"}, archivo=str(CERT_DEMO)),
@@ -232,15 +286,17 @@ def pedir(base: str, p: dict, token: str | None, motor: str, vars_: dict):
         token = vars_["access_token"]   # las rutas de API keys exigen el JWT del usuario
     headers = {"Accept": "application/json", **({"Authorization": "Bearer " + token} if token else {})}
     datos = None
-    if p["archivo"]:
+    if p["archivo"] or p.get("multipart"):
         limite = uuid.uuid4().hex
         partes = []
         for k, v in (cuerpo or {}).items():
             partes.append(f"--{limite}\r\nContent-Disposition: form-data; name=\"{k}\"\r\n\r\n{v}\r\n".encode())
-        contenido = open(p["archivo"], "rb").read()
-        nombre = os.path.basename(p["archivo"])
-        tipo = mimetypes.guess_type(nombre)[0] or "application/octet-stream"
-        partes.append(f"--{limite}\r\nContent-Disposition: form-data; name=\"archivo\"; filename=\"{nombre}\"\r\nContent-Type: {tipo}\r\n\r\n".encode() + contenido + b"\r\n")
+        archivos = ([(p.get("archivo_campo") or "archivo", p["archivo"])] if p["archivo"] else []) + list((p.get("archivos_extra") or {}).items())
+        for campo, ruta_archivo in archivos:
+            contenido = open(ruta_archivo, "rb").read()
+            nombre = os.path.basename(ruta_archivo)
+            tipo = mimetypes.guess_type(nombre)[0] or "application/octet-stream"
+            partes.append(f"--{limite}\r\nContent-Disposition: form-data; name=\"{campo}\"; filename=\"{nombre}\"\r\nContent-Type: {tipo}\r\n\r\n".encode() + contenido + b"\r\n")
         partes.append(f"--{limite}--\r\n".encode())
         datos = b"".join(partes)
         headers["Content-Type"] = f"multipart/form-data; boundary={limite}"

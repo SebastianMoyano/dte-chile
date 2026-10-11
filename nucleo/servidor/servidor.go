@@ -76,6 +76,12 @@ func (s *Servidor) rutas() {
 	s.rutasXSD(s.mux)
 	s.rutasEmision(s.mux)
 	s.rutasRVD(s.mux)
+	s.rutasDB(s.mux)
+	s.rutasCAF(s.mux)
+	s.rutasGenerar(s.mux)
+	s.rutasMonitoreo(s.mux)
+	s.rutasMipyme(s.mux)
+	s.mux.HandleFunc("POST /api/v1/estado/lote", s.protegido(s.estadoLote))
 	if s.cfg.CarpetaApp != "" {
 		if st, err := os.Stat(s.cfg.CarpetaApp); err == nil && st.IsDir() {
 			fs := http.StripPrefix("/app/", http.FileServer(http.Dir(s.cfg.CarpetaApp)))

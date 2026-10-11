@@ -319,9 +319,35 @@ func GenerarDTE(d Documento) *Nodo {
 			rf.Sub("RazonRef", ref.RazonRef)
 		}
 	}
-	doc.Hijos = append(doc.Hijos, &Nodo{Raw: d.TED})
+	doc.Hijos = append(doc.Hijos, &Nodo{Raw: tedOPlaceholder(d, t.MontoTotal)})
 	doc.Sub("TmstFirma", d.Marca)
 	return dte
+}
+
+func recortar(s string, n int) string {
+	r := []rune(s)
+	if len(r) > n {
+		r = r[:n]
+	}
+	return string(r)
+}
+
+// tedOPlaceholder: el TED real si viene; si no, el de marcador de posición de
+// GeneradorDTE._generar_ted_placeholder (sin firma del CAF; RSR es la razón social del
+// EMISOR, como en Python), ya serializado como lo deja lxml (<CAF/>, texto escapado).
+func tedOPlaceholder(d Documento, montoTotal int64) string {
+	if d.TED != "" {
+		return d.TED
+	}
+	primer := ""
+	if len(d.Items) > 0 {
+		primer = d.Items[0].Nombre
+	}
+	return `<TED version="1.0"><DD><RE>` + EscTexto(d.Emisor.Rut) + `</RE><TD>` + strconv.Itoa(d.TipoDTE) + `</TD>` +
+		`<F>` + strconv.Itoa(d.Folio) + `</F><FE>` + d.FechaEmision + `</FE>` +
+		`<RR>` + EscTexto(d.Receptor.Rut) + `</RR><RSR>` + EscTexto(recortar(d.Emisor.RazonSocial, 40)) + `</RSR>` +
+		`<MNT>` + strconv.FormatInt(montoTotal, 10) + `</MNT><IT1>` + EscTexto(recortar(primer, 40)) + `</IT1>` +
+		`<CAF/><TSTED>` + d.Marca + `</TSTED></DD><FRMT algoritmo="SHA1withRSA">FIRMA_PLACEHOLDER</FRMT></TED>`
 }
 
 // GenerarBoleta arma el <DTE> de una boleta 39/41 (core/boleta.py::generar_documento_boleta).
@@ -412,7 +438,7 @@ func GenerarBoleta(d Documento) *Nodo {
 		monto := math.RoundToEven(it.Cantidad*it.PrecioUnitario - it.DescuentoMonto)
 		det.Sub("MontoItem", strconv.FormatInt(int64(monto), 10))
 	}
-	doc.Hijos = append(doc.Hijos, &Nodo{Raw: d.TED})
+	doc.Hijos = append(doc.Hijos, &Nodo{Raw: tedOPlaceholder(d, t.MontoTotal)})
 	doc.Sub("TmstFirma", d.Marca)
 	return dte
 }
