@@ -34,7 +34,7 @@ jobs:
         run: python tools/esquema_dorado.py --go nucleo/bin/nucleo-servidor
       - name: Contrato dorado (los dos motores, sin red)
         env:
-          APP_SHELL_KEY: ci-${{ github.run_id }}
+          APP_SHELL_KEY: ci-${{ github.run_id }}-${{ github.sha }}   # el motor exige una clave de 24+ caracteres
           RVD_SCHEDULER_ACTIVO: "false"
         run: |
           python setup.py >/dev/null 2>&1 || true
