@@ -302,8 +302,8 @@ propósito, la de Go trae HTTP, TLS, criptografía, JSON, XML y SQL.
 | bloque | módulos | gate | estado |
 |---|---|---|---|
 | 1. núcleo puro | totales, ted, c14n, xmlgen, firma, `nucleo-dorado` | corpus dorado byte a byte (`test_dorado.py --port nucleo-rs/target/release/nucleo-dorado`), en `prueba_final.sh` (gates `rust_*`, `corpus_rust`) y en CI | **hecho 2026-10-12: 15/15 idénticos** a la primera corrida; dependencias puras Rust (sin OpenSSL) |
-| 2. XSD, PDF417, PDF | `xsd`, `pdf417`, `pdf` | vectores de paridad con lxml, vectores PDF417, PDF equivalente | pendiente |
-| 3. SII | `sii`, `siiengine`, `portal`, `rcv`, `rvd`, `certificacion` | paridad de cuerpos contra las evidencias | pendiente |
+| 2. XSD, PDF417, PDF | `xsd`, `pdf417`, `pdf` | vectores de paridad con lxml, vectores PDF417, PDF equivalente | **hecho 2026-10-12**: 1070/1070 vectores XSD, 48/48 PDF417; PDF con texto idéntico al de Go (pypdf) y timbre píxel a píxel; `nucleo-pdf` |
+| 3. SII | `sii`, `siiengine`, `portal`, `rcv`, `rvd`, `certificacion`, `almacen` | paridad de cuerpos contra las evidencias | **hecho 2026-10-12**: set de certificación 16/16 byte a byte, semillas firmadas (SOAP y REST) byte a byte, RVD byte a byte, RCV y portal idénticos al esperado de Python, SII engine idéntico a los cuerpos reales aceptados (evidencias privadas); clientes HTTP con `ureq` (TLS de cliente incluido) y base con `rusqlite` |
 | 4. servidor | `almacen`, `servidor`, `mcp`, `conectores`, binarios | esquema dorado, contrato dorado, prueba del MCP | pendiente |
 | 5. app | Tauri en vez de Wails | prueba de la app en carpeta vacía | pendiente |
 

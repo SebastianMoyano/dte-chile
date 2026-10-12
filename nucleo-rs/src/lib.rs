@@ -14,6 +14,7 @@ pub mod portal;
 pub mod rcv;
 pub mod rvd;
 pub mod sii;
+pub mod siiengine;
 pub mod ted;
 pub mod totales;
 pub mod xmlgen;
