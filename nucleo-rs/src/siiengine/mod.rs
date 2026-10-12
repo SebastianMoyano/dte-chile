@@ -75,6 +75,9 @@ impl std::error::Error for Error {}
 
 pub type Resultado<T> = Result<T, Error>;
 
+/// Receptor de avisos (lo que Python manda al logger). Nunca lleva claves.
+pub type Logger = Box<dyn Fn(&str) + Send + Sync>;
+
 /// Una sesión contra el portal. Patrón: `nuevo` → `iniciar_sesion` → `seleccionar_empresa` →
 /// (lecturas) → `cerrar`, siempre.
 pub struct Cliente {
@@ -88,7 +91,7 @@ pub struct Cliente {
     /// carpeta base de la evidencia (mipyme_fallidos/); "" = "storage"
     pub raiz_storage: String,
     /// recibe los avisos que Python manda al logger (`None` = silencio). Nunca lleva claves.
-    pub log: Option<Box<dyn Fn(&str) + Send + Sync>>,
+    pub log: Option<Logger>,
     /// si está, recibe las páginas crudas de los dry-runs (form.html, preview.html, …): sirven
     /// de fixtures de paridad.
     pub trazas: Option<BTreeMap<String, String>>,
