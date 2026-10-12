@@ -44,7 +44,7 @@ varias empresas propias, **self-hosted** (no SaaS). Código y comentarios **en e
 | **Correr TODOS los gates de una vez** (corpus, práctica, Go, esquema, contrato, app) | `./tools/prueba_final.sh` (`--sin-red` para CI, `--app` compila la Wails y la Tauri); el detalle en `docs/PLAN-PORT.md` |
 | **Set de certificación con el núcleo Go** (dry run y envío) | `nucleo/certificacion/` + `nucleo-certificacion` (`--enviar` gasta folios; clave por `NUCLEO_CLAVE_CERTIFICADO` o Llavero); vector `tests/dorado/certificacion/` |
 | **Cargar CAF en la base / pedir folios al SII sin Python** | `nucleo-cafs cargar` (= `load_cafs.py`) · `nucleo-portal solicitar --rut … --tipo … --cert …` (timbra por el portal con los guardarraíles anti-acaparamiento; `--db` lo registra) · `nucleo-portal anular|anulables|situacion|timbrajes|empresa|empresas|software` |
-| **IA sobre el motor (MCP) sin Python** | `nucleo-mcp` (stdio; `--http` con `MCP_AUTH_TOKEN`); mismas 20 herramientas que `mcp_server.py`, en `nucleo/mcp` |
+| **IA sobre el motor (MCP) sin Python** | `nucleo-mcp` (stdio; `--http` con `MCP_AUTH_TOKEN`); mismas 20 herramientas que `mcp_server.py`, en `nucleo/mcp` y `nucleo-rs/src/mcp.rs` |
 | **Conectar la IA del computador en un click** (Claude Code, app de Claude, Cursor, VS Code, Windsurf, Gemini, Codex) | [`CONECTAR.md`](CONECTAR.md) → `nucleo-mcp instalar --en …` (`nucleo/conectores`), pestaña **Tu IA** de la app (`app-rs/src/ia.rs`, `app/ia.go`; la app con `--mcp`), `tools/empaquetar_mcpb.sh` (.mcpb). Nube de terceros: OAuth + URL propia, pendiente; sin túneles embebidos |
 | **Rotar secretos / gestionar certificados sin Python** | `nucleo-servidor rotar-claves`, `nucleo-keystore add|list|test|portal|remove|info` |
 | **Validar un XML contra el XSD del SII** (en Python y en Go, mismo veredicto) | `core/schema_validator.py` (lxml) · `nucleo/xsd/` (sin libxml2; vectores de paridad `tools/generar_xsd_vectores.py`) · `POST /api/v1/dte/validar-xml` en los dos motores |
@@ -67,9 +67,12 @@ Punto de entrada único que rutea por tipo: **`core/orchestrator.py::emitir_docu
 
 | Ruta | Qué hay |
 |---|---|
-| `core/` | **Toda la lógica de negocio.** 35 módulos + `__init__` → [`mapa/core.md`](mapa/core.md) |
+| `core/` | **Toda la lógica de negocio** de la referencia en Python. 38 módulos + `__init__` → [`mapa/core.md`](mapa/core.md) |
+| `nucleo/` | El motor en **Go**: el mismo pipeline, un binario, 13 comandos `nucleo-*` → `nucleo/README.md` |
+| `nucleo-rs/` | El motor en **Rust** (destino del port), el que va adentro de Faro → `nucleo-rs/README.md` |
+| `app-rs/`, `app/` | La app de escritorio **Faro** (Tauri + Rust = la publicada; Wails + Go = alternativa); interfaz compartida en `app/frontend/dist` → [`APP.md`](APP.md) |
 | `core/xsd/` | Esquemas oficiales del SII (ISO-8859-1 → usa `grep -a`) |
-| `api/routes/` | 12 routers bajo `/api/v1` (incl. `mipyme`) → [`mapa/interfaces.md`](mapa/interfaces.md) |
+| `api/routes/` | 14 routers bajo `/api/v1` (incl. `mipyme`, `simulacion`, `valores`) → [`mapa/interfaces.md`](mapa/interfaces.md) |
 | `main.py` | Composición: lifespan, gate de seguridad, scheduler del RVD |
 | `mcp_server.py` | 20 herramientas MCP (los certs **no** viajan por el protocolo) |
 | `static/` | 4 páginas: `onboarding.html` (wizard), `certificados.html` (panel, incl. Portal SII), `documentos.html` (emitidos, con PDF/XML), `apikeys.html` |
@@ -104,19 +107,21 @@ uvicorn main:app --reload --port 8000         # API (/docs, /redoc)
 .venv/bin/python test_mipyme.py               # canal MIPYME en seco (no gasta folios)
 ```
 
-## Estado del motor (2026-07-22)
+## Estado del motor (actualizado 2026-10-12; las filas de Python son de 2026-07-22)
 
 | Área | Estado |
 |---|---|
 | **Emisión de facturas** | ✅ **verificada contra el SII** (TrackID 253113966 → `ACEPTADOS: 1`) |
 | Firma (`core/sobre.py`) | ✅ verificada; la usan facturas, boletas, preview y la API |
 | Timbraje de folios | ✅ automatizado (T34/T39/T41 libres; **T33 y T61 bloqueados** por anti-acaparamiento) |
-| Emisión de boletas | ✅ **cableada y en producción** (`core/orchestrator_boleta.py` + `core/sii_boleta.py`, folio 1 aceptado con EPR) |
+| Emisión de boletas | ✅ **cableada y en producción** (`core/orchestrator_boleta.py` + `core/sii_boleta.py`, folio 1 con `ACEPTADOS: 1` en el REST de boletas, 2026-07-22) |
 | RVD diario | ✅ se envía por `DTEUpload`/SOAP (`core/rvd.py::enviar_rvd`); **no es obligatorio en producción** desde 2022-08-01 (Res. Ex. SII 53/2022) |
 | RCV / F29 | ✅ RCV **verificado en vivo** (2026-10-04, Auxin, sesión por clave: ventas y compras cuadran con la propuesta del SII) · F29: API de propuesta mapeada, envío (GWT-RPC) pendiente |
 | Certificación de facturas | 🔴 bloqueada: folios T33/T61 en anti-acaparamiento |
 | Certificación de boletas | ✅ **completa** — SOFTWARE DEMO SPA (78111111-2) autorizada en producción, emite boletas reales |
-| Canal MIPYME (gratuito por httpx) | ✅ lectura, importación (PDF+XML), firma central y **emisión** verificadas desde el repo (2026-10-08: factura 63 + NC 60 de anulación, `CADENAS_VERIFICADAS` = {34, 61}) · NC de corrección de montos, ND y boletas siguen con `--acepto-riesgo-folio` · **en Go**: `nucleo/siiengine` segmento 1 (sesión, historial, PDF, XML, importar) verificado en vivo 2026-10-08; emisión aún solo en Python |
+| Canal MIPYME (gratuito por httpx) | ✅ lectura, importación (PDF+XML), firma central y **emisión** verificadas desde el repo (2026-10-08: factura 63 + NC 60 de anulación, `CADENAS_VERIFICADAS` = {34, 61}) · NC de corrección de montos, ND y boletas siguen con `--acepto-riesgo-folio` · **en Go**: `nucleo/siiengine` segmento 1 (sesión, historial, PDF, XML, importar) verificado en vivo 2026-10-08; emisión en Go y Rust con dry-run validado por el SII, a la espera de la primera corrida real que habilite `CadenasVerificadas` |
+| **Port a Go** (`nucleo/`) | ✅ completo 2026-10-11: corpus dorado 15/15, contrato dorado idéntico, un binario, la app Wails lo corre en proceso |
+| **Port a Rust** (`nucleo-rs/`) y app Faro (`app-rs/`) | ✅ completo 2026-10-12: contrato dorado Python vs Rust 203/203, esquema 23/23, certificación 16/16; Faro en Tauri es la app que se publica (beta). Pendientes: firma/notarización y las corridas reales contra el SII desde Go/Rust |
 
 ⚠️ `task.md` (local, ignorado por git) es un **registro histórico** con partes obsoletas. Cuando discrepe con el código,
 **manda el código**.

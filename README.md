@@ -139,11 +139,11 @@ destino final, que corre dentro de la app de Faro. Cada port se midió, no se su
 
 ```bash
 # La app (Tauri + motor Rust): cargo install tauri-cli, y
-cd app-rs && cargo tauri build --bundles app    # target/release/bundle/macos/Faro.app
+(cd app-rs && cargo tauri build --bundles app)    # app-rs/target/release/bundle/macos/Faro.app
 
 # Un binario, sin Python (Rust o Go; o descarga el de Releases)
-cd nucleo-rs && cargo build --release --bin nucleo-servidor && target/release/nucleo-servidor servir --puerto 8000
-cd nucleo && go build -o bin/nucleo-servidor ./cmd/nucleo-servidor && bin/nucleo-servidor servir --puerto 8000
+(cd nucleo-rs && cargo build --release --bin nucleo-servidor) && nucleo-rs/target/release/nucleo-servidor servir --puerto 8000
+(cd nucleo && go build -o bin/nucleo-servidor ./cmd/nucleo-servidor) && nucleo/bin/nucleo-servidor servir --puerto 8000
 # API en http://127.0.0.1:8000/api/v1, la misma interfaz de la app en /app
 
 # Python (la referencia): Docker o venv

@@ -1,14 +1,16 @@
 # Plan: portar el núcleo del motor a un lenguaje compilado
 
-> Estado: **plan aprobado para empezar, sin código del port todavía.** Fecha: 2026-10-04.
+> Estado: **hecho.** Plan del 2026-10-04; las fases 1 a 7 (Go) cerraron el 2026-10-11 y la fase 8 (Rust) el 2026-10-12.
+> Se conserva como registro de cómo se decidió y se midió; la tabla de fases al final dice qué quedó dónde.
 > Herramienta de medición: `test_dorado.py --port` ([`DORADO.md`](DORADO.md)).
 
 ## Por qué (y por qué no)
 
 Lo que se busca con el port no es velocidad ni "seguridad de memoria": es **un solo binario
 que se instala y funciona** sin Python ni `.venv`, y un núcleo de firma que se pueda auditar
-en pocas líneas. Lo que NO se busca es reescribir el motor entero: la parte que cambia
-seguido (portal MIPYME, RCV, F29, captura) se queda en Python, donde iterar es barato.
+en pocas líneas. (Lo que se escribió aquí al principio, "la parte que cambia seguido se queda en
+Python", quedó superado: en las fases 6 y 7 se portaron también el portal, el RCV, el F29 y el SII
+engine, y Python quedó como referencia. Solo la extensión de captura sigue fuera del port.)
 
 El motor Python sigue siendo la **implementación de referencia**: está verificada contra el
 SII (TrackID 253113966 aceptado, T34 de certificación aceptados). Un port no se juzga por
@@ -63,7 +65,7 @@ runner (`<entrada.json> <fixtures/> <salida/>`). Orden, y cada paso se cierra co
 | 1.2 ✅ | parseo del CAF y **TED**: `<DD>` aplanado, firma RSA-SHA1 con la clave del CAF, `<CAF>` incrustado tal cual → `nucleo/ted` | `ted.xml` | los saltos de línea del TED son parte de lo firmado |
 | 1.3 ✅ | generación del `<DTE>` sin firma: orden de tags según XSD, ISO-8859-1, `Id="T{tipo}F{folio}"` | diff estructural (sin `<Signature>`) | orden de elementos; "é" en ISO-8859-1 |
 | 1.4 ✅ | **C14N** (xml-c14n 2001) + XMLDSig RSA-SHA1 del `<Documento>` standalone | `dte.xml` | C14N exactamente como lxml: namespaces, atributos ordenados, sin xsi del sobre |
-| 1.5 ✅ | **sobre** por concatenación de strings con el DTE verbatim, firma del `SetDTE` | `envio.xml` | nunca re-serializar el DTE firmado (L1, DTE-3-505) |
+| 1.5 ✅ | **sobre** por concatenación de strings con el DTE verbatim, firma del `SetDTE` | `envio.xml` | nunca re-serializar el DTE firmado (L2, DTE-3-505) |
 | 1.6 ✅ | validación XSD: el núcleo expone el gancho `Contexto.Validar` **antes de persistir**; primero se conectó a `POST /dte/validar-xml` del motor Python y desde la fase 7 paso 5 lo atiende `nucleo/xsd` (validador propio del subconjunto de XSD que usa el SII, paridad con lxml por 1.070 vectores) | `TestParidadConLxml` | el folio ya está consumido al validar (igual que en Python) |
 
 Criterio de salida: `test_dorado.py --port ./nucleo/bin/nucleo-dorado` → todos idénticos
@@ -260,7 +262,7 @@ carpeta de datos), `app/ia_test.go` (la app con `--mcp` y `ConectarIA`), y el ga
 orden —corpus dorado en Python y en Go (byte a byte), práctica sin red, `go vet` + `go test` del núcleo
 (xsd 1.070 vectores, pdf417, portal, rcv, rvd, sii, siiengine, servidor), esquema dorado, contrato dorado
 con los dos motores sobre una COPIA de la base (203 pasos), y la app (vet + el motor Go en proceso sobre
-una carpeta de datos vacía; `--app` también compila el bundle Wails)— y sale 0 solo si todo pasa.
+una carpeta de datos vacía; `--app` también compila los bundles Wails y Tauri)— y sale 0 solo si todo pasa.
 `--sin-red` salta los pasos que consultan al SII (es lo que corre la CI, `.github/workflows/dorado.yml`).
 Lo que la prueba final NO cubre, porque son transacciones reales que lanza quien opera: una emisión
 real por el SII engine desde Go (`CadenasVerificadas`), una boleta real por el REST y un RVD aceptados.
@@ -323,5 +325,5 @@ propósito, la de Go trae HTTP, TLS, criptografía, JSON, XML y SQL.
 ## Qué NO es parte del plan
 
 - Cambiar la API o la app por el port.
-- Portar la extensión de captura o el F29 (el SII engine sí se porta: fase 6).
+- Portar la extensión de captura (el F29 y el SII engine sí se portaron: fases 6 y 7).
 - Tocar producción con el port antes de que certifique en Maullín.

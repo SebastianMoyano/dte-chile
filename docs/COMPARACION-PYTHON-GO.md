@@ -48,7 +48,7 @@ el motor Go cabe donde el Python no.
 - **Un solo binario por herramienta**, sin Python, sin venv, sin PyInstaller.
   La app corre el motor en proceso (`app/motor.go`); el servidor en mediaplex es
   un `cp`.
-- **El mismo contrato HTTP**: 94 rutas en Go contra 76 en Python (todas las de
+- **El mismo contrato HTTP**: 94 rutas en Go (las de Python más las propias de Go: boletas REST, RVD, MCP) (todas las de
   Python más las del portal con keystore, `enviar-keystore`, RVD y el buscador).
   Verificado por `tools/contrato_api.py` (203 pasos) y el corpus dorado (15/15
   byte a byte).
@@ -62,7 +62,7 @@ el motor Go cabe donde el Python no.
   certificado (`cliutil.CargarCertificado`) y de pedir la clave (Llavero → env →
   prompt oculto).
 - **Gates automáticos**: 1.336 líneas de tests Go, vectores por paquete, y
-  `tools/prueba_final.sh` con 11 gates que corren también en CI sin red.
+  `tools/prueba_final.sh` con 21 gates (hoy incluye los de Rust y las dos apps) que corren también en CI sin red.
 - **Tipos y errores explícitos** (`emision.Error`, `sii.ErrRespuesta`) donde
   Python lanzaba `ValueError` y lo envolvía en 502.
 

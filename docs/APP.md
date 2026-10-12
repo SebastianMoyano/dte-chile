@@ -16,7 +16,11 @@ Ajustes, y un semáforo que dice siempre en qué mundo estás (práctica / prueb
 > la fase 7 (2026-10-11) lleva el motor Go en proceso, y desde la fase 8 (2026-10-12) la Tauri
 > lleva el Rust.
 
-## Cómo funciona
+## Cómo funcionaba con Python como proceso hijo (registro histórico, hasta la fase 7)
+
+> Todo lo de esta sección es de la época del sidecar Python. Hoy el motor va **en el mismo
+> proceso** (Go en la Wails, Rust en la Tauri): no hay uvicorn, ni SIGINT, ni raíz del repo
+> obligatoria. Lo que sigue vigente de aquí es la idea de la **clave efímera** y el **modo externo**.
 
 ```
 Faro.app (Go)                              motor (Python, main.py)
@@ -38,7 +42,7 @@ Faro.app (Go)                              motor (Python, main.py)
 - **Modo externo.** Con `DTE_API_URL` (y `DTE_API_KEY`, una API key `dte_...`) la app no
   arranca nada y usa ese motor: sirve para desarrollo y para el motor desplegado en otra máquina.
 - **Raíz del repo.** `DTE_REPO`, o subiendo desde el ejecutable o el cwd hasta encontrar
-  `main.py` + `core/`. Para empaquetar sin repo (instalador) falta embeber Python; ver pendientes.
+  `main.py` + `core/`. (Hoy, sin repo, la app usa la carpeta de datos `Faro`; ver más abajo.)
 
 ## La empresa de práctica (modo simulación)
 
@@ -73,8 +77,8 @@ práctica también están en Go y en Rust, ver `nucleo/README.md`):
    La clave privada viaja una vez por emisión y no se escribe en ningún lado.
 2. `nucleo/emision.Emitir` sobre la misma base (folio atómico) y el mismo storage: mismas
    rutas y la misma fila que Python.
-3. `POST /api/v1/dte/documentos/{id}/pdf` → Python dibuja el PDF desde el XML firmado
-   (`core/dte_xml.py` reconstruye la entrada, el TED es el original). El núcleo no hace PDF.
+3. `POST /api/v1/dte/documentos/{id}/pdf` → el motor dibuja el PDF desde el XML firmado
+   (en la fase 4 lo hacía Python con `core/dte_xml.py`; hoy lo hacen `nucleo/pdf` y `nucleo-rs/src/pdf`).
 
 (Lo anterior describe la fase 4. Desde la fase 7 el keystore, el PDF, el envío al SII, RCV, F29 y
 la práctica están también en Go, y desde la fase 8 en Rust; Python sigue como referencia.)
@@ -186,10 +190,10 @@ conexión local, en memoria, y no las escribe en ningún lado.
 
 ## Navegador o app: una interfaz, dos envases (2026-10-09)
 
-La interfaz (`app/frontend/dist`, HTML y JS planos) corre igual en la **app instalada** (Wails:
-binario Go + vista web del sistema, sin Chromium adentro) y en el **navegador**, servida por el
-propio motor en `/app`. Lo que la ata al cascarón son seis bindings (`Estado`, `API`, `Bytes`,
-`Guardar`, `EmitirNucleo`, `SIIEngine*`); `puente.js`, cargado antes que `app.js`, los define
+La interfaz (`app/frontend/dist`, HTML y JS planos) corre igual en la **app instalada** (Tauri o Wails:
+binario + vista web del sistema, sin Chromium adentro) y en el **navegador**, servida por el
+propio motor en `/app`. Lo que la ata al cascarón son los 12 bindings `window.go.main.App.*` (`Estado`, `API`, `Bytes`,
+`Guardar`, `EmitirNucleo`, `AbrirURL`, `AbrirPanel`, `Conectores`, `ConectarIA`, `SIIEngine*`); `puente.js`, cargado antes que `app.js`, los define
 sobre HTTP cuando no hay cascarón: inicio de sesión con usuario y clave del motor (JWT en
 `sessionStorage`), descargas por el navegador, panel en otra pestaña, y "Traer lo emitido"
 por el endpoint del motor. Lo que es propio del cascarón (emitir con el núcleo, emitir y anular
@@ -198,8 +202,8 @@ por el SII engine en el proceso) avisa que hace falta la app instalada.
 **Para qué cada uno.** La app instalada (Faro: Tauri + Rust, o la Wails + Go) es el camino principal: es lo que la gente entiende
 como "un programa", y es donde viven certificados, claves y emisión real. El navegador es el
 mismo producto sin instalar, pensado para una sala de clases: cada alumno abre
-`http://<motor>/app`, entra, practica con EMPRESA DEMO SPA y recorre el mismo tour. En el
-servidor de mediaplex (`docs/…/despliegue`) basta el motor actualizado para tenerlo.
+`http://<motor>/app`, entra, practica con EMPRESA DEMO SPA y recorre el mismo tour. En un
+servidor propio basta el motor actualizado (`nucleo-servidor servir`) para tenerlo.
 
 ## Interfaz y tour guiado (2026-10-09)
 

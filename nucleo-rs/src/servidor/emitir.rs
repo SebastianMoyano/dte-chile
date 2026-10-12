@@ -370,10 +370,8 @@ fn estado_dte(_s: &Servidor, p: &mut Peticion) -> Res {
     let Some(folio) = j.entero("folio")? else {
         return Err(falta_campo("folio"));
     };
-    for c in ["fecha_emision"] {
-        if j.get(c).is_none() {
-            return Err(falta_campo(c));
-        }
+    if j.get("fecha_emision").is_none() {
+        return Err(falta_campo("fecha_emision"));
     }
     let Some(monto) = j.entero("monto_total")? else {
         return Err(falta_campo("monto_total"));

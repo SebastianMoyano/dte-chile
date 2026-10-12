@@ -20,7 +20,7 @@ terminal pero **no es experto en el SII**. Tiempo estimado: 20–30 minutos.
 
 Si no quieres instalar nada, **Faro** (la app de escritorio) trae el motor adentro: se abre, se
 practica con la empresa de prueba y después se emite de verdad con tu certificado. Se construye
-desde `app-rs/` (`cargo tauri build --bundles app` → `Faro.app`) o se descarga de Releases
+desde `app-rs/` (`cd app-rs && cargo tauri build --bundles app` → `Faro.app`) o se descarga de Releases
 cuando haya una versión firmada. Lo que sigue es para quien prefiere el motor como servidor.
 
 ## Paso 1 — Levantar el motor
@@ -112,7 +112,7 @@ bajan del umbral.
 
 ```bash
 # desde el CLI del motor (dentro del contenedor):
-docker compose exec dte-api python solicitar_caf_sii.py --rut 76111111-6 --tipo 39 --cantidad 10
+docker compose exec dte-api python solicitar_caf_sii.py --tipo 39 --cantidad 10   # el RUT sale del .env
 ```
 
 *(La cantidad la decides tú; para un emisor nuevo el SII suele dar lotes chicos.)*

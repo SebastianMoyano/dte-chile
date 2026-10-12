@@ -103,8 +103,8 @@ producción). Enviarlo por REST devuelve *"El Documento no está en el envío"*.
 
 El set de boletas (SOK) se envió, pasó el **V°B°** de revisión, se grabó la **Declaración de
 Cumplimiento**, y el SII respondió **"autorizada en ambiente de Producción"**. SOFTWARE DEMO SPA
-(78111111-2) **ya emite boletas reales en producción** con este motor (folio 1 aceptado, `EPR`
-+ `ACEPTADOS`). No queda ningún paso pendiente para boletas de esta empresa.
+(78111111-2) **ya emite boletas reales en producción** con este motor (folio 1 con `ACEPTADOS: 1`
+en el REST de boletas; `EPR` solo dice que el envío se procesó). No queda ningún paso pendiente para boletas de esta empresa.
 
 **Verificado en vivo (2026-07-18)**: el portal es una **app GWT** (necesita **playwright**, no
 httpx), **entra con el certificado sin clave tributaria**, y al confirmar SOFTWARE DEMO SPA

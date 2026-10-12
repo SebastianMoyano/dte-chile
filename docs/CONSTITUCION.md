@@ -170,7 +170,7 @@ El código se publica bajo licencia MIT en GitHub. Lo que se commitea lo lee cua
 
 ## L15 — La salida del motor es reproducible byte a byte, y eso se prueba
 
-La firma depende de los bytes exactos (L1). Por eso la salida de la capa de firma es
+La firma depende de los bytes exactos (L2). Por eso la salida de la capa de firma es
 determinista: toda hora sale de `core/reloj.py`, y `test_dorado.py` compara TED, DTE firmado
 y sobre contra `tests/dorado/esperado/` ([`DORADO.md`](DORADO.md)).
 

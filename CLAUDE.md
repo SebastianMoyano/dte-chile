@@ -49,7 +49,7 @@ docker-compose up -d                         # run containerized (volume: dte-ch
 .venv/bin/python test_mvp.py                 # core modules smoke test (no server)
 .venv/bin/python test_orchestrator.py        # end-to-end orchestrator integration test
 
-# Certification workflow (see "SII certification" below):
+# Certification workflow (see docs/CERTIFICACION.md):
 .venv/bin/python dry_run_certificacion.py    # generate+validate 16 cases locally, NO network
 .venv/bin/python certificacion_sii.py        # generate + SOAP-send 16 cases to SII (needs cert password)
 ./ejecutar_certificacion.sh                  # wrapper: prompts cert password, then runs the above
@@ -79,7 +79,7 @@ Ver [`docs/LECCIONES-SII.md`](docs/LECCIONES-SII.md).
 - `pdf_gen.py` — ReportLab PDF with the PDF417 TED stamp; `NOMBRES_DTE` maps type→label.
 - `rut.py` — Chilean RUT validator (módulo 11). `auth.py` — JWT; passwords use `sha256_crypt` (deliberately not bcrypt — a passlib/bcrypt version incompatibility).
 
-**`api/routes/` — FastAPI routers**, one per domain (`apikeys`, `auth`, `caf`, `certificado`, `consulta`, `db`, `dte`, `keystore`, `mipyme`, `monitoreo`, `onboarding`, `status` — 12 total), all mounted under `/api/v1` in `main.py`. `certificado`, `caf`, `dte` y `status` están protegidos a nivel de router (`dependencies=[Depends(requerir_autenticacion)]` en `main.py`); `requerir_autenticacion` (`core/auth.py`) acepta **JWT o API key** (`core/apikeys.py`, UI en `/apikeys`).
+**`api/routes/` — FastAPI routers**, one per domain (`apikeys`, `auth`, `caf`, `certificado`, `consulta`, `db`, `dte`, `keystore`, `mipyme`, `monitoreo`, `onboarding`, `simulacion`, `status`, `valores` — 14 total), all mounted under `/api/v1` in `main.py`. `certificado`, `caf`, `dte` y `status` están protegidos a nivel de router (`dependencies=[Depends(requerir_autenticacion)]` en `main.py`); `requerir_autenticacion` (`core/auth.py`) acepta **JWT o API key** (`core/apikeys.py`, UI en `/apikeys`).
 
 **`core/config.py`** — single `settings` singleton (pydantic-settings, reads `.env`). Import it, don't read env vars directly.
 
@@ -88,20 +88,20 @@ Ver [`docs/LECCIONES-SII.md`](docs/LECCIONES-SII.md).
 `nucleo-rs/README.md`. **Rust es el destino final del port.** La app de escritorio se llama **Faro** desde 2026-10-12 (antes "DTE Chile";
 carpeta de datos `Faro`, la antigua se renombra sola; nombres internos sin cambio: paquete `dtechile`, binarios `nucleo-*`, conector MCP `dte-chile`).
 Hay dos apps con **la misma interfaz** (`app/frontend/dist`): **Faro en Tauri (`app-rs/`, motor Rust adentro) es la que se publica**;
-la Wails (`app/`, motor Go adentro, 12 bindings idénticos vía `tauri.js`) es la construcción alternativa mientras dura la transición.
+la Wails (`app/`, motor Go adentro; define los mismos 12 bindings desde Go, mientras que en Tauri los define `tauri.js`) es la construcción alternativa mientras dura la transición.
 Dirección: de servidor + panel web a app fácil de usar; la versión web (`/app`, servida por cualquiera de los motores) queda para la sala de clases.
 
 **El motor también existe en Go** (`nucleo/`, fase 7 de `docs/PLAN-PORT.md`, cerrada 2026-10-11): `nucleo/servidor` atiende
 todas las rutas de la API Python con el mismo contrato que FastAPI (`tools/contrato_api.py` lo exige idéntico) más las
 propias de Go (boletas REST, RVD, MCP), y la app de escritorio (`app/`) lo corre en su propio proceso, sin Python.
 Lo que quedó distinto a propósito (PDF no byte a byte, sin Swagger) está decidido en `docs/COMPARACION-PYTHON-GO.md`. Python sigue siendo la referencia que fija el
-comportamiento (corpus dorado, contrato dorado); cualquier cambio en una ruta se hace en los dos y se mide.
+comportamiento (corpus dorado, contrato dorado); cualquier cambio en una ruta se hace en los tres motores (Python, Go, Rust) y se mide.
 
 ## Conventions & gotchas
 
 - **XML for the SII is `ISO-8859-1`, not UTF-8**, and sent without pretty-printing. The DB stores the signed XML decoded as ISO-8859-1.
 - **`EPR` NO significa "aceptado"** — significa "Envío Procesado" (el *sobre* se procesó). El veredicto está en `ACEPTADOS`/`RECHAZADOS`. Este malentendido tuvo al proyecto creyendo que el pipeline funcionaba mientras el SII rechazaba todo.
-- **La resolución del SII depende del ambiente**: usa `settings.resolucion`, nunca `sii_fecha_resolucion`/`sii_numero_resolucion` a pelo (son los de producción → `CRT-3-19` en certificación).
+- **La resolución del SII depende del ambiente y de la empresa** (L4): para la carátula usa `core.resolucion.resolucion_emisor(rut)`; `settings.resolucion` es solo el valor por defecto del ambiente. Nunca `sii_fecha_resolucion`/`sii_numero_resolucion` a pelo (son los de producción → `CRT-3-19` en certificación).
 - `.p12`/`.pfx` certificates are processed **in memory only** — never persist them to disk or the DB. A local `firma.pfx` (path configurable via `DTE_CERT_PATH`) is used as a dev fallback.
 - Certification status: the boleta certification (39/41) is **complete** (2026-07-22, `docs/CERTIFICACION.md`); facturas in certification are accepted but the full 16-case set still depends on T33/T61 folios the SII rate-limits (`docs/LECCIONES-SII.md`). Read those two docs before working on certification; the old `task.md` is a local, git-ignored history file.
 - Generated artifacts live under `storage/` (`dtes/`, `pdfs/`, `cafs/`, and `dtes_cert/`/`pdfs_cert/` for certification runs); results summaries are `storage/resultados_*.json`.

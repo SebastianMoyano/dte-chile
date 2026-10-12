@@ -17,12 +17,12 @@ Gracias por querer mejorar la facturación electrónica de Chile. Tres reglas y 
 ## El método: los gates son la definición de terminado
 
 ```bash
-./tools/prueba_final.sh --sin-red   # todo, sin tocar el SII: corpus, esquema, contrato, Go, MCP, app, público
+./tools/prueba_final.sh --sin-red   # todo, sin tocar el SII: corpus, esquema, contrato, Go, Rust, MCP, apps, público
 ```
 
 Cada bloque del motor nace con su gate automático. Un cambio está listo cuando todos pasan,
-en Python y en Go, y cuando la documentación sigue siendo verdad. Si agregas una ruta, va en los
-dos motores y la mide `tools/contrato_api.py`. Si agregas un tipo de documento, va al corpus.
+en Python, Go y Rust, y cuando la documentación sigue siendo verdad. Si agregas una ruta, va en los
+tres motores y la mide `tools/contrato_api.py`. Si agregas un tipo de documento, va al corpus.
 
 ## Dónde está cada cosa
 
