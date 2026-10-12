@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/hex"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,10 +13,14 @@ import (
 )
 
 // CarpetaDatos es donde vive todo lo que escribe el motor cuando no corre desde el repo:
-// ~/Library/Application Support/DTE Chile (macOS), %AppData%\DTE Chile, ~/.config/DTE Chile.
+// ~/Library/Application Support/Faro (macOS), %AppData%\Faro, ~/.config/Faro. La app se llamó
+// "DTE Chile" hasta 2026-10-12: si existe esa carpeta y todavía no existe "Faro", se renombra
+// (misma base, mismos documentos; nada se copia ni se pierde).
 // La comparten la app de escritorio y los binarios del operador (nucleo-mcp sin --env, el
 // .mcpb de Claude Desktop), así que la IA ve exactamente lo que ve la app. DTE_DATOS la cambia
 // (pruebas, o quien quiera sus datos en otra carpeta).
+func existeDir(p string) bool { st, err := os.Stat(p); return err == nil && st.IsDir() }
+
 func CarpetaDatos() (string, error) {
 	d := os.Getenv("DTE_DATOS")
 	if d == "" {
@@ -23,7 +28,12 @@ func CarpetaDatos() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		d = filepath.Join(base, "DTE Chile")
+		d = filepath.Join(base, "Faro")
+		if vieja := filepath.Join(base, "DTE Chile"); !existeDir(d) && existeDir(vieja) {
+			if err := os.Rename(vieja, d); err != nil {
+				return "", fmt.Errorf("no pude renombrar la carpeta de datos: %w", err)
+			}
+		}
 	}
 	for _, sub := range []string{"", "logs", "storage"} {
 		if err := os.MkdirAll(filepath.Join(d, sub), 0o755); err != nil {
@@ -45,7 +55,7 @@ func AsegurarEnv(dir string) (string, error) {
 	fernet := make([]byte, 32)
 	_, _ = rand.Read(fernet)
 	admin := azar(8)
-	contenido := "# Configuración del motor DTE Chile (creada por la app; edítala si hace falta)\n" +
+	contenido := "# Configuración del motor Faro (creada por la app; edítala si hace falta)\n" +
 		"SII_AMBIENTE=certificacion\n" +
 		"HOST=127.0.0.1\n" +
 		"CORS_ORIGINS=http://127.0.0.1\n" +

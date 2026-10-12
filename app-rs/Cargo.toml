@@ -1,13 +1,13 @@
 [package]
-name = "dte-chile-app"
+name = "faro-app"
 version = "1.0.1"
 edition = "2021"
-description = "DTE Chile: la app de escritorio (Tauri) con el motor Rust adentro, en el mismo proceso"
+description = "Faro: la app de escritorio (Tauri) con el motor Rust adentro, en el mismo proceso"
 license = "MIT"
 publish = false
 
 [[bin]]
-name = "dte-chile"
+name = "faro"
 path = "src/main.rs"
 
 [build-dependencies]

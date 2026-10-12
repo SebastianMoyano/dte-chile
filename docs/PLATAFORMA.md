@@ -1,4 +1,4 @@
-# Plataforma DTE Chile — Guía de arranque e integración
+# Plataforma Faro — Guía de arranque e integración
 
 Motor **self-hosted** de emisión de Documentos Tributarios Electrónicos (DTE) y **boletas
 electrónicas** para el SII de Chile. Firma, timbra, envía al SII, repone folios solo y expone

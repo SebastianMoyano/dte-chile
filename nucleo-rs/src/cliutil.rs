@@ -182,12 +182,21 @@ pub fn dir_config_usuario() -> Result<PathBuf, String> {
 }
 
 /// `CarpetaDatos`: donde vive todo lo que escribe el motor cuando no corre desde el repo:
-/// ~/Library/Application Support/DTE Chile (macOS), %AppData%\DTE Chile, ~/.config/DTE Chile.
-/// DTE_DATOS la cambia.
+/// ~/Library/Application Support/Faro (macOS), %AppData%\Faro, ~/.config/Faro.
+/// DTE_DATOS la cambia. La app se llamó "DTE Chile" hasta 2026-10-12: si existe esa carpeta y
+/// todavía no existe "Faro", se renombra (misma base, mismos documentos; nada se copia ni se pierde).
 pub fn carpeta_datos() -> Result<PathBuf, String> {
     let d = match std::env::var("DTE_DATOS") {
         Ok(v) if !v.is_empty() => PathBuf::from(v),
-        _ => dir_config_usuario()?.join("DTE Chile"),
+        _ => {
+            let base = dir_config_usuario()?;
+            let nueva = base.join("Faro");
+            let vieja = base.join("DTE Chile");
+            if !nueva.exists() && vieja.is_dir() {
+                std::fs::rename(&vieja, &nueva).map_err(|e| format!("no pude renombrar la carpeta de datos: {e}"))?;
+            }
+            nueva
+        }
     };
     for sub in ["", "logs", "storage"] {
         std::fs::create_dir_all(d.join(sub)).map_err(|e| e.to_string())?;
@@ -209,7 +218,7 @@ pub fn asegurar_env(dir: &Path) -> Result<String, String> {
     );
     let admin = azar(8);
     let mut contenido = String::from(
-        "# Configuración del motor DTE Chile (creada por la app; edítala si hace falta)\nSII_AMBIENTE=certificacion\nHOST=127.0.0.1\nCORS_ORIGINS=http://127.0.0.1\nLOG_LEVEL=info\nNOMBRE_SOFTWARE=DTE_CHILE\n",
+        "# Configuración del motor Faro (creada por la app; edítala si hace falta)\nSII_AMBIENTE=certificacion\nHOST=127.0.0.1\nCORS_ORIGINS=http://127.0.0.1\nLOG_LEVEL=info\nNOMBRE_SOFTWARE=DTE_CHILE\n",
     );
     for (k, v) in [
         ("JWT_SECRET_KEY", azar(32)),

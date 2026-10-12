@@ -57,8 +57,9 @@ misma regla que la app (`cliutil.ResolverRaiz`):
 
 1. `--env /ruta/.env` explícito: esa carpeta.
 2. un `.env` en el directorio actual (desarrollo, desde el repo).
-3. la **carpeta de datos de la app** (`~/Library/Application Support/DTE Chile`, `%AppData%\DTE Chile`,
-   `~/.config/DTE Chile`; `DTE_DATOS` la cambia). Si no existe, la crea con su `.env`.
+3. la **carpeta de datos de la app** (`~/Library/Application Support/Faro`, `%AppData%\Faro`,
+   `~/.config/Faro`; `DTE_DATOS` la cambia). Si no existe, la crea con su `.env`; si existe la
+   antigua `DTE Chile`, la renombra la primera vez.
 
 Así la IA y la app ven exactamente lo mismo, y si abren la base a la vez no pasa nada: cada una
 es una conexión SQLite más, con el mismo `BEGIN IMMEDIATE` para los folios (`mcp.TestDosMotoresMismaBase`).

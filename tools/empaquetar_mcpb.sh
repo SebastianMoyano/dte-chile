@@ -23,7 +23,7 @@ cat > "$T/manifest.json" <<JSON
 {
   "manifest_version": "0.2",
   "name": "dte-chile",
-  "display_name": "DTE Chile",
+  "display_name": "Faro",
   "version": "$VERSION",
   "description": "Facturación electrónica de Chile (SII): tus documentos, folios y envíos desde Claude. Todo en tu computador.",
   "long_description": "Conecta Claude al motor DTE Chile instalado en este computador. Claude puede listar tus empresas y certificados, consultar folios y timbrajes, revisar el estado de envíos al SII, previsualizar y emitir documentos (boletas, facturas, notas de crédito). Usa la misma carpeta de datos que la app de escritorio; si no tienes la app, la crea. Nada sale a internet salvo lo que tú le pidas enviar al SII.",

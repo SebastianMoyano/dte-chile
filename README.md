@@ -1,4 +1,6 @@
-# 🧾 DTE Chile — facturación electrónica para el SII, libre y para aprender
+# 🧾 Faro — facturación electrónica para el SII, libre y para aprender
+
+> Antes se llamaba **DTE Chile**. El motor, los binarios y la API conservan sus nombres internos.
 
 **Un programa que emite boletas y facturas electrónicas directo con el SII de Chile**, desde
 tu computador o tu servidor, sin pagar un proveedor. Tú pones tu certificado digital; él asigna

@@ -1,4 +1,4 @@
-// DTE Chile — cascarón de escritorio (Wails) con el motor Go adentro.
+// Faro (antes DTE Chile) — cascarón de escritorio (Wails) con el motor Go adentro.
 //
 // El motor es `nucleo/servidor` corriendo en este mismo proceso (fase 7 del port): escucha en
 // un puerto libre de 127.0.0.1 con una clave efímera (APP_SHELL_KEY) y la interfaz
@@ -29,7 +29,7 @@ func main() {
 	}
 	app := NewApp()
 	err := wails.Run(&options.App{
-		Title:            "DTE Chile",
+		Title:            "Faro",
 		Width:            1120,
 		Height:           780,
 		MinWidth:         820,

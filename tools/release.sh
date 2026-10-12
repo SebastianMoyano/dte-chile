@@ -3,7 +3,7 @@
 # Windows (amd64), el .mcpb de la app de Claude y, en macOS con wails, la app de escritorio.
 #
 #   ./tools/release.sh 1.0.0              # dist/1.0.0/*
-#   gh release create v1.0.0 dist/1.0.0/* --title "DTE Chile 1.0.0" --notes-file …
+#   gh release create v1.0.0 dist/1.0.0/* --title "Faro 1.0.0" --notes-file …
 set -eu
 cd "$(dirname "$0")/.."
 V="${1:?versión, ej. 1.0.0}"
@@ -33,7 +33,7 @@ echo "→ .mcpb (app de Claude)"
 if [ "$(uname)" = Darwin ] && command -v wails >/dev/null 2>&1 || [ -x "$HOME/go/bin/wails" ]; then
   echo "→ app de escritorio (macOS, universal, sin firmar)"
   (cd app && PATH="$PATH:$HOME/go/bin" wails build -platform darwin/universal -s >/dev/null)
-  (cd app/build/bin && zip -qr "$OLDPWD/$OUT/DTE-Chile-$V-macos.zip" "DTE Chile.app")
+  (cd app/build/bin && zip -qr "$OLDPWD/$OUT/Faro-$V-macos.zip" "Faro.app")
 fi
 (cd "$OUT" && shasum -a 256 ./* > SHA256SUMS.txt)
 ls -la "$OUT" | awk 'NR>1{printf "   %-40s %6.1f MB\n", $NF, $5/1048576}'

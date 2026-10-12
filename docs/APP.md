@@ -12,7 +12,7 @@ en qué mundo estás (simulación / pruebas del SII / real).
 ## Cómo funciona
 
 ```
-DTE Chile.app (Go)                         motor (Python, main.py)
+Faro.app (Go)                              motor (Python, main.py)
   ├─ localiza la raíz del repo  ──────►    .venv/bin/python -m uvicorn main:app
   ├─ puerto libre en 127.0.0.1               --host 127.0.0.1 --port <libre>
   ├─ APP_SHELL_KEY=app_<48 hex>  ──────►    settings.app_shell_key
@@ -106,7 +106,8 @@ sin PyInstaller, sin procesos hijos.
 - **Desarrollo** (hay repo al lado): usa el `.env`, la base y el `storage/` del repo (las rutas
   relativas del `.env` se resuelven desde la raíz del repo, como hacía uvicorn con su cwd).
 - **Empaquetado** (sin repo, o con `DTE_DATOS=<carpeta>`): la carpeta de datos del usuario
-  (`~/Library/Application Support/DTE Chile`, `%AppData%`, `~/.config`), con el `.env` creado por
+  (`~/Library/Application Support/Faro`, `%AppData%`, `~/.config`; la antigua `DTE Chile` se
+  renombra sola la primera vez), con el `.env` creado por
   la app la primera vez (secretos generados ahí; la `ADMIN_PASSWORD` se muestra al pulsar
   "Abrir el panel", no en Inicio). El
   servidor Go crea el usuario `admin` en el primer arranque con esa clave (`asegurarAdmin`,
@@ -134,7 +135,7 @@ efímera, mismo `--mcp` para la IA, mismo evento `motor`.
 
 ```bash
 cd app-rs && cargo test                      # motor Rust en proceso sobre carpeta vacía + app como MCP
-cargo tauri build --bundles app              # target/release/bundle/macos/DTE Chile.app (≈14 MB)
+cargo tauri build --bundles app              # target/release/bundle/macos/Faro.app (≈14 MB)
 ```
 
 Gates en `tools/prueba_final.sh`: `app_rs_clippy`, `app_rs_test` (y `app_rs_tauri` con `--app`).
@@ -145,7 +146,7 @@ Gates en `tools/prueba_final.sh`: `app_rs_clippy`, `app_rs_test` (y `app_rs_taur
 ## Empaquetado: la app con el motor adentro
 
 ```bash
-cd app && ./empaquetar-mac.sh      # build/bin/DTE Chile.app (motor Go adentro, universal; ~20 MB), sin repo ni .venv
+cd app && ./empaquetar-mac.sh      # build/bin/Faro.app (motor Go adentro, universal; ~20 MB), sin repo ni .venv
 IDENTIDAD="Developer ID Application: …" ./firmar-mac.sh   # firma y notarización (opcional)
 ```
 
@@ -154,7 +155,7 @@ IDENTIDAD="Developer ID Application: …" ./firmar-mac.sh   # firma y notarizaci
   congelado (`motor.spec` + `motor_embebido.py`, PyInstaller) a `Contents/Resources/motor/`,
   que se usa únicamente con `DTE_MOTOR=python`.
 - Sin repo al lado, el cascarón trabaja en **la carpeta de datos del usuario**:
-  `~/Library/Application Support/DTE Chile` (macOS; `%AppData%` / `~/.config` en los otros).
+  `~/Library/Application Support/Faro` (macOS; `%AppData%` / `~/.config` en los otros).
   Ahí viven `.env`, `dte_database.db`, `storage/` y `logs/`. Dentro del paquete no se escribe nada.
 - La primera vez, el cascarón crea el `.env` con secretos generados ahí mismo (`JWT_SECRET_KEY`,
   `DTE_MASTER_KEY` del keystore) y una `ADMIN_PASSWORD` para el panel web, que Inicio muestra.
@@ -236,7 +237,7 @@ noche en tema oscuro y de día en claro: colores `--cielo-*`, `--mar-*`, `--haz`
 barriendo, olas y estrellas en CSS. Al abrir, la escena se ve nítida con el nombre y "Entrar"
 (habilitado cuando el motor está listo; Enter también entra). Al entrar, `html.dentro` desenfoca
 la escena (`filter: blur`) y la app aparece encima. El nombre es la constante `MARCA` en `app.js`
-("Faro", nombre de trabajo pendiente de decisión); el logo es el mismo faro en trazo. Tokens de color en
+(decidido el 2026-10-12: el producto es **Faro**, antes "DTE Chile"); el logo es el mismo faro en trazo. Tokens de color en
 `app.css` (`:root`), modo oscuro automático, estados vacíos, foco visible. Sin dependencias.
 
 **Tour por etapas** (`app/frontend/dist/tour.js`), pensado como primera introducción para
@@ -285,7 +286,7 @@ del sistema: mismo estilo, Esc para volver, y en lo real el botón de emitir va 
 go install github.com/wailsapp/wails/v2/cmd/wails@latest   # una vez
 cd app
 wails dev                      # recarga en caliente; el motor Go arranca en el mismo proceso
-wails build -platform darwin/arm64 -s     # build/bin/DTE Chile.app
+wails build -platform darwin/arm64 -s     # build/bin/Faro.app
 wails build -platform darwin/universal    # Intel + Apple Silicon
 ```
 

@@ -22,7 +22,7 @@ de crédito"), que enseña la etapa 1 de la guía, no un obstáculo de interfaz.
 
 ## La prueba que falta: con una persona real
 
-1. Abrir la app (`app-rs/target/release/bundle/macos/DTE Chile.app` o `app/build/bin/DTE Chile.app`;
+1. Abrir la app (`app-rs/target/release/bundle/macos/Faro.app` o `app/build/bin/Faro.app`;
    las dos llevan la misma interfaz). Si hay datos de práctica anteriores, en Inicio pulsar
    "Empezar de nuevo".
 2. Sentar enfrente a alguien que nunca la haya visto (idealmente un alumno de colegio o una

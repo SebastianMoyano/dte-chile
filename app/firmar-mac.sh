@@ -1,5 +1,5 @@
 #!/bin/sh
-# Firma y notariza "DTE Chile.app" para distribuirla fuera de la App Store.
+# Firma y notariza "Faro.app" para distribuirla fuera de la App Store.
 #
 #   IDENTIDAD="Developer ID Application: Tu Nombre (TEAMID)" \
 #   APPLE_ID=tu@correo APPLE_TEAM_ID=TEAMID APPLE_APP_PASSWORD=xxxx-xxxx-xxxx-xxxx \
@@ -8,7 +8,7 @@
 # La contraseña específica de app se crea en appleid.apple.com. Nada de esto se guarda en el
 # repo. Ver docs/APP.md.
 set -eu
-APP="build/bin/DTE Chile.app"
+APP="build/bin/Faro.app"
 : "${IDENTIDAD:?Define IDENTIDAD (security find-identity -v -p codesigning)}"
 wails build -platform darwin/universal -s
 codesign --force --deep --options runtime --timestamp --sign "$IDENTIDAD" "$APP"

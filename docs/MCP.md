@@ -1,4 +1,4 @@
-# Servidor MCP — DTE Chile
+# Servidor MCP — Faro
 
 El motor expone su toolkit del SII como un **servidor MCP** (Model Context Protocol),
 para que una IA (Claude Desktop, Claude Code u otro cliente MCP) pueda ejecutar

@@ -8,7 +8,7 @@
 //   negocio en producción        → REAL: cada documento cuenta
 
 const $ = (id) => document.getElementById(id);
-// Nombre de trabajo del producto (pendiente de decisión): se cambia aquí y en el <title>.
+// Nombre del producto (antes "DTE Chile"). También en tauri.conf.json, wails.json y la carpeta de datos.
 const MARCA = "Faro";
 document.title = MARCA; document.querySelectorAll(".marca-nombre").forEach((e) => (e.textContent = MARCA));
 // El haz del faro: un cono de luz que gira en horizontal, proyectado como se ve desde la costa.

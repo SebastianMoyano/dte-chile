@@ -5,7 +5,7 @@ contrato con ella (los 12 bindings `window.go.main.App.*`, definidos aquí por
 `app/frontend/dist/tauri.js` sobre los comandos de `src/app.rs`) y el motor `dtechile::servidor`
 (`nucleo-rs/`) corriendo **en el mismo proceso**: puerto libre en 127.0.0.1, clave efímera
 (`APP_SHELL_KEY`) que la interfaz nunca ve, datos en el repo (desarrollo) o en la carpeta del
-usuario (`~/Library/Application Support/DTE Chile`, `DTE_DATOS` la cambia). Lanzada con
+usuario (`~/Library/Application Support/Faro`, `DTE_DATOS` la cambia). Lanzada con
 `--mcp` no abre ventana: es el servidor MCP para la IA del computador, y la pestaña "Tu IA"
 escribe este mismo ejecutable en la configuración del cliente (Claude Code, Claude Desktop,
 Cursor, VS Code, Windsurf, Gemini, Codex).
@@ -15,7 +15,7 @@ cd app-rs
 cargo test                         # el motor en proceso sobre una carpeta vacía; la app como MCP
 cargo clippy --all-targets -- -D warnings
 cargo run                          # la ventana, con los datos del repo (.env, base, storage)
-cargo tauri build --bundles app    # target/release/bundle/macos/DTE Chile.app  (cargo install tauri-cli)
+cargo tauri build --bundles app    # target/release/bundle/macos/Faro.app  (cargo install tauri-cli)
 ```
 
 | archivo | qué hace | transcribe |

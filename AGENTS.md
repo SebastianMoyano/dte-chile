@@ -1,4 +1,4 @@
-# AGENTS.md - DTE Chile API
+# AGENTS.md - Faro (DTE Chile API)
 
 ## Quick Start
 

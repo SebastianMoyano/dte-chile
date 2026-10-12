@@ -1,4 +1,4 @@
-//! DTE Chile — cascarón de escritorio (Tauri) con el motor Rust adentro (fase 8, bloque 5).
+//! Faro (antes DTE Chile) — cascarón de escritorio (Tauri) con el motor Rust adentro (fase 8, bloque 5).
 //!
 //! El motor es `dtechile::servidor` corriendo en este mismo proceso: escucha en un puerto libre
 //! de 127.0.0.1 con una clave efímera (APP_SHELL_KEY) y la interfaz (`app/frontend/dist`, la

@@ -1164,20 +1164,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dte-chile-app"
-version = "1.0.1"
-dependencies = [
- "base64 0.22.1",
- "dtechile",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tauri-plugin-dialog",
- "tauri-plugin-opener",
-]
-
-[[package]]
 name = "dtechile"
 version = "0.1.0"
 dependencies = [
@@ -1333,6 +1319,20 @@ name = "fallible-streaming-iterator"
 version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7360491ce676a36bf9bb3c56c1aa791658183a54d2744120f27285738d90465a"
+
+[[package]]
+name = "faro-app"
+version = "1.0.1"
+dependencies = [
+ "base64 0.22.1",
+ "dtechile",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-dialog",
+ "tauri-plugin-opener",
+]
 
 [[package]]
 name = "fastrand"

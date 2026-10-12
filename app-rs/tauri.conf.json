@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "DTE Chile",
+  "productName": "Faro",
   "version": "1.0.1",
-  "identifier": "cl.extralatte.dtechile",
+  "identifier": "cl.extralatte.faro",
   "build": {
     "frontendDist": "../app/frontend/dist"
   },
@@ -10,7 +10,7 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "DTE Chile",
+        "title": "Faro",
         "width": 1120,
         "height": 780,
         "minWidth": 820,
