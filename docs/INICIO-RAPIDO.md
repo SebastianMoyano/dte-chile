@@ -19,7 +19,7 @@ terminal pero **no es experto en el SII**. Tiempo estimado: 20–30 minutos.
 ## Paso 1 — Levantar el motor
 
 ```bash
-git clone https://github.com/SebastianMoyano/faro-edu.git
+git clone https://github.com/SebastianMoyano/faro-dte.git
 cd dte-chile
 cp .env.example .env      # la configuración; los valores por defecto sirven para empezar
 docker compose up -d      # levanta el servidor en segundo plano

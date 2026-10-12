@@ -54,7 +54,7 @@ dentro de la app y en cualquier servidor. El port se midió, no se supuso:
   sola.
 - **Publicación 1.0 (11 de octubre de 2026).** Historia reescrita sin datos privados, auditoría
   automática que corre antes de cada push y en CI, licencia MIT, binarios para macOS, Linux y
-  Windows en [Releases](https://github.com/SebastianMoyano/faro-edu/releases).
+  Windows en [Releases](https://github.com/SebastianMoyano/faro-dte/releases).
 
 ## Cómo se ve
 
