@@ -1,8 +1,10 @@
 # App de escritorio (`app/`)
 
-Cascarón multiplataforma en **Go + Wails v2** con el motor Go (`nucleo/servidor`) adentro
-(desde la fase 7 del port, 2026-10-11; antes arrancaba el motor Python como sidecar). No reimplementa nada:
-arranca `main.py` como proceso hijo y le habla por HTTP. La idea de producto está en
+Cascarón multiplataforma en **Go + Wails v2** con el motor Go (`nucleo/servidor`) adentro,
+en el mismo proceso (desde la fase 7 del port, 2026-10-11; antes arrancaba el motor Python como
+sidecar, y con `DTE_MOTOR=python` todavía puede, para comparar). La interfaz le habla por HTTP
+igual que antes, así que el diagrama de abajo sigue valiendo cambiando "proceso hijo Python" por
+"servidor Go en proceso". La idea de producto está en
 [`aprender/00-plan.md`](aprender/00-plan.md): una app para quien no sabe nada de finanzas,
 con tres acciones ("Cobrarle a alguien", "Mi mes", "Corregir") y una barra que dice siempre
 en qué mundo estás (simulación / pruebas del SII / real).

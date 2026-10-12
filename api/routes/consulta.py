@@ -19,6 +19,8 @@ import html
 import re
 from datetime import date
 from pathlib import Path
+
+from core.orchestrator import ruta_desde_bd
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, Form
@@ -250,9 +252,9 @@ async def descargar_pdf(rut: str, tipo: int, folio: int, monto: int,
         return JSONResponse({"error": "no_encontrada"}, status_code=404)
     d = dict(fila)
     # 1) PDF ya guardado en disco (emisión por el orquestador).
-    pp = d.get("pdf_path")
-    if pp and Path(pp).exists():
-        return Response(Path(pp).read_bytes(), media_type="application/pdf", headers={
+    pp = ruta_desde_bd(d.get("pdf_path"))
+    if pp and pp.exists():
+        return Response(pp.read_bytes(), media_type="application/pdf", headers={
             "Content-Disposition": f'inline; filename="boleta_{tipo}_{folio}.pdf"'})
     # 2) Regenerar desde el XML firmado.
     if not d.get("xml_firmado"):

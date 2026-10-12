@@ -92,7 +92,7 @@ func (s *Servidor) resultadoDemo(id int64) (map[string]any, error) {
 		"monto_neto": d["monto_neto"], "monto_exento": d["monto_exento"], "iva": d["iva"], "monto_total": d["monto_total"],
 		"ambiente": d["ambiente"], "estado": d["estado"], "pdf_path": d["pdf_path"], "pdf_b64": nil,
 	}
-	if pp := texto(d, "pdf_path"); existeArchivo(pp) {
+	if pp := s.rutaDesdeBD(texto(d, "pdf_path")); existeArchivo(pp) {
 		if b, err := os.ReadFile(pp); err == nil {
 			out["pdf_b64"] = base64.StdEncoding.EncodeToString(b)
 		}

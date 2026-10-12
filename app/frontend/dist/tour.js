@@ -151,7 +151,13 @@
   // Llamado al pintar cada pantalla: pasos pendientes de esa pantalla, etapa en curso.
   function alEntrar(vista) {
     pintarCamino();
-    if (st.apagado || el().style.display === "block") return;
+    if (st.apagado) return;
+    if (el().style.display === "block") {
+      // Un consejo contextual anclado a otra vista no se queda flotando: se cierra al cambiar de vista.
+      const actual = cola[idx];
+      if (modo === "contextual" && actual && actual.etapa.pasos[actual.i].vista !== vista) cerrar();
+      else return;
+    }
     if (!st.bienvenida) { setTimeout(bienvenida, 400); return; }
     const e = etapaActual();
     const pendientes = e.pasos.map((_, i) => ({ etapa: e, i })).filter(({ i }) => e.pasos[i].vista === vista && !st.vistos[idPaso(e, i)]);

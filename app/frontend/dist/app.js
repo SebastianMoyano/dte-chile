@@ -519,6 +519,19 @@ vistas.aprender = async (el) => {
 
 // ---------- tu IA (clientes MCP del computador) ----------
 vistas.ia = async (el) => {
+  if (estado.externo) {
+    // En el navegador no hay cascarón que escriba la configuración de la IA del computador.
+    el.innerHTML = `
+      <h1>Tu IA</h1>
+      <p class="sub">Si usas un asistente de IA en tu computador, puede trabajar con tu facturación: ver tus documentos, revisar tus folios, preparar una boleta y pedirte que la apruebes.</p>
+      <div class="banner"><b>Desde el navegador no puedo conectarla por ti.</b> Conectar una IA escribe en la configuración de ese programa, y eso solo lo hace la app instalada (pestaña «Tu IA») o el binario <code>nucleo-mcp</code> en la terminal.</div>
+      <div class="card"><h3>En la terminal</h3>
+        <pre style="white-space:pre-wrap">nucleo-mcp clientes                     # qué asistentes hay en este computador
+nucleo-mcp instalar --en claude-code    # o claude-desktop, cursor, vscode, windsurf, gemini, codex, todos</pre>
+        <p class="mut">Después, cierra y vuelve a abrir ese programa y pídele, por ejemplo: <i>«muéstrame mis últimos documentos»</i>. Guía completa: <code>docs/CONECTAR.md</code>.</p>
+      </div>`;
+    return;
+  }
   let lista;
   try { lista = await window.go.main.App.Conectores(); } catch (e) { el.innerHTML = `<div class="banner rojo">${esc(e.message || e)}</div>`; return; }
   const detectados = lista.filter((c) => c.presente);

@@ -84,6 +84,22 @@ func existeArchivo(p string) bool {
 	return err == nil
 }
 
+// rutaDesdeBD es la inversa de rutaParaBD: una ruta guardada en la base (`storage/pdfs/…`,
+// relativa al padre de STORAGE_PATH) vuelve a ser absoluta. Si así no existe, se prueba
+// relativa al cwd (bases antiguas, o el motor corriendo desde la raíz del repo). Sin esto, la
+// app instalada (datos en la carpeta del usuario, cwd en otra parte) no encontraba ningún PDF.
+func (s *Servidor) rutaDesdeBD(p string) string {
+	if p == "" || filepath.IsAbs(p) {
+		return p
+	}
+	if padre, err := filepath.Abs(filepath.Dir(s.cfg.StoragePath)); err == nil {
+		if cand := filepath.Join(padre, p); existeArchivo(cand) {
+			return cand
+		}
+	}
+	return p
+}
+
 // listarDocumentos es listar_documentos: filtros, orden por creado_en DESC, límite 1..200.
 func (s *Servidor) listarDocumentos(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
@@ -144,7 +160,7 @@ func (s *Servidor) listarDocumentos(w http.ResponseWriter, r *http.Request) {
 		xml := texto(d, "xml_firmado")
 		delete(d, "xml_firmado")
 		d["tiene_xml"] = xml != ""
-		d["tiene_pdf"] = existeArchivo(texto(d, "pdf_path"))
+		d["tiene_pdf"] = existeArchivo(s.rutaDesdeBD(texto(d, "pdf_path")))
 		if strings.HasSuffix(texto(d, "estado"), "_mipyme") {
 			d["canal"] = "mipyme"
 		} else {
@@ -206,14 +222,14 @@ func (s *Servidor) pdfDocumento(w http.ResponseWriter, r *http.Request) {
 		responderError(w, r, 404, "no_encontrado", fmt.Sprintf("Documento %d no existe", id), nil)
 		return
 	}
-	pp := texto(d, "pdf_path")
+	pp := s.rutaDesdeBD(texto(d, "pdf_path"))
 	if !existeArchivo(pp) {
 		responderError(w, r, 404, "no_encontrado", "Este documento no tiene PDF guardado", nil)
 		return
 	}
-	raiz, _ := filepath.Abs("storage")
+	raiz, _ := filepath.Abs(s.cfg.StoragePath)
 	abs, _ := filepath.Abs(pp)
-	if !strings.HasPrefix(abs, raiz+string(filepath.Separator)) { // nunca servir algo fuera de storage/
+	if !strings.HasPrefix(abs, raiz+string(filepath.Separator)) { // nunca servir algo fuera del storage del motor
 		responderError(w, r, 404, "no_encontrado", "Ruta de PDF fuera del almacenamiento del motor", nil)
 		return
 	}

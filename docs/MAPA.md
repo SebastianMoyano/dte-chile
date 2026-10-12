@@ -114,5 +114,5 @@ uvicorn main:app --reload --port 8000         # API (/docs, /redoc)
 | Certificación de boletas | ✅ **completa** — SOFTWARE DEMO SPA (78111111-2) autorizada en producción, emite boletas reales |
 | Canal MIPYME (gratuito por httpx) | ✅ lectura, importación (PDF+XML), firma central y **emisión** verificadas desde el repo (2026-10-08: factura 63 + NC 60 de anulación, `CADENAS_VERIFICADAS` = {34, 61}) · NC de corrección de montos, ND y boletas siguen con `--acepto-riesgo-folio` · **en Go**: `nucleo/siiengine` segmento 1 (sesión, historial, PDF, XML, importar) verificado en vivo 2026-10-08; emisión aún solo en Python |
 
-⚠️ `task.md` es un **registro histórico** con partes obsoletas. Cuando discrepe con el código,
+⚠️ `task.md` (local, ignorado por git) es un **registro histórico** con partes obsoletas. Cuando discrepe con el código,
 **manda el código**.

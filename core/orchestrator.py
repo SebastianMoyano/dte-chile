@@ -41,13 +41,27 @@ from core.sobre import armar_sobre_firmado, firmar_documento_standalone
 
 
 def ruta_para_bd(path: Path) -> str:
-    """Ruta que se guarda en `dtes.pdf_path`: relativa a la raíz del repo si el archivo cuelga
-    de ella (`storage/pdfs/…`, lo que el endpoint de PDF resuelve desde el cwd); si el storage
-    es una carpeta absoluta fuera del repo (pruebas), la ruta absoluta tal cual."""
+    """Ruta que se guarda en `dtes.pdf_path`: relativa al padre de `storage_path`
+    (`storage/pdfs/…`), para que la base se pueda mover junto con su carpeta; si el archivo
+    no cuelga de ahí, la ruta absoluta tal cual. La inversa es `ruta_desde_bd`."""
     try:
         return str(path.relative_to(Path(settings.storage_path).parent))
     except ValueError:
         return str(path)
+
+
+def ruta_desde_bd(p: str | None) -> Path | None:
+    """Inversa de `ruta_para_bd`: la ruta guardada vuelve a ser absoluta contra el padre de
+    `storage_path`; si así no existe, se prueba relativa al cwd (bases antiguas o el motor
+    corriendo desde la raíz del repo). Sin esto, con STORAGE_PATH fuera del cwd ningún PDF
+    aparecía ("no tiene PDF") aunque estuviera en disco."""
+    if not p:
+        return None
+    path = Path(p)
+    if path.is_absolute():
+        return path
+    candidato = Path(settings.storage_path).resolve().parent / path
+    return candidato if candidato.exists() else path
 
 
 class OrquestadorDTE:

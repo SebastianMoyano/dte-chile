@@ -70,6 +70,8 @@
     AbrirPanel(pagina) { window.open(origen + "/" + (pagina || ""), "_blank"); },
     AbrirURL(u) { window.open(u, "_blank"); },
     async EmitirNucleo() { soloApp("Emitir con el motor propio"); },
+    async Conectores() { soloApp("Conectar tu IA"); },
+    async ConectarIA() { soloApp("Conectar tu IA"); },
     async SIIEngineSincronizar(rutEmpresa, rutUsuario, trib, cert, recordar) {
       // En el navegador lo hace el motor (Python), mismo resultado.
       const r = await llamar("POST", "/api/v1/mipyme/sincronizar", JSON.stringify({ rut_empresa: rutEmpresa, rut_usuario: rutUsuario, clave_tributaria: trib,

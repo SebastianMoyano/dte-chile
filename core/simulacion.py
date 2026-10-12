@@ -38,7 +38,7 @@ from core.crypto import CertificadoDigital
 from core.dte import DTEInput, EmisorModel, ItemDTE, ReceptorModel, ReferenciaModel, TipoDTE
 from core.errors import RecursoNoEncontrado, ValidacionError
 from core.models import obtener_caf_activo, obtener_dte, registrar_caf
-from core.orchestrator import emitir_documento
+from core.orchestrator import emitir_documento, ruta_desde_bd
 from core.resolucion import fijar_resolucion_local
 
 RUT_DEMO = "77777777-7"
@@ -155,7 +155,7 @@ def _marcar_simulado(dte_id: int) -> None:
 
 def _resultado(dte_id: int) -> dict:
     d = obtener_dte(dte_id)
-    pdf = Path(d["pdf_path"]) if d.get("pdf_path") else None
+    pdf = ruta_desde_bd(d.get("pdf_path"))
     return {
         "dte_id": d["id"], "tipo_dte": d["tipo_dte"], "folio": d["folio"],
         "fecha_emision": d["fecha_emision"], "receptor": d["rut_receptor"],

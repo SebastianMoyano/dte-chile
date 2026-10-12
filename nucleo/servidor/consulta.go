@@ -272,8 +272,8 @@ func (s *Servidor) consultaPDF(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	disp := fmt.Sprintf(`inline; filename="boleta_%d_%d.pdf"`, tipo, folio)
-	if pp := texto(d, "pdf_path"); pp != "" {
-		if b, err := os.ReadFile(pp); err == nil { // relativa al cwd, como Python
+	if pp := s.rutaDesdeBD(texto(d, "pdf_path")); pp != "" {
+		if b, err := os.ReadFile(pp); err == nil {
 			w.Header().Set("Content-Type", "application/pdf")
 			w.Header().Set("Content-Disposition", disp)
 			_, _ = w.Write(b)

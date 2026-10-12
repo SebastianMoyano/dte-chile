@@ -25,7 +25,7 @@ from core.crypto import CertificadoDigital
 from core.sobre import firmar_documento_standalone
 from core.dte import DTEInput, GeneradorDTE, TipoDTE, calcular_totales
 from core.errors import CAFError, CertificadoError, FolioError, SIIError, SIIRechazoError, ValidacionError
-from core.orchestrator import emitir_documento
+from core.orchestrator import emitir_documento, ruta_desde_bd
 from core.pdf_gen import generar_pdf_dte
 from core.preview import previsualizar_dte as _previsualizar_dte
 from core.sii import AmbienteSII, ClienteSII
@@ -123,7 +123,8 @@ async def listar_documentos(
                        limite=max(1, min(limite, 200)))
     for d in docs:
         d["tiene_xml"] = bool(d.pop("xml_firmado", None))
-        d["tiene_pdf"] = bool(d.get("pdf_path")) and Path(d["pdf_path"]).exists()
+        pp = ruta_desde_bd(d.get("pdf_path"))
+        d["tiene_pdf"] = bool(pp) and pp.exists()
         d["canal"] = "mipyme" if (d.get("estado") or "").endswith("_mipyme") else "motor"
     return {"total": len(docs), "documentos": docs}
 
@@ -168,11 +169,11 @@ async def pdf_documento(dte_id: int) -> Response:
     d = obtener_dte(dte_id)
     if not d:
         raise RecursoNoEncontrado(f"Documento {dte_id} no existe")
-    pp = d.get("pdf_path")
-    if not pp or not Path(pp).exists():
+    pp = ruta_desde_bd(d.get("pdf_path"))
+    if not pp or not pp.exists():
         raise RecursoNoEncontrado("Este documento no tiene PDF guardado")
-    raiz = Path("storage").resolve()
-    if raiz not in Path(pp).resolve().parents:   # nunca servir algo fuera de storage/
+    raiz = Path(settings.storage_path).resolve()
+    if raiz not in pp.resolve().parents:   # nunca servir algo fuera del storage del motor
         raise RecursoNoEncontrado("Ruta de PDF fuera del almacenamiento del motor")
     return Response(Path(pp).read_bytes(), media_type="application/pdf", headers={
         "Content-Disposition": f'inline; filename="dte_{d["tipo_dte"]}_{d["folio"]}.pdf"'})

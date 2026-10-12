@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -81,6 +82,18 @@ func TestMotorGoEnProceso(t *testing.T) {
 	r.Body.Close()
 	if r.StatusCode != 200 || !strings.Contains(string(b), `"pdf_path"`) {
 		t.Fatalf("práctica: %d %s", r.StatusCode, string(b))
+	}
+	// el PDF tiene que encontrarse desde la carpeta de datos, no desde el cwd (la app instalada
+	// corre con el cwd en cualquier parte): el listado lo declara y la ruta lo sirve
+	if st, cuerpo := pedir("/api/v1/dte/documentos", m.Clave); st != 200 || !strings.Contains(cuerpo, `"tiene_pdf":true`) {
+		t.Fatalf("documentos sin tiene_pdf=true: %d %.300s", st, cuerpo)
+	}
+	var emitido struct {
+		ID int `json:"dte_id"`
+	}
+	_ = json.Unmarshal(b, &emitido)
+	if st, cuerpo := pedir(fmt.Sprintf("/api/v1/dte/documentos/%d/pdf", emitido.ID), m.Clave); st != 200 || !strings.HasPrefix(cuerpo, "%PDF") {
+		t.Fatalf("pdf del documento %d: %d %.100s", emitido.ID, st, cuerpo)
 	}
 	m.Detener()
 	if m.vivo() {

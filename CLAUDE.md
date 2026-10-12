@@ -78,9 +78,10 @@ Ver [`docs/LECCIONES-SII.md`](docs/LECCIONES-SII.md).
 
 **`core/config.py`** — single `settings` singleton (pydantic-settings, reads `.env`). Import it, don't read env vars directly.
 
-**El motor también existe en Go** (`nucleo/`, fase 7 de `docs/PLAN-PORT.md`, 2026-10-11): `nucleo/servidor` atiende
-las 69 rutas de la API con el mismo contrato que FastAPI (`tools/contrato_api.py` lo exige idéntico), y la app
-de escritorio (`app/`) lo corre en su propio proceso, sin Python. Python sigue siendo la referencia que fija el
+**El motor también existe en Go** (`nucleo/`, fase 7 de `docs/PLAN-PORT.md`, cerrada 2026-10-11): `nucleo/servidor` atiende
+todas las rutas de la API Python con el mismo contrato que FastAPI (`tools/contrato_api.py` lo exige idéntico) más las
+propias de Go (boletas REST, RVD, MCP), y la app de escritorio (`app/`) lo corre en su propio proceso, sin Python.
+Lo que quedó distinto a propósito (PDF no byte a byte, sin Swagger) está decidido en `docs/COMPARACION-PYTHON-GO.md`. Python sigue siendo la referencia que fija el
 comportamiento (corpus dorado, contrato dorado); cualquier cambio en una ruta se hace en los dos y se mide.
 
 ## Conventions & gotchas
@@ -89,6 +90,6 @@ comportamiento (corpus dorado, contrato dorado); cualquier cambio en una ruta se
 - **`EPR` NO significa "aceptado"** — significa "Envío Procesado" (el *sobre* se procesó). El veredicto está en `ACEPTADOS`/`RECHAZADOS`. Este malentendido tuvo al proyecto creyendo que el pipeline funcionaba mientras el SII rechazaba todo.
 - **La resolución del SII depende del ambiente**: usa `settings.resolucion`, nunca `sii_fecha_resolucion`/`sii_numero_resolucion` a pelo (son los de producción → `CRT-3-19` en certificación).
 - `.p12`/`.pfx` certificates are processed **in memory only** — never persist them to disk or the DB. A local `firma.pfx` (path configurable via `DTE_CERT_PATH`) is used as a dev fallback.
-- Certification is currently blocked (see `task.md`): the test cert is not yet registered as mandatario for the emisor RUT, so the real T61 CAF can't be issued. `task.md` tracks the live status of the certification effort — read it before working on certification.
+- Certification status: the boleta certification (39/41) is **complete** (2026-07-22, `docs/CERTIFICACION.md`); facturas in certification are accepted but the full 16-case set still depends on T33/T61 folios the SII rate-limits (`docs/LECCIONES-SII.md`). Read those two docs before working on certification; the old `task.md` is a local, git-ignored history file.
 - Generated artifacts live under `storage/` (`dtes/`, `pdfs/`, `cafs/`, and `dtes_cert/`/`pdfs_cert/` for certification runs); results summaries are `storage/resultados_*.json`.
 - Adding a new DTE type: extend `TipoDTE` in `core/dte.py`, add to `NOMBRES_DTE` in `core/pdf_gen.py`, and handle exempt-IVA logic in `calcular_totales`.

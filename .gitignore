@@ -49,3 +49,6 @@ dist/
 
 # El certificado FICTICIO del corpus dorado sí se versiona (L14: claves inventadas, EMPRESA DEMO SPA)
 !tests/dorado/fixtures/cert_demo.*
+
+# capturas de la app para el README (sin datos reales: empresa de práctica)
+!docs/img/*.png
