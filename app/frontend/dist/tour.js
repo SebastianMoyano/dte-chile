@@ -17,7 +17,7 @@
       pasos: [
         { vista: "inicio", sel: "#mundo", t: "Mira siempre este semáforo", p: "Dice en qué mundo estás. Verde: práctica, nada sale de aquí. Amarillo: pruebas del SII, sin efecto. Rojo: real, cada documento cuenta." },
         { vista: "inicio", sel: ".sel-wrap", t: "La empresa activa", p: "Hoy trabajas con EMPRESA DEMO SPA, la de práctica: úsala para aprender sin riesgo. Cuando agregues una empresa real, arriba aparece un selector para elegir por quién trabajas." },
-        { vista: "inicio", sel: "[data-tour='cobrar']", t: "Lo primero: cobrar", p: "Una boleta es lo que le das a una persona; una factura, a otra empresa. Entra aquí y emite tu primera boleta de práctica." },
+        { vista: "inicio", sel: "[data-tour='cobrar']", t: "Lo primero: emitir", p: "Una boleta es lo que le das a una persona; una factura, a otra empresa. Entra aquí y emite tu primera boleta de práctica." },
         { vista: "cobrar", sel: "#c_monto", demo: "monto", t: "El monto y el IVA", p: "Escribe 1190 con IVA incluido: verás que el neto es 1.000 y el IVA 190. El IVA es el 19% que va al Estado; tú solo lo recaudas." },
         { vista: "cobrar", sel: ".totales", t: "Neto, IVA y total", p: "Estos tres números aparecen en todo documento. Si el monto es exento, el IVA es cero." },
         { vista: "cobrar", sel: "#c_btn", demo: "emitir", t: "Revisar y emitir", p: "Al emitir, la app arma el documento, lo firma y le pone el timbre, igual que uno real. En práctica no sale de tu computador." },
@@ -40,7 +40,7 @@
       pasos: [
         { vista: "inicio", sel: "#empresa", t: "Elige una empresa real", p: "Las empresas que emiten en el sistema del SII aparecen aquí con la etiqueta 'gratuito'. El semáforo se pone rojo: lo que hagas cuenta." },
         { vista: "inicio", sel: "[data-tour='sincronizar']", t: "Traer lo emitido en el SII", p: "La app entra al SII como tú, lista todo lo emitido y guarda aquí PDF y XML. Solo lectura, no gasta nada." },
-        { vista: "cobrar", sel: "#c_btn", t: "Cobrar por el SII", p: "Con 'Una empresa' y 'No lleva IVA', la app valida la factura en el SII sin gastar folio y te la muestra antes de emitir." },
+        { vista: "cobrar", sel: "#c_btn", t: "Emitir por el SII", p: "Con 'Una empresa' y 'No lleva IVA', la app valida la factura en el SII sin gastar folio y te la muestra antes de emitir." },
         { vista: "documentos", sel: "[data-tour='anular']", t: "Anular en el SII", p: "La nota de crédito la pre-arma el propio SII con los datos del documento; la app la valida y te la muestra." },
       ] },
     { id: "motor", n: 5, titulo: "Tu propio sistema", mundo: "pruebas", resumen: "CAF, firma y certificación: para quien emite mucho o integra sistemas. Primero en el ambiente de pruebas del SII.",

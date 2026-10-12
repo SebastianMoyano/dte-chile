@@ -11,6 +11,34 @@ const $ = (id) => document.getElementById(id);
 // Nombre de trabajo del producto (pendiente de decisión): se cambia aquí y en el <title>.
 const MARCA = "Faro";
 document.title = MARCA; document.querySelectorAll(".marca-nombre").forEach((e) => (e.textContent = MARCA));
+// El haz del faro: una luz que gira en horizontal, vista desde la costa. La punta del cono recorre
+// una elipse alrededor de la linterna (centrada un poco más abajo, por la perspectiva): adelante
+// baja hacia el mar y brilla, a los costados queda nivelado, atrás queda a la altura de la
+// linterna y se atenúa. Cuando apunta hacia ti o hacia atrás el cono desaparece y la linterna
+// destella. Se detiene al entrar (de fondo la escena queda quieta) y con "reducir movimiento".
+(() => {
+  const haz = document.querySelector(".haz"), luz = document.querySelector(".luz"), resplandor = document.querySelector(".resplandor");
+  if (!haz || !luz) return;
+  const quieto = () => document.documentElement.classList.contains("dentro") || matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const VUELTA = 24000, R = 1500, RY = 90, BAJO = 90;   // ms por vuelta, alcance, semieje vertical, centro bajo la linterna
+  function paso(t) {
+    if (!quieto()) {
+      const th = ((t % VUELTA) / VUELTA) * 2 * Math.PI;   // 0 = derecha, π/2 = hacia ti, π = izquierda, 3π/2 = atrás
+      const dx = R * Math.cos(th), dy = BAJO + RY * Math.sin(th);
+      const largo = Math.hypot(dx, dy), ang = (Math.atan2(dy, dx) * 180) / Math.PI;
+      const cerca = (Math.sin(th) + 1) / 2;                 // 1 adelante, 0 atrás
+      const visible = Math.min(1, Math.abs(Math.cos(th)) / 0.3);
+      haz.style.transform = `translate(430px,372px) rotate(${ang}deg) scale(${largo / R},${0.5 + 0.6 * cerca})`;
+      haz.style.opacity = (visible * (0.25 + 0.65 * cerca)).toFixed(3);
+      const destello = (1 - visible) * cerca;               // apunta hacia ti: la linterna brilla
+      luz.style.opacity = (0.55 + 0.45 * destello).toFixed(3);
+      luz.style.transform = `scale(${1 + 1.4 * destello})`;
+      if (resplandor) resplandor.style.opacity = (0.85 * destello).toFixed(3);   // la luz te da en la cara: toda la escena se aclara
+    }
+    requestAnimationFrame(paso);
+  }
+  requestAnimationFrame(paso);
+})();
 // Tema: automático (el del sistema), claro u oscuro. Se recuerda en este equipo.
 const TEMAS = { "": "Automático", light: "Claro", dark: "Oscuro" };
 function aplicarTema(t) { if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme; try { localStorage.setItem("tema", t); } catch {} }
@@ -158,7 +186,7 @@ vistas.inicio = async (el) => {
     ${cab}
     <div class="grid">
       ${sinc}
-      <div class="card accion" data-tour="cobrar" onclick="ir('cobrar')">${icono("cobrar")}<h3>Cobrarle a alguien</h3><p>Una boleta o una factura. Ves neto, IVA y total antes de emitir.</p></div>
+      <div class="card accion" data-tour="cobrar" onclick="ir('cobrar')">${icono("cobrar")}<h3>Emitir una boleta o factura</h3><p>A una persona o a una empresa. Ves neto, IVA y total antes de emitir.</p></div>
       <div class="card accion" onclick="ir('documentos')">${icono("documentos")}<h3>Mis documentos</h3><p>Todo lo emitido. Para corregir, se anula con una nota de crédito: nada se borra.</p></div>
       <div class="card accion" onclick="ir('documentos?tab=mes')">${icono("mes")}<h3>Mi mes</h3><p>Cuánto vendiste, cuánto IVA cobraste y qué va a pedir el F29.</p></div>
     </div>
@@ -266,7 +294,7 @@ vistas.cobrar = async (el) => {
   await cargarNegocios();
   const e = empresa();
   el.innerHTML = `
-    <h1>Cobrarle a alguien</h1>
+    <h1>Emitir una boleta o factura</h1>
     <p class="sub">Llena lo mínimo. Abajo ves cómo queda el documento antes de emitirlo.</p>
     <div class="card">
       <p class="mut">Desde <b>${esc(e.razon_social || e.rut)}</b>${negocios.length ? " (cambia la empresa arriba)" : ""}.</p>
