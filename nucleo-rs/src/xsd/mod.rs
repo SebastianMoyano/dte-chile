@@ -9,7 +9,7 @@
 //! lxml: `paridad_con_lxml` lo exige sobre `testdata/vectores.json.gz`
 //! (`tools/generar_xsd_vectores.py`).
 
-mod arbol;
+pub mod arbol;
 mod esquema;
 mod simple;
 mod validar;

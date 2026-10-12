@@ -118,7 +118,7 @@ pub fn esc_attr(s: &str) -> String {
 
 // ---- datos de entrada (espejo de DTEInput) ----
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, serde::Serialize)]
 pub struct Emisor {
     pub rut: String,
     pub razon_social: String,
@@ -131,7 +131,7 @@ pub struct Emisor {
     pub codigo_actividad: i64,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, serde::Serialize)]
 pub struct Receptor {
     pub rut: String,
     pub razon_social: String,
@@ -142,7 +142,7 @@ pub struct Receptor {
     pub email: String,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, serde::Serialize)]
 pub struct Item {
     pub numero_linea: i32,
     pub nombre: String,
@@ -156,7 +156,7 @@ pub struct Item {
     pub codigo_producto: String,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, serde::Serialize)]
 pub struct Referencia {
     pub numero_linea: i32,
     pub tipo_doc_ref: i32,
@@ -166,7 +166,7 @@ pub struct Referencia {
     pub razon_ref: String,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, serde::Serialize)]
 pub struct Documento {
     pub tipo_dte: i32,
     pub folio: i32,

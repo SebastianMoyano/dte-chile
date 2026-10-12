@@ -5,6 +5,7 @@
 //! pase todo.
 pub mod c14n;
 pub mod firma;
+pub mod pdf;
 pub mod pdf417;
 pub mod ted;
 pub mod totales;
