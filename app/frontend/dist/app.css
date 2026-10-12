@@ -150,6 +150,11 @@ input,select,textarea { width:100%; padding:11px 13px; border:1px solid var(--bd
   transition:border-color .12s, box-shadow .12s, background .12s; }
 input:focus,select:focus,textarea:focus { border-color:var(--campo-foco); box-shadow:var(--ring); background:var(--vidrio-3); }
 input::placeholder { color:var(--mut-2); }
+/* los desplegables: sin el control nativo; vidrio, píldora y una flecha propia (chevron) */
+select { appearance:none; -webkit-appearance:none; padding-right:42px; border-radius:99px; cursor:pointer;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888da8' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");
+  background-repeat:no-repeat; background-position:right 14px center; background-size:18px 18px; }
+select:hover { background-color:var(--vidrio-3); }
 select option { background:var(--panel-solido); color:var(--fg); }
 button { margin-top:14px; padding:10px 20px; border:0; border-radius:99px; background:var(--inv-bg); color:var(--inv-fg); font-size:.95rem; font-weight:700; cursor:pointer;
   transition:background .12s, transform .08s, box-shadow .12s; box-shadow:0 10px 24px -14px rgba(0,0,0,.7); }
