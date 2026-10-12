@@ -161,7 +161,7 @@
 
   function bienvenida() {
     st.bienvenida = true; guardar();
-    centro("👋", "Hola, bienvenido a DTE Chile",
+    centro("👋", "Hola, te damos la bienvenida",
       "Aquí aprendes a cobrar con boletas y facturas, como cualquier negocio en Chile, practicando con una empresa de mentira. Te guío paso a paso, y puedes saltarte lo que quieras.",
       `<button onclick="Tour.etapa(0)">Empezar el recorrido</button><button class="sec" onclick="Tour.explorar()">Explorar por mi cuenta</button>`);
   }

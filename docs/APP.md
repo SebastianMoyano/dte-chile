@@ -212,7 +212,14 @@ mismas, así que `app.js` y `tour.js` no dependen del tema; `index.html` cambió
 contenido + dock (ya no hay barra lateral). Los íconos son SVG de trazo propios (`ICONOS` en
 `app.js`, inline en el dock), iguales en todos los sistemas; el selector de empresa aparece
 recién con la primera empresa real; las etapas 4 y 5 del camino se llaman "Emitir con el SII" y
-"Tu propio sistema" (en `docs/aprender/00-plan.md` conservan sus títulos largos). Tokens de color en
+"Tu propio sistema" (en `docs/aprender/00-plan.md` conservan sus títulos largos).
+
+Hay **tema claro y oscuro** (tokens en `:root`, `prefers-color-scheme` y `data-theme` elegido en
+Ajustes → Apariencia, recordado en `localStorage`): salió de una prueba de usuario simulada con
+una persona de 72 años a la que el fondo oscuro le cansaba la vista. De esas pruebas (un alumno
+de 16 y esa persona, agentes sin contexto mirando capturas) salieron también: "Salir" pausa las
+pistas, "Anular este documento", "Mis documentos" en el visor, ejemplos marcados "Ej.:", la
+línea "El IVA no es tuyo" bajo los totales y la bienvenida sin género. Tokens de color en
 `app.css` (`:root`), modo oscuro automático, estados vacíos, foco visible. Sin dependencias.
 
 **Tour por etapas** (`app/frontend/dist/tour.js`), pensado como primera introducción para

@@ -8,6 +8,10 @@
 //   negocio en producción        → REAL: cada documento cuenta
 
 const $ = (id) => document.getElementById(id);
+// Tema: automático (el del sistema), claro u oscuro. Se recuerda en este equipo.
+const TEMAS = { "": "Automático", light: "Claro", dark: "Oscuro" };
+function aplicarTema(t) { if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme; try { localStorage.setItem("tema", t); } catch {} }
+try { aplicarTema(localStorage.getItem("tema") || ""); } catch {}
 const clp = (n) => (n == null ? "—" : "$ " + Math.round(n).toLocaleString("es-CL"));
 // Fechas en castellano: la persona lee "1 de octubre de 2026", no "2026-10-01".
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
@@ -170,6 +174,8 @@ vistas.ajustes = async (el) => {
       <div class="card accion" onclick="ir('valores')">${icono("valores")}<h3>Valores</h3><p>UF, UTM y dólar de cualquier día, y el histórico mensual.</p></div>
       <div class="card accion" onclick="abrirPanel('certificados')">${icono("panel")}<h3>Panel del motor</h3><p>Certificados, folios, usuarios y claves de API, en el navegador.</p></div>
     </div>
+    <div class="card"><h3>Apariencia</h3><p class="mut">Si el fondo oscuro te cansa la vista, elige Claro. Automático sigue al sistema.</p>
+      <div class="segmento" id="tema_sel">${Object.entries(TEMAS).map(([k, v]) => `<button class="${(localStorage.getItem("tema") || "") === k ? "on" : ""}" onclick="aplicarTema('${k}'); render()">${v}</button>`).join("")}</div></div>
     <details class="tecnico"><summary>Detalles técnicos</summary>
       <p class="mut">Motor v${esc(estado.version)} en <code>${esc(estado.url)}</code>${estado.externo ? " (externo)" : estado.empaquetado ? " (dentro de la app)" : " (datos del repo)"}.
       ${estado.empaquetado ? `Tus datos están en <code>${esc(estado.raiz)}</code>.` : ""} La clave del panel web se muestra al pulsar "Panel del motor".</p></details>`;
@@ -275,8 +281,8 @@ vistas.cobrar = async (el) => {
           <div class="row"><div><label>Comuna</label><input id="c_comuna" placeholder="SANTIAGO"></div><div><label>Ciudad</label><input id="c_ciudad" placeholder="Santiago"></div></div>
         </div>
       </div>
-      <label>Qué le vendes</label><input id="c_que" placeholder="${e.demo ? "Café" : "Servicio"}">
-      <div class="row"><div><label>Monto</label><input id="c_monto" type="number" inputmode="numeric" min="0" step="1" placeholder="${e.demo ? "1190" : ""}"></div>
+      <label>Qué le vendes</label><input id="c_que" placeholder="${e.demo ? "Ej.: Café" : "Ej.: Servicio"}">
+      <div class="row"><div><label>Monto</label><input id="c_monto" type="number" inputmode="numeric" min="0" step="1" placeholder="${e.demo ? "Ej.: 1190" : ""}"></div>
         <div><label>Ese monto es…</label><select id="c_modo"><option value="total">con IVA incluido (lo que paga)</option><option value="neto">neto (sin IVA)</option></select></div></div>
       <details class="mas" id="c_mas" ${!e.demo && !e.usa_sw_propio ? "open" : ""}><summary>Más opciones: sin IVA, monto en UF</summary>
         <div class="chk"><input type="checkbox" id="c_exento"><label for="c_exento" style="margin:0;font-weight:500">No lleva IVA (educación, salud, arriendo sin muebles…)</label></div>
@@ -284,6 +290,7 @@ vistas.cobrar = async (el) => {
         <p class="mut" id="c_uf_nota"></p>
       </details>
       <div class="totales"><div><span>Neto</span><b id="t_neto">—</b></div><div><span>IVA 19%</span><b id="t_iva">—</b></div><div><span>Total</span><b id="t_total">—</b></div></div>
+      <p class="mut">El total es lo que paga la persona. El IVA (19%) no es tuyo: lo cobras y después se lo pasas al Estado. Lo tuyo es el neto.</p>
       <p class="mut" id="c_tipo"></p>
       <div id="c_aviso"></div>
       <button id="c_btn" onclick="emitir()">Revisar y emitir</button>
