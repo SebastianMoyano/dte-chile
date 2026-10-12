@@ -266,7 +266,7 @@ vistas.cobrar = async (el) => {
     <h1>Cobrarle a alguien</h1>
     <p class="sub">Llena lo mínimo. Abajo ves cómo queda el documento antes de emitirlo.</p>
     <div class="card">
-      <p class="mut">Desde <b>${esc(e.razon_social || e.rut)}</b> (cambia la empresa arriba).</p>
+      <p class="mut">Desde <b>${esc(e.razon_social || e.rut)}</b>${negocios.length ? " (cambia la empresa arriba)" : ""}.</p>
       <label>A quién</label>
       <div class="radio">
         <label><input type="radio" name="c_quien" value="persona" checked> Una persona (boleta)</label>
@@ -290,10 +290,9 @@ vistas.cobrar = async (el) => {
         <p class="mut" id="c_uf_nota"></p>
       </details>
       <div class="totales"><div><span>Neto</span><b id="t_neto">—</b></div><div><span>IVA 19%</span><b id="t_iva">—</b></div><div><span>Total</span><b id="t_total">—</b></div></div>
+      <div class="row" style="align-items:center;margin-top:14px"><p class="mut" id="c_tipo" style="margin:0"></p><button id="c_btn" style="margin:0;flex:none" onclick="emitir()">Revisar y emitir</button></div>
       <p class="mut">El total es lo que paga la persona. El IVA (19%) no es tuyo: lo cobras y después se lo pasas al Estado. Lo tuyo es el neto.</p>
-      <p class="mut" id="c_tipo"></p>
       <div id="c_aviso"></div>
-      <button id="c_btn" onclick="emitir()">Revisar y emitir</button>
     </div>`;
   const rec = () => {
     const monto = Number($("c_monto").value || 0), modo = $("c_modo").value, ex = $("c_exento").checked;
@@ -343,7 +342,7 @@ vistas.cobrar = async (el) => {
         const body = { tipo_dte: tipo, items: [{ nombre: que, precio_unitario: precio, exento: ex }] };
         if (aEmpresa) body.receptor = { rut: $("c_rut").value.trim(), razon_social: $("c_nombre").value.trim() || "CLIENTE", es_contribuyente: true };
         const r = await api("POST", "/api/v1/simulacion/emitir", body);
-        aviso(`${TIPOS[r.tipo_dte]} N° ${r.folio} emitida (práctica).`, 5000);
+        aviso(`Listo: ${TIPOS[r.tipo_dte].toLowerCase()} N° ${r.folio} emitida. Así quedó.`, 6000);
         ir(`ver?id=${r.dte_id}`);
         return;
       }
