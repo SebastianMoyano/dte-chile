@@ -1,0 +1,1 @@
+EFXP_FMA_PAGO=1&EFXP_FMA_PAGO=1&EFXP_FOLIO=58&PTDC_CODIGO=34&TMST_SIGN=2026-10-08T16%3A59%3A00&clave=%2A%2A%2A&nameSpace=http%3A%2F%2Fwww.sii.cl%2FSiiDte&nodo=dte%3ADTE&nodoId=dte%3ADocumento&nombre=1&txtPlainText=%3C%3Fxml+version%3D%221.0%22%3F%3E%0D%0A%3CDTE%3Ea+%26+b%3C%2FDTE%3E&txtSignText=%3C%3Fxml+version%3D%221.0%22%3F%3E%0D%0A%3CDTE%3E%3CSignature%2F%3E%3C%2FDTE%3E

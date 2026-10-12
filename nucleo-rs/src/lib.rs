@@ -3,10 +3,17 @@
 //! (`test_dorado.py --port nucleo-rs/target/release/nucleo-dorado`), el contrato dorado y los
 //! vectores por paquete. Python sigue siendo la referencia; Go, el producto, hasta que esto
 //! pase todo.
+pub mod almacen;
 pub mod c14n;
+pub mod certificacion;
 pub mod firma;
+pub mod htmlent;
 pub mod pdf;
 pub mod pdf417;
+pub mod portal;
+pub mod rcv;
+pub mod rvd;
+pub mod sii;
 pub mod ted;
 pub mod totales;
 pub mod xmlgen;
