@@ -11,6 +11,8 @@ Nació para **enseñar** facturación electrónica a alumnos de colegio con un p
 se nota: trae una empresa de práctica donde todo se forma, se firma y se timbra como un
 documento de verdad, pero nunca sale del computador.
 
+![La entrada: un faro en la costa; al entrar, la escena queda de fondo](docs/img/app-entrada.png)
+
 ![Bienvenida de la app: empresa de práctica, recorrido guiado paso a paso](docs/img/app-bienvenida.png)
 
 > Pensado para **una persona que opera sus propias empresas**, no como servicio multi-cliente.
@@ -58,12 +60,12 @@ dentro de la app y en cualquier servidor. El port se midió, no se supuso:
 
 | | |
 |---|---|
-| ![Cobrar: el recorrido explica el monto y el IVA mientras los totales se calculan](docs/img/app-cobrar.png) | ![La boleta de práctica con su PDF y el timbre electrónico](docs/img/app-documento.png) |
-| **Cobrar.** El recorrido explica cada campo; abajo ves neto, IVA y total antes de emitir. | **El documento.** La boleta de práctica, idéntica a una real: folio, detalle, totales y el timbre PDF417. |
+| ![Emitir: el recorrido explica el monto y el IVA mientras los totales se calculan](docs/img/app-cobrar.png) | ![La boleta de práctica con su PDF y el timbre electrónico](docs/img/app-documento.png) |
+| **Emitir.** El recorrido explica cada campo (y "Muéstrame" lo hace por ti); ves neto, IVA y total antes de emitir. | **El documento.** La boleta de práctica, idéntica a una real: folio, detalle, totales y el timbre PDF417. |
 | ![Mi mes: vendido, IVA cobrado y lo que va a pedir el F29](docs/img/app-mes.png) | ![Tu IA: conectar un asistente del computador a la facturación](docs/img/app-ia.png) |
 | **Mi mes.** Cuánto vendiste, cuánto IVA cobraste y qué va a pedir el F29. | **Tu IA.** Un asistente del computador opera la facturación por MCP, sin claves que copiar. |
 
-![Modo oscuro: sigue el tema del sistema](docs/img/app-oscuro.png)
+![Modo oscuro: de noche el faro tiene luna y estrellas; sigue el tema del sistema o el que elijas en Ajustes](docs/img/app-oscuro.png)
 
 ## Dos puertas
 
