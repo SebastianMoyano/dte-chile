@@ -100,6 +100,7 @@ html.dentro .entrada { opacity:0; pointer-events:none; }
 .entrada h1 { font-size:3.2rem; letter-spacing:-.03em; margin:8px 0 6px; text-shadow:0 4px 30px rgba(0,0,0,.35); }
 .entrada p { margin:0 auto 22px; max-width:34ch; color:var(--fg); opacity:.85; font-size:1.05rem; }
 .entrada button { font-size:1.05rem; padding:13px 30px; }
+.entrada .beta { font-size:.82rem; opacity:.6; margin:-10px auto 18px; }
 .entrada button:disabled { opacity:.7; }
 html:not(.dentro) .shell { opacity:0; }
 .shell { transition:opacity .9s ease .3s; }

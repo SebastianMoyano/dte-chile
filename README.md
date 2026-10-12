@@ -1,21 +1,34 @@
 # 🧾 Faro DTE — boleta y factura electrónica gratis para el SII de Chile
 
-**Faro** es un programa libre (MIT) para **emitir boletas y facturas electrónicas en Chile** sin
+> **Versión beta.** Faro ya emite documentos reales y aceptados por el SII, pero está en
+> construcción: úsalo primero en la empresa de práctica, prueba con calma, y cuenta lo que
+> falle en [Issues](https://github.com/SebastianMoyano/faro-dte/issues). Gratis y sin garantía (MIT).
+
+**Faro** es un programa libre para **emitir boletas y facturas electrónicas en Chile** sin
 pagar un proveedor: una app de escritorio pensada para aprender con una empresa de práctica y
 después emitir de verdad con tu certificado digital, más un motor que corre en tu computador o
 en tu servidor y un servidor MCP para que tu asistente de IA opere la facturación.
 
+## Por qué existe
+
+Lo hace **un emprendedor, jefe de TI en un colegio, para otros emprendedores**. Nació de una
+constatación simple: facturar, declarar y entenderse con el SII es información difícil, escrita
+para contadores, y esa dificultad es una barrera más para quien recién empieza. Faro quiere
+**dar luz a esos temas complejos**: que cualquiera pueda trabajar dentro del sistema financiero
+de Chile entendiendo lo que hace, sin compromisos con un proveedor y sin pagar por aprender.
+
+La idea es **ir construyendo una base**, abierta y en español claro, donde cada concepto (la
+boleta, el IVA, el folio, el F29, la nota de crédito) esté explicado y se pueda practicar con un
+programa real antes de arriesgar un peso. Si eso baja la barrera para que un pequeño
+emprendedor surja, cumplió.
+
 > Antes se llamaba **DTE Chile**. El motor, los binarios y la API conservan sus nombres internos.
 > Repositorio: [github.com/SebastianMoyano/faro-dte](https://github.com/SebastianMoyano/faro-dte).
 
-**Un programa que emite boletas y facturas electrónicas directo con el SII de Chile**, desde
-tu computador o tu servidor, sin pagar un proveedor. Tú pones tu certificado digital; él asigna
-el folio, timbra, firma, arma el sobre, envía por el canal correcto, guarda el PDF y registra
-lo que el SII respondió. Licencia **MIT**: gratis, sin garantía.
-
-Nació para **enseñar** facturación electrónica a alumnos de colegio con un programa real, y
-se nota: trae una empresa de práctica donde todo se forma, se firma y se timbra como un
-documento de verdad, pero nunca sale del computador.
+**Qué hace, en corto**: tú pones tu certificado digital; Faro asigna el folio, timbra, firma,
+arma el sobre, envía por el canal correcto, guarda el PDF y registra lo que el SII respondió.
+Trae una empresa de práctica donde todo se forma, se firma y se timbra como un documento de
+verdad, pero nunca sale del computador.
 
 ![La entrada: un faro en la costa; al entrar, la escena queda de fondo](docs/img/app-entrada.png)
 
