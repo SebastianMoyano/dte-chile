@@ -219,7 +219,9 @@ Ajustes → Apariencia, recordado en `localStorage`): salió de una prueba de us
 una persona de 72 años a la que el fondo oscuro le cansaba la vista. De esas pruebas (un alumno
 de 16 y esa persona, agentes sin contexto mirando capturas) salieron también: "Salir" pausa las
 pistas, "Anular este documento", "Mis documentos" en el visor, ejemplos marcados "Ej.:", la
-línea "El IVA no es tuyo" bajo los totales y la bienvenida sin género. Tokens de color en
+línea "El IVA no es tuyo" bajo los totales y la bienvenida sin género.
+El protocolo de la prueba con personas reales y el registro de las simuladas está en
+`docs/PRUEBA-DE-USUARIO.md`. Tokens de color en
 `app.css` (`:root`), modo oscuro automático, estados vacíos, foco visible. Sin dependencias.
 
 **Tour por etapas** (`app/frontend/dist/tour.js`), pensado como primera introducción para
