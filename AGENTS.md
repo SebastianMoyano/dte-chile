@@ -1,6 +1,12 @@
-# AGENTS.md - Faro (DTE Chile API)
+# AGENTS.md - Faro
 
-## Quick Start
+> **Faro** es el producto (antes "DTE Chile"). Este archivo describe la **referencia en Python**
+> (`main.py`, `core/`, `api/`), que fija el comportamiento. El motor existe además en Go
+> (`nucleo/`) y en Rust (`nucleo-rs/`), y la app de escritorio Faro (`app-rs/`, Tauri, motor Rust
+> adentro; `app/`, Wails, motor Go) es lo que se publica. Los nombres internos siguen siendo
+> `dtechile`, `nucleo-*` y `dte-chile`. Para el mapa completo: `CLAUDE.md` y `docs/MAPA.md`.
+
+## Quick Start (la referencia en Python)
 
 ```bash
 # Setup inicial (crea .env, BD SQLite, usuario admin)

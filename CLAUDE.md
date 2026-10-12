@@ -28,6 +28,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
+**Faro** (antes "DTE Chile"; repositorio `SebastianMoyano/faro-dte`, **beta**) es un proyecto para bajar las barreras de la
+facturación electrónica en Chile: hecho por un emprendedor para emprendedores. Está **migrando de servidor a app de escritorio**
+(la facilidad de uso manda) y el motor existe en Python (referencia), Go y Rust para correr en toda plataforma sin instalar nada.
+Los principios P1 a P5 están al final de `docs/CONSTITUCION.md`; léelos junto con las leyes.
+
 Chilean electronic-invoicing engine (**DTE** = Documento Tributario Electrónico) for the **SII** (Chile's tax authority). FastAPI REST API plus a set of standalone scripts used to drive SII **certification** (the SII's mandatory 16-case test suite that must pass before a company can emit real documents). Codebase, comments, and identifiers are in **Spanish** — match that when writing new code.
 
 ## Commands
@@ -80,8 +85,11 @@ Ver [`docs/LECCIONES-SII.md`](docs/LECCIONES-SII.md).
 
 **El motor también existe en Rust** (`nucleo-rs/`, fase 8 de `docs/PLAN-PORT.md`, 2026-10-12): mismos gates que Go
 (corpus dorado 15/15, esquema dorado 23/23, contrato dorado Python vs Rust 203/203, MCP con 20 tools), ver
-`nucleo-rs/README.md`. La app de escritorio se llama **Faro** desde 2026-10-12 (antes "DTE Chile"; carpeta de datos `Faro`, la antigua se renombra sola). La app Tauri está en `app-rs/` (bloque 5: mismos 12 bindings que la Wails, en `app/frontend/dist/tauri.js`);
-la Wails (Go) sigue siendo la publicada hasta que la Tauri pase las mismas pruebas manuales.
+`nucleo-rs/README.md`. **Rust es el destino final del port.** La app de escritorio se llama **Faro** desde 2026-10-12 (antes "DTE Chile";
+carpeta de datos `Faro`, la antigua se renombra sola; nombres internos sin cambio: paquete `dtechile`, binarios `nucleo-*`, conector MCP `dte-chile`).
+Hay dos apps con **la misma interfaz** (`app/frontend/dist`): **Faro en Tauri (`app-rs/`, motor Rust adentro) es la que se publica**;
+la Wails (`app/`, motor Go adentro, 12 bindings idénticos vía `tauri.js`) es la construcción alternativa mientras dura la transición.
+Dirección: de servidor + panel web a app fácil de usar; la versión web (`/app`, servida por cualquiera de los motores) queda para la sala de clases.
 
 **El motor también existe en Go** (`nucleo/`, fase 7 de `docs/PLAN-PORT.md`, cerrada 2026-10-11): `nucleo/servidor` atiende
 todas las rutas de la API Python con el mismo contrato que FastAPI (`tools/contrato_api.py` lo exige idéntico) más las

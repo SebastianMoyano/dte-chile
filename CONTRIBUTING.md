@@ -27,5 +27,7 @@ dos motores y la mide `tools/contrato_api.py`. Si agregas un tipo de documento, 
 ## Dónde está cada cosa
 
 [`docs/MAPA.md`](docs/MAPA.md) es el índice. Python (`core/`, `api/`) es la referencia que fija
-el comportamiento; Go (`nucleo/`) es el motor que se distribuye; la app (`app/`) lo corre en
-proceso. Los commits van en español, como el código.
+el comportamiento; Rust (`nucleo-rs/`) es el motor que va adentro de Faro, la app que se publica
+(`app-rs/`, Tauri); Go (`nucleo/`) es la implementación alternativa en paridad y el binario de
+servidor, y la app Wails (`app/`) lo corre en proceso. Un cambio en una ruta se hace en los tres
+motores y se mide. Los commits van en español, como el código.

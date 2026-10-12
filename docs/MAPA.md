@@ -6,9 +6,13 @@
 
 ## Qué es esto
 
-Motor de **facturación electrónica chilena (DTE)** para el **SII**: API REST + servidor MCP +
-scripts de certificación. Un usuario, varias empresas propias, **self-hosted** (no SaaS).
-Código y comentarios **en español**.
+**Faro** (antes "DTE Chile"; repo `faro-dte`, beta): facturación electrónica chilena (DTE) para
+el SII, hecha para bajar barreras a quien emprende. El producto es la **app de escritorio**
+(`app-rs/`, Tauri, motor Rust adentro; `app/`, Wails, motor Go; misma interfaz en
+`app/frontend/dist`), y adentro van la API REST, el servidor MCP y las herramientas del
+operador. Tres motores en paridad: Python (`core/`, la referencia), Go (`nucleo/`) y Rust
+(`nucleo-rs/`). Nombres internos sin cambio: `dtechile`, `nucleo-*`, `dte-chile`. Un usuario,
+varias empresas propias, **self-hosted** (no SaaS). Código y comentarios **en español**.
 
 ## Empieza por aquí según lo que vayas a hacer
 
@@ -30,18 +34,18 @@ Código y comentarios **en español**.
 | **Modelo de emisión** (voucher vs boleta, tarjetas, código 48, convivir con un POS) | [`MODELO-EMISION.md`](MODELO-EMISION.md) |
 | **Emitir por el gratuito del SII** (empresa en MiPyme, NC de anulación por el portal) | [`MIPYME.md`](MIPYME.md) → `core/sii_mipyme.py` |
 | **Volver a dibujar el PDF de un documento** (solo XML: emitidos por Go o importados) | `core/dte_xml.py` → `POST /api/v1/dte/documentos/{id}/pdf` |
-| **App de escritorio** (Go + Wails, motor como sidecar o empaquetado con PyInstaller, clave efímera) | [`APP.md`](APP.md) → `app/`, `motor.spec` |
+| **App de escritorio Faro** (interfaz compartida `app/frontend/dist`; Tauri + motor Rust en proceso = la que se publica; Wails + motor Go en proceso = alternativa; clave efímera) | [`APP.md`](APP.md) → `app-rs/`, `app/` |
 | **Portar el núcleo a Go/Rust** (plan por fases, criterios, riesgos) | [`PLAN-PORT.md`](PLAN-PORT.md) → `nucleo/` (Go, fases 1-7) y `nucleo-rs/` (Rust, fase 8; `nucleo-rs/README.md`) y `app-rs/` (la app Tauri sobre el motor Rust; `app-rs/README.md`), CI `.github/workflows/dorado.yml` |
 | **Antes y después del port** (recursos, capacidad, qué ganamos y qué perdimos, medido) | [`COMPARACION-PYTHON-GO.md`](COMPARACION-PYTHON-GO.md) |
 | **RVD / consumo de folios de boletas en Go** (programador, catch-up, registro) | `nucleo/rvd/` + `nucleo/servidor/rvd.go` (`GET /api/v1/rvd/estado`, `POST /rvd/procesar`, `GET /rvd/registros/{rut}`); vector dorado `tests/dorado/rvd/` |
 | **Enviar boletas por el REST del SII desde Go** | `nucleo/sii/boleta.go` → `POST /api/v1/boletas/enviar`, `/boletas/estado` (solo Go; Python tenía el cliente sin ruta) |
 | **Propuesta de F29 desde el RCV, en Go** | `nucleo/rcv/` → `GET /api/v1/keystore/negocios/{id}/f29?periodo=` (mismo contrato que Python); vector `tests/dorado/rcv/` |
 | **Buscador público de boletas en Go** (`/consulta`, `/consulta/api`, descarga PDF/XML, host público acotado) | `nucleo/servidor/consulta.go` (= `api/routes/consulta.py`); páginas del panel en `nucleo/servidor/static/` |
-| **Correr TODOS los gates de una vez** (corpus, práctica, Go, esquema, contrato, app) | `./tools/prueba_final.sh` (`--sin-red` para CI, `--app` compila Wails); el detalle en `docs/PLAN-PORT.md` |
+| **Correr TODOS los gates de una vez** (corpus, práctica, Go, esquema, contrato, app) | `./tools/prueba_final.sh` (`--sin-red` para CI, `--app` compila la Wails y la Tauri); el detalle en `docs/PLAN-PORT.md` |
 | **Set de certificación con el núcleo Go** (dry run y envío) | `nucleo/certificacion/` + `nucleo-certificacion` (`--enviar` gasta folios; clave por `NUCLEO_CLAVE_CERTIFICADO` o Llavero); vector `tests/dorado/certificacion/` |
 | **Cargar CAF en la base / pedir folios al SII sin Python** | `nucleo-cafs cargar` (= `load_cafs.py`) · `nucleo-portal solicitar --rut … --tipo … --cert …` (timbra por el portal con los guardarraíles anti-acaparamiento; `--db` lo registra) · `nucleo-portal anular|anulables|situacion|timbrajes|empresa|empresas|software` |
 | **IA sobre el motor (MCP) sin Python** | `nucleo-mcp` (stdio; `--http` con `MCP_AUTH_TOKEN`); mismas 20 herramientas que `mcp_server.py`, en `nucleo/mcp` |
-| **Conectar la IA del computador en un click** (Claude Code, app de Claude, Cursor, VS Code, Windsurf, Gemini, Codex) | [`CONECTAR.md`](CONECTAR.md) → `nucleo-mcp instalar --en …` (`nucleo/conectores`), pestaña **Tu IA** de la app (`app/ia.go`, la app con `--mcp`), `tools/empaquetar_mcpb.sh` (.mcpb). Nube de terceros: OAuth + URL propia, pendiente; sin túneles embebidos |
+| **Conectar la IA del computador en un click** (Claude Code, app de Claude, Cursor, VS Code, Windsurf, Gemini, Codex) | [`CONECTAR.md`](CONECTAR.md) → `nucleo-mcp instalar --en …` (`nucleo/conectores`), pestaña **Tu IA** de la app (`app-rs/src/ia.rs`, `app/ia.go`; la app con `--mcp`), `tools/empaquetar_mcpb.sh` (.mcpb). Nube de terceros: OAuth + URL propia, pendiente; sin túneles embebidos |
 | **Rotar secretos / gestionar certificados sin Python** | `nucleo-servidor rotar-claves`, `nucleo-keystore add|list|test|portal|remove|info` |
 | **Validar un XML contra el XSD del SII** (en Python y en Go, mismo veredicto) | `core/schema_validator.py` (lxml) · `nucleo/xsd/` (sin libxml2; vectores de paridad `tools/generar_xsd_vectores.py`) · `POST /api/v1/dte/validar-xml` en los dos motores |
 | **Verificar que la salida no cambió / probar un port** (byte a byte, sin SII) | [`DORADO.md`](DORADO.md) → `test_dorado.py`, `tests/dorado/`, `core/reloj.py` |

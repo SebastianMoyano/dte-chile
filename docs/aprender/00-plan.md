@@ -12,7 +12,7 @@
 | **1. Entender** | qué es una boleta, una factura, el IVA, el RUT, el SII, "declarar" | simulación local, sin red ni claves | ninguno |
 | **2. Crear la empresa** | qué es una persona jurídica, Empresa en un Día, el RUT de la empresa, representante legal | guía paso a paso y lista de verificación; la app no lo hace por ti | ninguno |
 | **3. Iniciar actividades** | inicio de actividades, giro, clave tributaria, certificado digital, inscribirse como emisor | asistente de alta (diagnóstico de solo lectura contra el SII) | ninguno |
-| **4. Usar lo que el SII da gratis** | el emisor gratuito de facturas y el de boletas (eboleta); emitir, ver documentos, corregir, el Registro de Compras y Ventas, el F29 | **canal MIPYME**: la app opera el portal del SII por ti y le agrega lo que falta (archivo de PDF/XML, resúmenes, avisos) | **real desde el primer clic**: no hay ambiente de pruebas |
+| **4. Usar lo que el SII da gratis** | el emisor gratuito de facturas y el de boletas (eboleta); emitir, ver documentos, anular con nota de crédito, el Registro de Compras y Ventas, el F29 | **canal MIPYME**: la app opera el portal del SII por ti y le agrega lo que falta (archivo de PDF/XML, resúmenes, avisos) | **real desde el primer clic**: no hay ambiente de pruebas |
 | **5. El motor propio** | qué es un CAF, la firma, el ambiente de certificación, por qué certificar, cuándo conviene | motor propio en el **ambiente de pruebas del SII** primero; producción solo tras certificar | pruebas sin efecto; producción con efecto |
 
 El tramo 4 va antes que el 5 a propósito: primero la persona aprende que **el SII ya le da un
@@ -78,7 +78,7 @@ tuyo. La clave tributaria no es la clave del certificado. Los folios se cuidan.
 usa por ti: entra con tu clave, emite, guarda PDF y XML, te muestra tu historial.
 **4.2 Tu primera factura real.** Pantalla roja: "esto es real". Vista previa, revisar los cinco
 montos, confirmar. **Un folio gastado no vuelve.**
-**4.3 Corregir de verdad.** Nota de crédito por el total registrado del documento, no por lo
+**4.3 Anular de verdad.** Desde la fila del documento en Documentos: nota de crédito por el total registrado, no por lo
 que dice la línea. La app lo verifica antes de gastar folio.
 **4.4 Tu mes, de verdad.** El Registro de Compras y Ventas real y la propuesta del F29 del SII,
 lado a lado con el cálculo de la app. Cuando no coinciden, la app explica por qué.

@@ -180,3 +180,51 @@ y sobre contra `tests/dorado/esperado/` ([`DORADO.md`](DORADO.md)).
 - **Cualquier port o reescritura** (otro lenguaje, otra librería XML) se iguala primero al
   corpus en local, caso por caso, y recién después se prueba contra el SII de certificación.
 
+
+---
+
+## Principios del producto (Faro, 2026-10-12)
+
+No son leyes del motor sino del proyecto; deciden empates cuando dos caminos son técnicamente
+válidos. Vienen de quien lo hace: un emprendedor, jefe de TI en un colegio, que construye esto
+para otros emprendedores.
+
+### P1 — El propósito es bajar barreras, no vender software
+
+Facturar y entenderse con el SII es información difícil, escrita para contadores. Faro existe
+para **dar luz a esos temas complejos**: que cualquiera pueda trabajar dentro del sistema
+financiero de Chile entendiendo lo que hace, sin compromisos con un proveedor y sin pagar por
+aprender. Es una **base abierta** que se va construyendo; cada concepto debe quedar explicado en
+español claro y practicable con la empresa de práctica. Si una decisión aleja de eso a un
+pequeño emprendedor, es la decisión equivocada aunque sea más elegante.
+
+### P2 — De servidor a app: la facilidad de uso manda
+
+El proyecto nació como servidor con panel web y **está migrando a una app de escritorio** que
+se descarga, se abre y guía. El criterio principal de cualquier cambio de interfaz es que una
+persona sin conocimientos (un alumno, una señora que vende mermeladas) lo use sin que nadie le
+explique: se mide con la prueba de [`PRUEBA-DE-USUARIO.md`](PRUEBA-DE-USUARIO.md). El servidor
+y la API siguen adentro para quien los necesite, y la versión web (`/app`) queda para la sala
+de clases.
+
+### P3 — Go y Rust existen para que funcione en toda plataforma
+
+El motor se reescribió en Go y en Rust para que la app corra en macOS, Windows y Linux sin que
+la persona instale Python ni nada más, en un solo proceso y en pocos MB. **Python sigue siendo
+la referencia** que fija el comportamiento (L15): cada port se iguala byte a byte y ruta a ruta,
+y cualquier cambio en una ruta se hace en los tres motores y se mide. Un motor que "casi" da
+los mismos bytes no es un motor.
+
+### P4 — Español neutro y sin jerga a la vista
+
+Los textos que ve la persona van en español neutro (nada de regionalismos), sin siglas ni
+jerga tributaria en las pantallas de trabajo; lo que haya que explicar se explica en la guía y
+en Aprender, con la palabra y su significado. La IA, los binarios y la API pueden hablar
+técnico; la app no.
+
+### P5 — Beta se dice beta
+
+Mientras haya canales sin verificar contra el SII vivo desde cada motor, o una interfaz recién
+rediseñada sin prueba con personas, Faro se presenta como **beta**: en la entrada de la app, en
+el README y en la descripción del repositorio. Decir "listo" antes de tiempo es la forma más
+cara de perder a un emprendedor.

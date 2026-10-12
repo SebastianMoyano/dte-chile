@@ -16,11 +16,18 @@ terminal pero **no es experto en el SII**. Tiempo estimado: 20–30 minutos.
 
 ---
 
+## Paso 0 — La vía fácil: la app
+
+Si no quieres instalar nada, **Faro** (la app de escritorio) trae el motor adentro: se abre, se
+practica con la empresa de prueba y después se emite de verdad con tu certificado. Se construye
+desde `app-rs/` (`cargo tauri build --bundles app` → `Faro.app`) o se descarga de Releases
+cuando haya una versión firmada. Lo que sigue es para quien prefiere el motor como servidor.
+
 ## Paso 1 — Levantar el motor
 
 ```bash
 git clone https://github.com/SebastianMoyano/faro-dte.git
-cd dte-chile
+cd faro-dte
 cp .env.example .env      # la configuración; los valores por defecto sirven para empezar
 docker compose up -d      # levanta el servidor en segundo plano
 ```

@@ -12,7 +12,7 @@ orden de magnitud, no para un benchmark formal.
 | | Python (antes) | Go (después) | factor |
 |---|---|---|---|
 | Instalación necesaria | venv 437 MB + Python 3.14 | 1 binario de 19 MB | 23× menos |
-| App de escritorio (`.app`) | 219 MB (PyInstaller) | 17 MB | 13× menos |
+| App de escritorio (`.app`) | 219 MB (PyInstaller) | 17 MB (Wails + Go); 14 MB (Tauri + Rust, `app-rs/`) | 13× a 16× menos |
 | Memoria en reposo (RSS) | 76 MB | 18 MB | 4× menos |
 | Memoria tras la carga | 79 MB | 43 MB | 2× menos |
 | CPU consumida en la misma carga | 11,0 s | 2,45 s | 4,5× menos |
@@ -94,8 +94,9 @@ el motor Go cabe donde el Python no.
   `diagnostico_cert*.py`, `fase3_envio.py`, `motor_embebido.py`. Son de un uso
   y siguen funcionando con el venv.
 - **Python sigue siendo la referencia**: `main.py` y `core/` se mantienen para
-  los gates de paridad (L15). Hay dos implementaciones que mantener hasta que
-  Rust (fase 8) reemplace a Go y Python pase a ser solo corpus.
+  los gates de paridad (L15). Desde el 2026-10-12 hay **tres** implementaciones en
+  paridad: Rust (fase 8, `nucleo-rs/`) ya pasa los mismos gates y es el motor de la app
+  Faro que se publica; Go queda como alternativa y Python como referencia y corpus.
 - **Más líneas**: 18.495 líneas de Go contra 13.816 de Python para lo mismo y
   un poco más. Go es más verboso; el código lo lee la IA, el humano lee docs y
   gates (`docs/PLAN-PORT.md`).

@@ -1,6 +1,6 @@
 # `app-rs/`: la app de escritorio en Tauri, con el motor Rust adentro (fase 8, bloque 5)
 
-La misma interfaz que la app Wails (`app/frontend/dist`: HTML/CSS/JS sin framework), el mismo
+La misma interfaz que la app Wails (`app/frontend/dist` es la interfaz **compartida**: HTML/CSS/JS sin framework), el mismo
 contrato con ella (los 12 bindings `window.go.main.App.*`, definidos aquí por
 `app/frontend/dist/tauri.js` sobre los comandos de `src/app.rs`) y el motor `dtechile::servidor`
 (`nucleo-rs/`) corriendo **en el mismo proceso**: puerto libre en 127.0.0.1, clave efímera
@@ -30,6 +30,8 @@ cargo tauri build --bundles app    # target/release/bundle/macos/Faro.app  (carg
 Modos como en la Wails: normal (repo o carpeta de datos), `DTE_API_URL` + `DTE_API_KEY` (motor
 externo, nada se arranca). `DTE_MOTOR=python` no existe aquí: no hay sidecar Python.
 
-Lo que todavía no se ha hecho con esta app: las pruebas manuales que la Wails ya pasó
-(capturas del README, tour, "Tu IA" desde Claude Desktop) y la firma/notarización para
-distribuirla. Hasta entonces la Wails sigue siendo la publicada (`docs/APP.md`).
+**Esta es la app que se publica como Faro** (decidido el 2026-10-12: Rust es el destino del
+port). Pasó el recorrido guiado completo, la boleta de práctica, la anulación y las capturas
+del README (`docs/APP.md`, `docs/PRUEBA-DE-USUARIO.md`). Pendiente: la firma y notarización
+para distribuirla fuera del repo, y "Tu IA" probado desde la app de Claude. La Wails (`app/`)
+sigue construyéndose como alternativa con el motor Go mientras dura la transición.

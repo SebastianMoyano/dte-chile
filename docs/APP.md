@@ -1,13 +1,20 @@
-# App de escritorio (`app/`)
+# Faro, la app de escritorio (`app-rs/` y `app/`)
 
-Cascarón multiplataforma en **Go + Wails v2** con el motor Go (`nucleo/servidor`) adentro,
-en el mismo proceso (desde la fase 7 del port, 2026-10-11; antes arrancaba el motor Python como
-sidecar, y con `DTE_MOTOR=python` todavía puede, para comparar). La interfaz le habla por HTTP
-igual que antes, así que el diagrama de abajo sigue valiendo cambiando "proceso hijo Python" por
-"servidor Go en proceso". La idea de producto está en
-[`aprender/00-plan.md`](aprender/00-plan.md): una app para quien no sabe nada de finanzas,
-con tres acciones ("Cobrarle a alguien", "Mi mes", "Corregir") y una barra que dice siempre
-en qué mundo estás (simulación / pruebas del SII / real).
+**Faro** es la app que se publica: **Tauri 2 con el motor Rust** (`app-rs/`, sección más abajo)
+adentro, en el mismo proceso. Existe también la construcción en **Go + Wails v2** (`app/`) con
+el motor Go (`nucleo/servidor`) adentro, igual de completa, que se mantiene como alternativa
+mientras dura la transición. Las dos usan **la misma interfaz** (`app/frontend/dist`, HTML/CSS/JS
+sin framework) y los mismos 12 bindings. El proyecto va de servidor + panel web a app fácil de
+usar; la versión web (`/app`, servida por cualquier motor) queda para la sala de clases.
+
+La idea de producto está en [`aprender/00-plan.md`](aprender/00-plan.md): una app para quien no
+sabe nada de finanzas, con un dock de cuatro ítems (**Inicio, Emitir, Documentos, Aprender**) más
+Ajustes, y un semáforo que dice siempre en qué mundo estás (práctica / pruebas del SII / real).
+
+> Historia: la Wails arrancaba el motor Python como sidecar (el diagrama de abajo es de esa
+> época, se conserva como registro; con `DTE_MOTOR=python` todavía puede, para comparar). Desde
+> la fase 7 (2026-10-11) lleva el motor Go en proceso, y desde la fase 8 (2026-10-12) la Tauri
+> lleva el Rust.
 
 ## Cómo funciona
 
@@ -54,10 +61,11 @@ Prueba sin red: `.venv/bin/python test_simulacion.py` (20 comprobaciones).
 
 ## El núcleo en Go dentro de la app (fase 4 del port)
 
-Cuando la empresa elegida emite con el motor propio, "Cobrarle a alguien" **no** llama a
-`/dte/emitir`: el cascarón firma y persiste con el núcleo en Go (`nucleo/`, el mismo que
-reproduce el corpus dorado byte a byte y cuyo T34 el SII aceptó). La secuencia, en
-`app.go::EmitirNucleo`:
+Cuando la empresa elegida emite con el motor propio, "Emitir" **no** llama a
+`/dte/emitir`: el cascarón firma y persiste con el núcleo (Go en `app.go::EmitirNucleo`, Rust en
+`app-rs/src/app.rs::emitir_nucleo`; el mismo núcleo que reproduce el corpus dorado byte a byte y
+cuyo T34 el SII aceptó). La secuencia, tal como se escribió en la fase 4 (hoy el PDF y la
+práctica también están en Go y en Rust, ver `nucleo/README.md`):
 
 1. `GET /api/v1/keystore/negocios/{id}/contexto-emision` → el motor descifra el certificado
    del keystore y lo entrega en PEM **en memoria por la conexión local**, junto con la
@@ -68,8 +76,8 @@ reproduce el corpus dorado byte a byte y cuyo T34 el SII aceptó). La secuencia,
 3. `POST /api/v1/dte/documentos/{id}/pdf` → Python dibuja el PDF desde el XML firmado
    (`core/dte_xml.py` reconstruye la entrada, el TED es el original). El núcleo no hace PDF.
 
-Python sigue siendo dueño del keystore, del PDF, del envío al SII, de RCV y F29.
-La app de práctica (EMPRESA DEMO SPA) sigue en Python (`core/simulacion.py`).
+(Lo anterior describe la fase 4. Desde la fase 7 el keystore, el PDF, el envío al SII, RCV, F29 y
+la práctica están también en Go, y desde la fase 8 en Rust; Python sigue como referencia.)
 
 ### El SII engine en Go dentro de la app (fase 6 del port)
 
@@ -80,8 +88,8 @@ keystore, y las rutas de la base y del storage; mismo modelo de confianza que co
 → si la persona marcó recordar, `PUT /api/v1/keystore/claves-sii` → sesión, empresa, form,
 historial e importación a la misma base. El JS cae al endpoint Python si el binding no existe.
 
-**Cobrar por el SII engine** (`app/siiengine.go::SIIEngineFactura`): para una empresa que emite
-en el sistema del SII, "Cobrarle a alguien" con "Una empresa" + "No lleva IVA" pide giro,
+**Emitir por el SII engine** (`app/siiengine.go::SIIEngineFactura`, `app-rs/src/siiengine.rs`): para una empresa que emite
+en el sistema del SII, "Emitir" con "Una empresa" + "No lleva IVA" pide giro,
 dirección, comuna y ciudad del cliente (el portal los exige), pide las claves, y hace un
 **dry-run real**: el SII valida el documento y la app muestra la vista previa sin gastar folio.
 El botón "Emitir de verdad" solo aparece cuando `siiengine.CadenasVerificadas` tiene la
@@ -89,7 +97,7 @@ factura, es decir, después de la primera corrida real desde Go: la interfaz **n
 el riesgo de folio por la persona (ley L10). Hasta entonces, el CLI `nucleo-siiengine factura`.
 Boletas: siguen en eboleta.sii.cl (sin captura, no portado).
 
-**Corregir por el SII engine** (`App.SIIEngineNotaCredito`): en "Corregir", los documentos del
+**Anular por el SII engine** (`App.SIIEngineNotaCredito`): en Documentos, con "anular" en la fila, los documentos del
 canal SII engine tienen "anular": el portal pre-construye la nota de crédito del documento
 (receptor e ítems tal cual, `siiengine.PrepararNCAnulacionDesdePortal`), el total se contrasta
 con el XML registrado, el SII la valida en seco y la app muestra la vista previa. El botón de
@@ -139,9 +147,9 @@ cargo tauri build --bundles app              # target/release/bundle/macos/Faro.
 ```
 
 Gates en `tools/prueba_final.sh`: `app_rs_clippy`, `app_rs_test` (y `app_rs_tauri` con `--app`).
-**La Wails sigue siendo la que se publica** hasta que la Tauri pase las mismas pruebas manuales
-(tour, capturas, "Tu IA" desde Claude Desktop) y tenga firma y notarización. Detalle en
-[`../app-rs/README.md`](../app-rs/README.md).
+**Esta es la app que se publica como Faro** (2026-10-12): pasó el recorrido guiado completo, la
+boleta de práctica, la anulación y las capturas del README. Pendiente: firma y notarización, y
+"Tu IA" probado desde la app de Claude. Detalle en [`../app-rs/README.md`](../app-rs/README.md).
 
 ## Empaquetado: la app con el motor adentro
 
@@ -184,10 +192,10 @@ propio motor en `/app`. Lo que la ata al cascarón son seis bindings (`Estado`, 
 `Guardar`, `EmitirNucleo`, `SIIEngine*`); `puente.js`, cargado antes que `app.js`, los define
 sobre HTTP cuando no hay cascarón: inicio de sesión con usuario y clave del motor (JWT en
 `sessionStorage`), descargas por el navegador, panel en otra pestaña, y "Traer lo emitido"
-por el endpoint Python. Lo que es propio del cascarón (emitir con el núcleo Go, cobrar y anular
+por el endpoint del motor. Lo que es propio del cascarón (emitir con el núcleo, emitir y anular
 por el SII engine en el proceso) avisa que hace falta la app instalada.
 
-**Para qué cada uno.** La app instalada es el camino principal: es lo que la gente entiende
+**Para qué cada uno.** La app instalada (Faro: Tauri + Rust, o la Wails + Go) es el camino principal: es lo que la gente entiende
 como "un programa", y es donde viven certificados, claves y emisión real. El navegador es el
 mismo producto sin instalar, pensado para una sala de clases: cada alumno abre
 `http://<motor>/app`, entra, practica con EMPRESA DEMO SPA y recorre el mismo tour. En el
@@ -195,17 +203,17 @@ servidor de mediaplex (`docs/…/despliegue`) basta el motor actualizado para te
 
 ## Interfaz y tour guiado (2026-10-09)
 
-Estructura (reordenada 2026-10-12 a **cuatro ítems**, como una app de teléfono): **barra
-lateral** con Inicio, Cobrar, Documentos y Aprender, y abajo "Tu camino" resumido en una línea
-(etapa en curso y barra de avance; el detalle vive en **Guía** y en Aprender); **cabecera** con
-la empresa activa, el semáforo del mundo (práctica / pruebas del SII / real) y el engranaje
-**Ajustes** (Tu IA, Valores, panel del motor, detalles técnicos); y el contenido en tarjetas.
+Estructura (reordenada 2026-10-12 a **cuatro ítems**, como una app de teléfono): un **dock**
+abajo con Inicio, Emitir, Documentos y Aprender, más Ajustes (Tu IA, Valores, panel del motor,
+detalles técnicos); **cabecera** con la marca, la empresa activa (solo si hay una real), el
+semáforo del mundo (práctica / pruebas del SII / real) y "Tu camino" como chip (Guía, etapa en
+curso y barra de avance; el detalle vive en Guía y en Aprender); y el contenido en tarjetas.
 Documentos tiene dos pestañas, **Todos** y **Mi mes**, y cada fila corregible lleva **anular**:
 Corregir dejó de ser una pantalla aparte (`#corregir` y `#mes` siguen llegando al mismo lugar).
 
 **Lenguaje visual tipo umbrelOS** (objetivo fijado en el chat el 2026-10-12: moderno y amable, que
-la interfaz no sea un obstáculo, nada de "app corporativa"): `app.css` es un solo tema oscuro
-sobre un fondo de colores suaves (`.fondo`, gradientes radiales que respiran), paneles de vidrio
+la interfaz no sea un obstáculo, nada de "app corporativa"): `app.css` tiene tema oscuro y claro
+(más abajo) sobre un fondo de colores suaves (`.fondo`, gradientes radiales que respiran), paneles de vidrio
 translúcido (`backdrop-filter`), **dock** fijo abajo con los cuatro ítems y Ajustes (`.dock`,
 punto blanco bajo el activo), íconos en baldosas con gradiente (`.ico`), botón primario blanco en
 píldora, diálogos y tarjetas del tour más opacos (`--panel`) para leer bien. Las clases son las
@@ -264,8 +272,8 @@ tarjetas que el tour señala llevan `data-tour="…"`.
 
 | Pantalla | Qué hace hoy | Endpoints |
 |---|---|---|
-| Inicio | estado del motor, la empresa activa (práctica o real) con su etiqueta, tres acciones, 'empezar de nuevo' en práctica; lo técnico (motor, carpeta) plegado en "Detalles técnicos" y sin clave a la vista | `/`, `keystore/negocios`, `simulacion/estado` |
-| Cobrarle a alguien | boleta/factura, monto con o sin IVA, cálculo en vivo; lo raro (sin IVA, monto **en UF** convertido con la UF del día) plegado en "Más opciones"; **"Revisar y emitir" abre una revisión real** (de, para, qué, neto/IVA/total, mundo) antes de emitir en práctica o con el núcleo (empresa real), y abre el visor | `simulacion/emitir`, `dte/emisor`, `keystore/…/contexto-emision`, `dte/documentos/{id}/pdf` |
+| Inicio | saludo, la empresa activa (práctica o real) con su etiqueta, tres acciones (Emitir, Mis documentos, Mi mes), 'empezar de nuevo' en práctica; lo técnico vive en Ajustes | `/`, `keystore/negocios`, `simulacion/estado` |
+| Emitir una boleta o factura | boleta/factura, monto con o sin IVA, cálculo en vivo; lo raro (sin IVA, monto **en UF** convertido con la UF del día) plegado en "Más opciones"; **"Revisar y emitir" abre una revisión real** (de, para, qué, neto/IVA/total, mundo) antes de emitir en práctica o con el núcleo (empresa real), y abre el visor | `simulacion/emitir`, `dte/emisor`, `keystore/…/contexto-emision`, `dte/documentos/{id}/pdf` |
 | Documentos · Mi mes (pestaña) | selector de mes en castellano (últimos 24, se recalcula al cambiar), suma vendido/IVA/total por empresa (las NC restan), recordatorio de "sin movimiento" | `dte/documentos` |
 | Documentos · anular (en cada fila) | en práctica anula con NC; en el gratuito del SII, por el SII engine; motor propio, próxima versión | `dte/documentos`, `simulacion/anular` |
 | Ver | visor de PDF embebido con las partes explicadas, guardar PDF/XML, anular (práctica) | `dte/documentos/{id}/pdf` |
@@ -274,7 +282,7 @@ tarjetas que el tour señala llevan `data-tour="…"`.
 | Valores | UF, UTM y dólar a cualquier fecha desde 2015 (se recalcula al cambiar la fecha) y tabla mensual por año (inicio y fin de mes); fechas en castellano; el histórico se carga una vez al arrancar, el año en curso cada día | `valores`, `valores/historico` |
 | Aprender | los cinco tramos del curso (solo índice) | — |
 
-Si la empresa elegida no emite con el motor propio (gratuito del SII u otro software), "Cobrar"
+Si la empresa elegida no emite con el motor propio (gratuito del SII u otro software), "Emitir"
 lo dice y manda al panel web; no intenta emitir.
 
 Los cuadros de confirmación son propios de la app (`dialogo()` en `app.js`), no el `confirm()`
@@ -297,10 +305,11 @@ Registro del motor arrancado por la app: `logs/app-motor.log`.
 
 ## Pendientes
 
-1. **Emitir y anular por el SII engine desde la app**: Cobrar y Corregir ya validan contra el
-   SII (dry-run) y emiten cuando la cadena esté verificada desde Go (`CadenasVerificadas`), que
-   espera la primera corrida real por el CLI `nucleo-siiengine factura` + `nc-anular`.
-2. **Nota de crédito desde "Corregir"** por el total registrado del documento.
+1. **Emitir y anular por el SII engine desde la app**: Emitir y "anular" en la fila ya validan
+   contra el SII (dry-run) y emiten cuando la cadena esté verificada desde Go o Rust
+   (`CadenasVerificadas`), que espera la primera corrida real por el CLI `nucleo-siiengine
+   factura` + `nc-anular`.
+2. **Nota de crédito para documentos del motor propio** desde la fila ("próxima versión").
 3. **Datos del emisor por negocio** en BD (giro, actividad, dirección) en vez de `EMPRESA_*`
    del `.env`; hoy solo la empresa del `.env` puede emitir con el motor propio.
 4. Cargar las lecciones largas y el quiz (`docs/aprender/`) en la pantalla Aprender (el tour y

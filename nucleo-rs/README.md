@@ -2,7 +2,9 @@
 
 La forma final del motor, transcrita desde `nucleo/` (Go) módulo por módulo y juzgada por los
 mismos gates que no saben en qué lenguaje está lo que los pasa (`docs/PLAN-PORT.md`, fase 8).
-Python sigue siendo la referencia y Go el producto que se descarga, hasta que esto pase todo.
+Ya pasa todo (contrato dorado Python vs Rust 203/203, esquema 23/23, set de certificación 16/16, MCP) y es
+el motor que va adentro de **Faro**, la app que se publica (`app-rs/`). Python sigue siendo la referencia
+que fija el comportamiento; Go, la otra implementación completa, se mantiene en paridad mientras dura la transición.
 
 ```bash
 cd nucleo-rs && cargo test && cargo clippy --release --all-targets -- -D warnings && cargo build --release

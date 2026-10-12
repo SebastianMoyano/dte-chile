@@ -17,7 +17,7 @@ hasta la fase 3.
 
 ## Lenguaje: Go, salvo que se decida Rust a propósito
 
-Recomendación: **Go**. Razones: el cascarón de la app ya es Go (`app/`), así el producto
+Recomendación inicial (2026-10): **Go**; después se hizo también en Rust (fase 8), que es el destino final y el motor de la app Faro (`app-rs/`). Razones de entonces: el cascarón de la app era Go (`app/`), así el producto
 final es un binario de un solo lenguaje; la biblioteca estándar trae RSA, SHA-1, PKCS#12 y
 X.509; el equipo que mantiene esto es pequeño y Go se lee rápido. Rust daría lo mismo en
 corrección y un binario igual de autónomo, pero suma un lenguaje más al repo y una curva
@@ -233,7 +233,7 @@ rotar-claves` (re-cifra TAMBIÉN `claves_sii`, que el script Python dejaba huér
 paquete (`nucleo/mcp`: `Nuevo`, `Atender`, `ServirStdio`, `Handler`, `Arrancar` con la regla de carpeta de la
 app) y `nucleo/conectores` escribe la entrada en la configuración de Claude Code, la app de Claude, Cursor,
 VS Code, Windsurf, Gemini CLI y Codex CLI conservando lo demás (`nucleo-mcp clientes|instalar`). La app es
-su propio servidor MCP (`dte-chile --mcp`, `app/ia.go`) y la pestaña **Tu IA** conecta con un botón;
+su propio servidor MCP (el binario `faro --mcp`; `app/ia.go` en Wails y `app-rs/src/ia.rs` en Tauri; el conector se registra como `dte-chile`) y la pestaña **Tu IA** conecta con un botón;
 `tools/empaquetar_mcpb.sh` hace el `.mcpb` de doble click (macOS universal + Linux + Windows, 24 MB).
 `cliutil.CarpetaDatos/AsegurarEnv/ResolverRaiz` son ahora la única regla de "dónde están los datos" para
 la app y los binarios. Decisión: **sin túneles embebidos** (Tailscale, Cloudflare); la nube de terceros
@@ -305,7 +305,7 @@ propósito, la de Go trae HTTP, TLS, criptografía, JSON, XML y SQL.
 | 2. XSD, PDF417, PDF | `xsd`, `pdf417`, `pdf` | vectores de paridad con lxml, vectores PDF417, PDF equivalente | **hecho 2026-10-12**: 1070/1070 vectores XSD, 48/48 PDF417; PDF con texto idéntico al de Go (pypdf) y timbre píxel a píxel; `nucleo-pdf` |
 | 3. SII | `sii`, `siiengine`, `portal`, `rcv`, `rvd`, `certificacion`, `almacen` | paridad de cuerpos contra las evidencias | **hecho 2026-10-12**: set de certificación 16/16 byte a byte, semillas firmadas (SOAP y REST) byte a byte, RVD byte a byte, RCV y portal idénticos al esperado de Python, SII engine idéntico a los cuerpos reales aceptados (evidencias privadas); clientes HTTP con `ureq` (TLS de cliente incluido) y base con `rusqlite` |
 | 4. servidor | `emision`, `servidor` (94 rutas), `mcp`, `conectores`, `valores`, `cliutil`, 13 binarios | esquema dorado, contrato dorado, prueba del MCP | **hecho 2026-10-12**: esquema 23/23 idéntico; contrato dorado Python vs Rust **203/203 idénticos** (todos los escenarios, con y sin red); MCP (20 tools) por stdio y Streamable HTTP; set de certificación Go == Rust byte a byte; gates `esquema_rust`, `contrato_rust`, `mcp_rust` en `prueba_final.sh` y en CI |
-| 5. app | `app-rs/` (Tauri 2) con los 12 bindings de Wails como comandos, la misma interfaz (`app/frontend/dist` + `tauri.js`) y el motor Rust en proceso; `--mcp` | prueba de la app en carpeta vacía (`cargo test`: motor en proceso + app como MCP), clippy, `cargo tauri build` | **hecho 2026-10-12**: tests 2/2, bundle `DTE Chile.app` generado; gates `app_rs_clippy`, `app_rs_test` (+ `app_rs_tauri` con `--app`) en `prueba_final.sh`. La app Wails (Go) sigue siendo la que se publica hasta que la Tauri pase las mismas pruebas manuales |
+| 5. app | `app-rs/` (Tauri 2) con los 12 bindings de Wails como comandos, la misma interfaz (`app/frontend/dist` + `tauri.js`) y el motor Rust en proceso; `--mcp` | prueba de la app en carpeta vacía (`cargo test`: motor en proceso + app como MCP), clippy, `cargo tauri build` | **hecho 2026-10-12**: tests 2/2, bundle `Faro.app` generado; gates `app_rs_clippy`, `app_rs_test` (+ `app_rs_tauri` con `--app`) en `prueba_final.sh`. Pasó el recorrido guiado, la boleta de práctica, la anulación y las capturas del README: **es la app que se publica como Faro**; la Wails (Go) queda como alternativa |
 
 ## Riesgos y cómo se mitigan
 

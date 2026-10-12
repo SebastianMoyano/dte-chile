@@ -30,6 +30,24 @@ arma el sobre, envía por el canal correcto, guarda el PDF y registra lo que el 
 Trae una empresa de práctica donde todo se forma, se firma y se timbra como un documento de
 verdad, pero nunca sale del computador.
 
+## Hacia dónde va
+
+Faro empezó como un **servidor**: una API en Python con un panel web, pensada para que un
+integrador o un contador la instalara en una máquina y la operara. Funcionó, y ahí se aprendió
+cómo trabaja el SII de verdad. Pero un servidor no baja ninguna barrera: hay que saber
+instalarlo, abrir un terminal, leer una documentación de API. Por eso el proyecto **está
+migrando de servidor a app**: un programa que se descarga, se abre y guía, con una empresa de
+práctica, un recorrido paso a paso y un botón "Muéstrame" que hace la acción por ti. La
+facilidad de uso es ahora el criterio principal; el servidor y la API siguen existiendo
+adentro, para quien los necesite.
+
+Para que esa app funcione **en cualquier computador** (macOS, Windows, Linux) sin que la
+persona instale Python ni nada más, el motor se reescribió dos veces: primero en **Go** y
+después en **Rust**. Los tres motores producen **los mismos bytes**; Python sigue siendo la
+referencia que fija el comportamiento, y cada port se midió contra ella con el corpus dorado y
+el contrato de la API (203 de 203 respuestas idénticas). Hoy la app de Faro lleva el motor Rust
+adentro, en el mismo proceso, en 14 MB.
+
 ![La entrada: un faro en la costa; al entrar, la escena queda de fondo](docs/img/app-entrada.png)
 
 ![Bienvenida de la app: empresa de práctica, recorrido guiado paso a paso](docs/img/app-bienvenida.png)
@@ -40,17 +58,18 @@ verdad, pero nunca sale del computador.
 
 | pieza | qué hace | dónde |
 |---|---|---|
-| **El motor** | el pipeline completo: folio → timbre (TED) → XML → firma → sobre → envío al SII → PDF → base | `nucleo/` (Go) y `core/` + `main.py` (Python) |
-| **La app de escritorio** | la interfaz para quien no sabe de finanzas: cobrar, ver documentos, corregir, "Mi mes", aprender | `app/` (Go + Wails, con el motor adentro) |
-| **La API REST** | las 94 rutas con las que se integra cualquier sistema (POS, contabilidad, scripts) | `nucleo/servidor`, `api/` |
-| **El servidor MCP** | 20 herramientas para que una IA (Claude, Cursor, VS Code, Gemini, Codex) opere la facturación, todo local | `nucleo/mcp` |
-| **Las herramientas del operador** | certificación ante el SII, folios (CAF), certificados, RVD, RCV/F29, portal del SII | `nucleo/cmd/nucleo-*` |
+| **El motor** | el pipeline completo: folio → timbre (TED) → XML → firma → sobre → envío al SII → PDF → base | `nucleo-rs/` (Rust), `nucleo/` (Go) y `core/` + `main.py` (Python, la referencia) |
+| **La app de escritorio (Faro)** | la interfaz para quien no sabe de finanzas: Inicio, Emitir, Documentos (con Mi mes y anular), Aprender, Ajustes; guía con "Muéstrame"; empresa de práctica | `app-rs/` (Tauri, motor Rust adentro) y `app/` (Wails, motor Go adentro); la misma interfaz en `app/frontend/dist` |
+| **La API REST** | las 94 rutas con las que se integra cualquier sistema (POS, contabilidad, scripts) | `nucleo-rs/src/servidor`, `nucleo/servidor`, `api/` |
+| **El servidor MCP** | 20 herramientas para que una IA (Claude, Cursor, VS Code, Gemini, Codex) opere la facturación, todo local | `nucleo-rs/src/mcp.rs`, `nucleo/mcp` |
+| **Las herramientas del operador** | certificación ante el SII, folios (CAF), certificados, RVD, RCV/F29, portal del SII | `nucleo-rs/src/bin/nucleo-*`, `nucleo/cmd/nucleo-*` |
 | **El corpus dorado y los gates** | cómo se sabe que funciona: 15 documentos byte a byte, contrato HTTP idéntico, vectores, auditoría pública | `tests/dorado/`, `tools/prueba_final.sh` |
 
-El motor existe en **dos cuerpos que producen los mismos bytes**: Python + FastAPI, la
-referencia donde se descubrió cómo funciona el SII, y Go, un binario sin dependencias que corre
-dentro de la app y en cualquier servidor. El port se midió, no se supuso:
-[`docs/COMPARACION-PYTHON-GO.md`](docs/COMPARACION-PYTHON-GO.md).
+El motor existe en **tres cuerpos que producen los mismos bytes**: Python + FastAPI, la
+referencia donde se descubrió cómo funciona el SII; Go, un binario sin dependencias; y Rust, el
+destino final, que corre dentro de la app de Faro. Cada port se midió, no se supuso:
+[`docs/COMPARACION-PYTHON-GO.md`](docs/COMPARACION-PYTHON-GO.md) y
+[`docs/PLAN-PORT.md`](docs/PLAN-PORT.md).
 
 ## Qué se hizo, y cuándo
 
@@ -74,6 +93,12 @@ dentro de la app y en cualquier servidor. El port se midió, no se supuso:
 - **Publicación 1.0 (11 de octubre de 2026).** Historia reescrita sin datos privados, auditoría
   automática que corre antes de cada push y en CI, licencia MIT, binarios para macOS, Linux y
   Windows en [Releases](https://github.com/SebastianMoyano/faro-dte/releases).
+- **Octubre de 2026, el port a Rust y la app Faro.** El motor completo en Rust (`nucleo-rs/`),
+  medido contra Python con el mismo corpus y el contrato de la API: 203 de 203 respuestas
+  idénticas, 23 de 23 en el esquema de la base, 16 de 16 en el set de certificación. Encima, la
+  app en Tauri con el motor Rust adentro. Y la interfaz se rehizo para que no sea un obstáculo:
+  cuatro ítems, guía que respeta el "no", revisión antes de emitir, "Muéstrame", tema claro y
+  oscuro, la entrada con el faro. El proyecto pasó a llamarse **Faro** y entró en **beta**.
 
 ## Cómo se ve
 
@@ -107,15 +132,19 @@ dentro de la app y en cualquier servidor. El port se midió, no se supuso:
 
 | Cómo | Para quién |
 |---|---|
-| **App de escritorio** (macOS; motor Go adentro, sin instalar nada más) | quien factura desde su computador |
-| **Binario Go** `nucleo-servidor servir` (macOS, Linux, Windows; un archivo) | un servidor propio, una Raspberry, un VPS chico |
+| **Faro, la app de escritorio** (macOS hoy; Windows y Linux se construyen desde el mismo código; motor Rust adentro, sin instalar nada más) | quien factura desde su computador, y quien está aprendiendo |
+| **Binario** `nucleo-servidor servir` en Rust o en Go (macOS, Linux, Windows; un archivo) | un servidor propio, una Raspberry, un VPS chico, o la sala de clases (sirve la misma interfaz en `/app`) |
 | **Docker** con el motor Python (`docker-compose up -d`) | quien ya opera con contenedores |
 | **Tu IA** (Claude Code, app de Claude, Cursor, VS Code, Windsurf, Gemini CLI, Codex): `nucleo-mcp instalar --en …` o la pestaña "Tu IA" de la app | operar la facturación conversando, todo local |
 
 ```bash
-# Go: un binario, sin Python (o descarga el de Releases)
-cd nucleo && go build -o bin/nucleo-servidor ./cmd/nucleo-servidor
-bin/nucleo-servidor servir --puerto 8000        # API en http://127.0.0.1:8000/api/v1, interfaz en /app
+# La app (Tauri + motor Rust): cargo install tauri-cli, y
+cd app-rs && cargo tauri build --bundles app    # target/release/bundle/macos/Faro.app
+
+# Un binario, sin Python (Rust o Go; o descarga el de Releases)
+cd nucleo-rs && cargo build --release --bin nucleo-servidor && target/release/nucleo-servidor servir --puerto 8000
+cd nucleo && go build -o bin/nucleo-servidor ./cmd/nucleo-servidor && bin/nucleo-servidor servir --puerto 8000
+# API en http://127.0.0.1:8000/api/v1, la misma interfaz de la app en /app
 
 # Python (la referencia): Docker o venv
 cp .env.example .env && docker-compose up -d    # Swagger en /docs
@@ -148,19 +177,20 @@ Cada pieza nace con su gate automático y todos corren de una vez, sin tocar al 
 ./tools/prueba_final.sh --sin-red
 ```
 
-Corpus dorado (15 documentos byte a byte, en Python y en Go), esquema de la base idéntico,
-contrato HTTP idéntico entre los dos motores, vectores por paquete (validador XSD, PDF417,
-portal, RCV, RVD, certificación), la app arrancando el motor en proceso, el MCP conectado de
-verdad a un cliente, y la auditoría pública (ni RUTs reales, ni personas, ni secretos, en el
+Corpus dorado (15 documentos byte a byte, en Python, Go y Rust), esquema de la base idéntico,
+contrato HTTP idéntico entre los tres motores, vectores por paquete (validador XSD, PDF417,
+portal, RCV, RVD, certificación), las dos apps arrancando su motor en proceso, el MCP conectado
+de verdad a un cliente, y la auditoría pública (ni RUTs reales, ni personas, ni secretos, en el
 árbol ni en la historia). El mismo workflow corre en GitHub Actions y un hook lo exige antes
 de cada push. Contra el SII vivo: facturas, boletas y notas de crédito aceptadas en
 certificación y en producción, con sus TrackID en
 [`docs/LECCIONES-SII.md`](docs/LECCIONES-SII.md).
 
-**Lo que todavía no se verificó desde Go contra el SII vivo** (Go reproduce byte a byte las
-evidencias aceptadas por Python, pero aún no tiene su propio TrackID en estos canales): el
-reporte diario de boletas (RVD), una boleta por REST y una factura por el sistema del SII. Los
-comandos están en [`docs/PLAN-PORT.md`](docs/PLAN-PORT.md).
+**Lo que todavía no se verificó desde Go ni desde Rust contra el SII vivo** (los dos reproducen
+byte a byte las evidencias aceptadas por Python, pero aún no tienen su propio TrackID en estos
+canales): el reporte diario de boletas (RVD), una boleta por REST y una factura por el sistema
+del SII. Los comandos están en [`docs/PLAN-PORT.md`](docs/PLAN-PORT.md). Esto, y que la app
+recién tuvo su rediseño, es lo que hace que Faro sea **beta**.
 
 ## Requisitos
 
