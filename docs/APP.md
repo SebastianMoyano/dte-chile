@@ -107,13 +107,14 @@ sin PyInstaller, sin procesos hijos.
   relativas del `.env` se resuelven desde la raíz del repo, como hacía uvicorn con su cwd).
 - **Empaquetado** (sin repo, o con `DTE_DATOS=<carpeta>`): la carpeta de datos del usuario
   (`~/Library/Application Support/DTE Chile`, `%AppData%`, `~/.config`), con el `.env` creado por
-  la app la primera vez (secretos generados ahí, `ADMIN_PASSWORD` que Inicio muestra). El
+  la app la primera vez (secretos generados ahí; la `ADMIN_PASSWORD` se muestra al pulsar
+  "Abrir el panel", no en Inicio). El
   servidor Go crea el usuario `admin` en el primer arranque con esa clave (`asegurarAdmin`,
   lo mismo que hacía `main.py`).
 - **Panel web**: "Abrir el panel" abre las páginas del panel (`/certificados`, `/documentos`,
   `/apikeys`, `/onboarding`), que el motor Go sirve igual que Python (copias en
   `nucleo/servidor/static/`); también está `/app/` (esta misma interfaz, en el navegador). Se
-  entra con `admin` y la clave del panel.
+  entra con `admin` y la clave del panel, que la app muestra (y copia) justo antes de abrirlo.
 - `DTE_MOTOR=python` vuelve al sidecar de antes (uvicorn del repo o el motor PyInstaller del
   bundle), para comparar durante la transición. `DTE_MOTOR_PYTHON=http://…` hace que el Go
   reenvíe a ese Python lo que no tenga (hoy: nada de la API; sí el buscador público `/consulta`).
@@ -193,16 +194,36 @@ servidor de mediaplex (`docs/…/despliegue`) basta el motor actualizado para te
 
 ## Interfaz y tour guiado (2026-10-09)
 
-Estructura: **barra lateral** (marca, navegación con íconos, y abajo "Tu camino": las cinco
-etapas con su avance y el botón **Guía**), **cabecera** con la empresa activa y el semáforo
-del mundo (práctica / pruebas del SII / real), y el contenido en tarjetas. Tokens de color en
+Estructura (reordenada 2026-10-12 a **cuatro ítems**, como una app de teléfono): **barra
+lateral** con Inicio, Cobrar, Documentos y Aprender, y abajo "Tu camino" resumido en una línea
+(etapa en curso y barra de avance; el detalle vive en **Guía** y en Aprender); **cabecera** con
+la empresa activa, el semáforo del mundo (práctica / pruebas del SII / real) y el engranaje
+**Ajustes** (Tu IA, Valores, panel del motor, detalles técnicos); y el contenido en tarjetas.
+Documentos tiene dos pestañas, **Todos** y **Mi mes**, y cada fila corregible lleva **anular**:
+Corregir dejó de ser una pantalla aparte (`#corregir` y `#mes` siguen llegando al mismo lugar).
+
+**Lenguaje visual tipo umbrelOS** (objetivo fijado en el chat el 2026-10-12: moderno y amable, que
+la interfaz no sea un obstáculo, nada de "app corporativa"): `app.css` es un solo tema oscuro
+sobre un fondo de colores suaves (`.fondo`, gradientes radiales que respiran), paneles de vidrio
+translúcido (`backdrop-filter`), **dock** fijo abajo con los cuatro ítems y Ajustes (`.dock`,
+punto blanco bajo el activo), íconos en baldosas con gradiente (`.ico`), botón primario blanco en
+píldora, diálogos y tarjetas del tour más opacos (`--panel`) para leer bien. Las clases son las
+mismas, así que `app.js` y `tour.js` no dependen del tema; `index.html` cambió a cabecera +
+contenido + dock (ya no hay barra lateral). Los íconos son SVG de trazo propios (`ICONOS` en
+`app.js`, inline en el dock), iguales en todos los sistemas; el selector de empresa aparece
+recién con la primera empresa real; las etapas 4 y 5 del camino se llaman "Emitir con el SII" y
+"Tu propio sistema" (en `docs/aprender/00-plan.md` conservan sus títulos largos). Tokens de color en
 `app.css` (`:root`), modo oscuro automático, estados vacíos, foco visible. Sin dependencias.
 
 **Tour por etapas** (`app/frontend/dist/tour.js`), pensado como primera introducción para
 alumnos de colegio, al estilo de los tours de Google: bienvenida la primera vez ("Empezar el
 recorrido" / "Explorar por mi cuenta"), tarjeta con flecha hacia el elemento iluminado (recorte
 con anillo que late; la primera colocación es instantánea, entre pasos se desliza), puntos de
-progreso, teclado (Enter/→, ←, Esc) y tarjeta de cierre al completar una etapa. Las etapas son
+progreso, teclado (Enter/→, ←, Esc) y tarjeta de cierre al completar una etapa. **Decir que no
+se respeta** (revisión de UI 2026-10-12): "Ahora no" en una pista automática, o "Explorar por mi
+cuenta" en la bienvenida, apaga las pistas automáticas (se vuelve desde Guía); "Salir" en un
+recorrido solo lo cierra. Ninguno marca pasos como vistos, así que el avance cuenta lo
+recorrido de verdad. Las etapas son
 los cinco tramos de `docs/aprender/00-plan.md`. Cada etapa tiene pasos que apuntan a algo de
 una pantalla o explican un concepto. Es
 **progresivo**: al entrar por primera vez a una pantalla aparecen solo los pasos de esa
@@ -218,17 +239,21 @@ tarjetas que el tour señala llevan `data-tour="…"`.
 
 | Pantalla | Qué hace hoy | Endpoints |
 |---|---|---|
-| Inicio | estado del motor, la empresa activa (práctica o real) con su etiqueta, tres acciones, 'empezar de nuevo' en práctica | `/`, `keystore/negocios`, `simulacion/estado` |
-| Cobrarle a alguien | boleta/factura, afecta/exenta, monto con o sin IVA **o en UF** (convertido con la UF del día), cálculo en vivo, aviso verde/amarillo/rojo según el mundo; emite en práctica (Python) o con el **núcleo Go** (empresa real) y abre el visor | `simulacion/emitir`, `dte/emisor`, `keystore/…/contexto-emision`, `dte/documentos/{id}/pdf` |
-| Mi mes | suma neto/IVA/total del mes por empresa (las NC restan), recordatorio de "sin movimiento" | `dte/documentos` |
-| Corregir | lista documentos corregibles; en práctica anula con NC; en empresas reales, próxima versión | `dte/documentos`, `simulacion/anular` |
+| Inicio | estado del motor, la empresa activa (práctica o real) con su etiqueta, tres acciones, 'empezar de nuevo' en práctica; lo técnico (motor, carpeta) plegado en "Detalles técnicos" y sin clave a la vista | `/`, `keystore/negocios`, `simulacion/estado` |
+| Cobrarle a alguien | boleta/factura, monto con o sin IVA, cálculo en vivo; lo raro (sin IVA, monto **en UF** convertido con la UF del día) plegado en "Más opciones"; **"Revisar y emitir" abre una revisión real** (de, para, qué, neto/IVA/total, mundo) antes de emitir en práctica o con el núcleo (empresa real), y abre el visor | `simulacion/emitir`, `dte/emisor`, `keystore/…/contexto-emision`, `dte/documentos/{id}/pdf` |
+| Documentos · Mi mes (pestaña) | selector de mes en castellano (últimos 24, se recalcula al cambiar), suma vendido/IVA/total por empresa (las NC restan), recordatorio de "sin movimiento" | `dte/documentos` |
+| Documentos · anular (en cada fila) | en práctica anula con NC; en el gratuito del SII, por el SII engine; motor propio, próxima versión | `dte/documentos`, `simulacion/anular` |
 | Ver | visor de PDF embebido con las partes explicadas, guardar PDF/XML, anular (práctica) | `dte/documentos/{id}/pdf` |
-| Documentos | todas las empresas, filtro, guardar PDF/XML con diálogo del sistema | `dte/documentos`, `/pdf`, `/xml` |
-| Valores | UF, UTM y dólar a cualquier fecha desde 2015 y tabla mensual por año (inicio y fin de mes); el histórico se carga una vez al arrancar, el año en curso cada día | `valores`, `valores/historico` |
+| Documentos · Todos | la empresa activa, ver/guardar PDF y XML con diálogo del sistema, anular | `dte/documentos`, `/pdf`, `/xml` |
+| Ajustes (engranaje) | Tu IA, Valores, Panel del motor (muestra y copia la clave), Detalles técnicos | — |
+| Valores | UF, UTM y dólar a cualquier fecha desde 2015 (se recalcula al cambiar la fecha) y tabla mensual por año (inicio y fin de mes); fechas en castellano; el histórico se carga una vez al arrancar, el año en curso cada día | `valores`, `valores/historico` |
 | Aprender | los cinco tramos del curso (solo índice) | — |
 
 Si la empresa elegida no emite con el motor propio (gratuito del SII u otro software), "Cobrar"
 lo dice y manda al panel web; no intenta emitir.
+
+Los cuadros de confirmación son propios de la app (`dialogo()` en `app.js`), no el `confirm()`
+del sistema: mismo estilo, Esc para volver, y en lo real el botón de emitir va en rojo.
 
 ## Desarrollo
 

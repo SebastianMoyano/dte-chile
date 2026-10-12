@@ -9,9 +9,29 @@
 
 const $ = (id) => document.getElementById(id);
 const clp = (n) => (n == null ? "—" : "$ " + Math.round(n).toLocaleString("es-CL"));
+// Fechas en castellano: la persona lee "1 de octubre de 2026", no "2026-10-01".
+const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+const fechaLarga = (iso) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ""); return m ? `${Number(m[3])} de ${MESES[Number(m[2]) - 1]} de ${m[1]}` : (iso || "—"); };
+const fechaCorta = (iso) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ""); return m ? `${m[3]}/${m[2]}/${m[1]}` : (iso || ""); };
+const mesLargo = (ym) => { const m = /^(\d{4})-(\d{2})/.exec(ym || ""); return m ? `${MESES[Number(m[2]) - 1]} de ${m[1]}` : (ym || ""); };
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const TIPOS = { 33: "Factura", 34: "Factura exenta", 39: "Boleta", 41: "Boleta exenta", 52: "Guía de despacho", 56: "Nota de débito", 61: "Nota de crédito" };
 const IVA = 0.19;
+// Íconos propios (trazo, 24×24): los mismos en Mac, Windows y Linux. En index.html el dock lleva los suyos inline.
+const ICONOS = {
+  inicio: '<path d="M3 11l9-8 9 8v9a2 2 0 0 1-2 2h-4v-6H9v6H5a2 2 0 0 1-2-2z"/>',
+  cobrar: '<path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h4"/>',
+  documentos: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/>',
+  aprender: '<path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11.5v4.5c0 1.5 3 3 6 3s6-1.5 6-3v-4.5"/><path d="M22 9v5"/>',
+  ajustes: '<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3"/><path d="M1 14h6M9 8h6M17 16h6"/>',
+  mes: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+  ia: '<rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M1 9h3M1 15h3M20 9h3M20 15h3"/>',
+  valores: '<path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/>',
+  panel: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  sincronizar: '<path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>',
+  vacio: '<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+};
+const icono = (k) => `<div class="ico"><svg viewBox="0 0 24 24" aria-hidden="true">${ICONOS[k]}</svg></div>`;
 const RUT_DEMO = "77777777-7";
 const DEMO = { rut: RUT_DEMO, razon_social: "EMPRESA DEMO SPA", demo: true, ambiente: "simulacion", estado_etiqueta: "Empresa de práctica", usa_sw_propio: 1 };
 
@@ -30,6 +50,35 @@ async function api(metodo, ruta, cuerpo) {
   }
   return datos;
 }
+// Diálogo propio (en vez del confirm() del sistema): título, cuerpo en HTML y botones con su
+// valor. Resuelve con el valor del botón apretado; Esc o "Volver" resuelven false.
+function dialogo({ titulo, cuerpo, botones, ancho = 520 }) {
+  if (window.Tour) window.Tour.cerrar();   // un diálogo es un momento de atención: ninguna pista encima
+  return new Promise((resolve) => {
+    const m = document.createElement("div");
+    m.className = "modal";
+    m.innerHTML = `<div class="card" style="max-width:${ancho}px;width:92%"><h2 style="margin-top:0">${titulo}</h2>${cuerpo}
+      <div class="row" style="justify-content:flex-end">${botones.map((b, i) => `<button class="${b.clase || ""}" data-i="${i}" style="flex:none">${b.texto}</button>`).join("")}</div></div>`;
+    const fin = (v) => { document.removeEventListener("keydown", tecla); m.remove(); resolve(v); };
+    const tecla = (ev) => { if (ev.key === "Escape") { ev.preventDefault(); fin(false); } };
+    document.addEventListener("keydown", tecla);
+    document.body.appendChild(m);
+    m.querySelectorAll("button[data-i]").forEach((b) => (b.onclick = () => fin(botones[Number(b.dataset.i)].valor)));
+    setTimeout(() => m.querySelector("button[data-i]:last-child")?.focus(), 30);
+  });
+}
+// La revisión antes de emitir: quién, a quién, qué, los tres números y en qué mundo. Es la
+// pantalla que promete el botón "Revisar y emitir".
+function revisar({ tipo, de, para, que, neto, iva, total, w, extra = "" }) {
+  const mundoTxt = w === "real" ? `<div class="banner rojo"><b>Esto es real.</b> Un folio gastado no vuelve: revisa el RUT, el monto y el tipo.</div>`
+    : w === "pruebas" ? `<div class="banner">Ambiente de <b>pruebas del SII</b>: el documento no tiene efecto tributario.</div>`
+    : `<div class="banner verde"><b>Práctica.</b> Se arma, se firma y se timbra como uno real, pero no sale de tu computador.</div>`;
+  const filas = [["Documento", TIPOS[tipo] || tipo], ["De", de], ["Para", para], ["Qué", que]]
+    .map(([k, v]) => `<div class="rev"><span>${k}</span><b>${esc(v)}</b></div>`).join("");
+  const totales = `<div class="totales"><div><span>Neto</span><b>${clp(neto)}</b></div><div><span>IVA</span><b>${clp(iva)}</b></div><div><span>Total</span><b>${clp(total)}</b></div></div>`;
+  return dialogo({ titulo: "Revisa antes de emitir", cuerpo: filas + totales + extra + mundoTxt,
+    botones: [{ texto: "Volver", clase: "sec", valor: false }, { texto: `Emitir ${(TIPOS[tipo] || "").toLowerCase()} por ${clp(total)}`, clase: w === "real" ? "peligro" : "", valor: true }] });
+}
 function aviso(txt, ms = 3500) { const a = $("aviso"); a.textContent = txt; a.style.display = "block"; clearTimeout(a._t); a._t = setTimeout(() => (a.style.display = "none"), ms); }
 
 // ---------- empresa activa y mundo ----------
@@ -46,6 +95,8 @@ function pintarMundo() {
 }
 function pintarSelector() {
   const s = $("empresa");
+  // Con una sola empresa (la de práctica) no hay nada que elegir: el selector aparece recién con la primera real.
+  const w = s.closest(".sel-wrap"); if (w) w.style.display = negocios.length ? "" : "none";
   s.innerHTML = todas().map((n) => `<option value="${esc(n.rut)}" ${n.rut === empresaRut ? "selected" : ""}>${esc(n.razon_social || n.rut)}${n.demo ? " (práctica)" : ""}</option>`).join("");
   s.onchange = () => { empresaRut = s.value; try { localStorage.setItem("empresa", empresaRut); } catch {} pintarMundo(); render(); };
 }
@@ -62,7 +113,8 @@ function ir(v) { location.hash = "#" + v; }
 function param(k) { const q = (location.hash.split("?")[1] || ""); return new URLSearchParams(q).get(k); }
 async function render() {
   const v = (location.hash || "#inicio").slice(1).split("?")[0];
-  document.querySelectorAll("nav a").forEach((a) => a.classList.toggle("on", a.dataset.v === v));
+  const grupo = { ver: "documentos", mes: "documentos", corregir: "documentos", ia: "ajustes", valores: "ajustes" }[v] || v;
+  document.querySelectorAll("[data-v]").forEach((a) => a.classList.toggle("on", a.dataset.v === grupo));
   const f = vistas[v] || vistas.inicio;
   window.scrollTo(0, 0);
   $("vista").innerHTML = '<p class="mut">Cargando…</p>';
@@ -83,42 +135,70 @@ vistas.inicio = async (el) => {
   let cab;
   if (e.demo) {
     const st = await api("GET", "/api/v1/simulacion/estado");
-    cab = `<div class="banner verde"><b>Estás practicando con EMPRESA DEMO SPA.</b> Todo lo que emitas aquí se forma, se firma y se timbra como un documento real, pero nunca sale de tu computador.
-      Llevas <b>${st.documentos}</b> documento(s); la próxima boleta es la <b>N° ${st.folios["39"]?.siguiente ?? 1}</b> y la próxima factura la <b>N° ${st.folios["33"]?.siguiente ?? 1}</b>.
+    cab = `<div class="banner verde"><b>Estás practicando con EMPRESA DEMO SPA.</b> Lo que emitas aquí es idéntico a un documento real, pero nunca sale de tu computador.
+      Llevas <b>${st.documentos}</b> documento(s); la próxima boleta es la <b>N° ${st.folios["39"]?.siguiente ?? 1}</b>.
       <br><span class="lnk" onclick="reiniciarDemo()">Empezar de nuevo</span> <span class="mut">(solo existe en la práctica: en el mundo real nada se borra)</span></div>`;
   } else {
     cab = `<div class="banner ${mundo() === "real" ? "rojo" : ""}"><b>${esc(e.razon_social || e.rut)}</b> · ${esc(e.rut)} · <span class="pill ${e.usa_sw_propio ? "p-ok" : "p-mut"}">${esc(e.estado_etiqueta || "sin diagnóstico")}</span>
       ${mundo() === "real" ? "<br>Esta empresa está en <b>producción</b>: lo que emitas cuenta ante el SII." : "<br>Esta empresa está en el <b>ambiente de pruebas</b> del SII: el SII responde, pero sin efecto tributario."}</div>`;
   }
-  const sinc = (!e.demo && !e.usa_sw_propio) ? `<div class="card accion" data-tour="sincronizar" onclick="sincronizarGratuito()"><div class="ico">🔄</div><h3>Traer lo emitido en el SII</h3><p>Esta empresa emite en el sistema del SII. La app entra como tú, lista lo emitido y guarda PDF y XML aquí. Solo lectura.</p></div>` : "";
+  const sinc = (!e.demo && !e.usa_sw_propio) ? `<div class="card accion" data-tour="sincronizar" onclick="sincronizarGratuito()">${icono("sincronizar")}<h3>Traer lo emitido en el SII</h3><p>Esta empresa emite en el sistema del SII. La app entra como tú, lista lo emitido y guarda PDF y XML aquí. Solo lectura.</p></div>` : "";
   const hora = new Date().getHours(), saludo = hora < 12 ? "Buenos días" : hora < 20 ? "Buenas tardes" : "Buenas noches";
   el.innerHTML = `
     <h1>${saludo}</h1>
     <p class="sub">${e.demo ? "Estás en la empresa de práctica: prueba todo sin miedo." : `Trabajando por <b>${esc(e.razon_social || e.rut)}</b>.`} ¿Qué quieres hacer?</p>
+    <p class="mut" id="valores_hoy"></p>
     ${cab}
     <div class="grid">
       ${sinc}
-      <div class="card accion" data-tour="cobrar" onclick="ir('cobrar')"><div class="ico">🧾</div><h3>Cobrarle a alguien</h3><p>Una boleta o una factura. Ves neto, IVA y total antes de emitir.</p></div>
-      <div class="card accion" onclick="ir('mes')"><div class="ico">📅</div><h3>Mi mes</h3><p>Cuánto vendiste, cuánto IVA cobraste y qué va a pedir el F29.</p></div>
-      <div class="card accion" onclick="ir('corregir')"><div class="ico">↩️</div><h3>Corregir</h3><p>Nada se borra. Una nota de crédito arregla lo que salió mal.</p></div>
+      <div class="card accion" data-tour="cobrar" onclick="ir('cobrar')">${icono("cobrar")}<h3>Cobrarle a alguien</h3><p>Una boleta o una factura. Ves neto, IVA y total antes de emitir.</p></div>
+      <div class="card accion" onclick="ir('documentos')">${icono("documentos")}<h3>Mis documentos</h3><p>Todo lo emitido. Para corregir, se anula con una nota de crédito: nada se borra.</p></div>
+      <div class="card accion" onclick="ir('documentos?tab=mes')">${icono("mes")}<h3>Mi mes</h3><p>Cuánto vendiste, cuánto IVA cobraste y qué va a pedir el F29.</p></div>
     </div>
     ${negocios.length ? "" : `<div class="card"><b>Todavía no hay ninguna empresa real.</b><p class="mut">Practica con la demo todo lo que quieras. Cuando tengas tu certificado digital, agrégalo en el panel del motor y tu empresa aparecerá arriba.</p>
-      <button class="sec" data-tour="panel" onclick="window.go.main.App.AbrirPanel('certificados')">Abrir el panel</button></div>`}
-    <p class="mut" id="valores_hoy"></p>
-    <p class="mut">Motor v${esc(estado.version)} en <code>${esc(estado.url)}</code>${estado.externo ? " (externo)" : estado.go ? (estado.empaquetado ? " (dentro de la app, en Go)" : " (en Go, datos del repo)") : estado.empaquetado ? " (dentro de la app)" : " (desde el repo)"}.
-      ${estado.empaquetado ? `Tus datos están en <code>${esc(estado.raiz)}</code>. Panel web: usuario <code>admin</code>, clave <code>${esc(estado.clave_admin)}</code>.` : ""}</p>`;
+      <button class="sec" data-tour="panel" onclick="abrirPanel('certificados')">Abrir el panel</button></div>`}`;
   pintarValores();
+};
+// Ajustes: lo que no es trabajo diario (conectar la IA, los valores del día, el panel del motor,
+// los detalles técnicos). Cuelga del engranaje de la cabecera, no de la barra.
+vistas.ajustes = async (el) => {
+  el.innerHTML = `
+    <h1>Ajustes</h1>
+    <p class="sub">Lo que no es trabajo de todos los días.</p>
+    <div class="grid">
+      <div class="card accion" onclick="ir('ia')">${icono("ia")}<h3>Tu IA</h3><p>Conecta el asistente de IA de este computador para que trabaje con tu facturación.</p></div>
+      <div class="card accion" onclick="ir('valores')">${icono("valores")}<h3>Valores</h3><p>UF, UTM y dólar de cualquier día, y el histórico mensual.</p></div>
+      <div class="card accion" onclick="abrirPanel('certificados')">${icono("panel")}<h3>Panel del motor</h3><p>Certificados, folios, usuarios y claves de API, en el navegador.</p></div>
+    </div>
+    <details class="tecnico"><summary>Detalles técnicos</summary>
+      <p class="mut">Motor v${esc(estado.version)} en <code>${esc(estado.url)}</code>${estado.externo ? " (externo)" : estado.empaquetado ? " (dentro de la app)" : " (datos del repo)"}.
+      ${estado.empaquetado ? `Tus datos están en <code>${esc(estado.raiz)}</code>.` : ""} La clave del panel web se muestra al pulsar "Panel del motor".</p></details>`;
+};
+// El panel web pide usuario y clave; se muestran recién cuando hacen falta, no en Inicio.
+window.abrirPanel = async (pagina) => {
+  if (estado.clave_admin) {
+    const ok = await dialogo({ titulo: "Abrir el panel del motor", ancho: 460,
+      cuerpo: `<p class="mut">Se abre en tu navegador. Para entrar usa:</p>
+        <div class="rev"><span>Usuario</span><b><code>admin</code></b></div><div class="rev"><span>Clave</span><b><code>${esc(estado.clave_admin)}</code></b></div>
+        <p class="mut">La clave se puede copiar; también está en el archivo <code>.env</code> de tus datos.</p>`,
+      botones: [{ texto: "Volver", clase: "sec", valor: false }, { texto: "Copiar clave y abrir", valor: true }] });
+    if (!ok) return;
+    try { await navigator.clipboard.writeText(estado.clave_admin); aviso("Clave copiada."); } catch {}
+  }
+  window.go.main.App.AbrirPanel(pagina);
 };
 // UF, UTM y dólar del día (los trae el núcleo Go a la base; Python los lee).
 async function pintarValores() {
   try {
     const v = await api("GET", "/api/v1/valores");
-    const f = (x, dec) => (x ? x.valor.toLocaleString("es-CL", { minimumFractionDigits: dec, maximumFractionDigits: dec }) + (x.rezago_dias > 2 ? ` <span class="mut">(del ${x.fecha_valor})</span>` : "") : "—");
-    const el = $("valores_hoy"); if (el) el.innerHTML = `Hoy: UF ${f(v.uf, 2)} · UTM ${f(v.utm, 0)} · dólar ${f(v.dolar, 2)}`;
+    const f = (x, dec) => (x ? x.valor.toLocaleString("es-CL", { minimumFractionDigits: dec, maximumFractionDigits: dec }) + (x.rezago_dias > 2 ? ` <span class="mut">(del ${fechaLarga(x.fecha_valor)})</span>` : "") : "—");
+    const el = $("valores_hoy"); if (el) el.innerHTML = `Hoy: UF ${f(v.uf, 2)} · UTM ${f(v.utm, 0)} · dólar ${f(v.dolar, 2)} · <span class="lnk" onclick="ir('valores')">otros días</span>`;
   } catch {}
 }
 window.reiniciarDemo = async () => {
-  if (!confirm("¿Borrar todos los documentos de práctica y volver a la boleta N° 1?")) return;
+  const ok = await dialogo({ titulo: "Empezar de nuevo", cuerpo: `<p class="mut">Se borran todos los documentos de práctica y la próxima boleta vuelve a ser la N° 1. Solo pasa en la práctica.</p>`,
+    botones: [{ texto: "Volver", clase: "sec", valor: false }, { texto: "Borrar la práctica", clase: "peligro", valor: true }] });
+  if (!ok) return;
   const r = await api("POST", "/api/v1/simulacion/reiniciar");
   aviso(`Listo: ${r.documentos_borrados} documento(s) de práctica borrados.`); render();
 };
@@ -196,11 +276,13 @@ vistas.cobrar = async (el) => {
         </div>
       </div>
       <label>Qué le vendes</label><input id="c_que" placeholder="${e.demo ? "Café" : "Servicio"}">
-      <div class="row"><div><label>Monto</label><input id="c_monto" type="number" min="0" step="1" placeholder="${e.demo ? "1190" : ""}"></div>
-        <div><label>Ese monto es…</label><select id="c_modo"><option value="total">con IVA incluido (lo que paga)</option><option value="neto">neto (sin IVA)</option></select></div>
-        <div><label>…o en UF</label><input id="c_uf" type="number" min="0" step="0.01" placeholder="80"></div></div>
-      <p class="mut" id="c_uf_nota"></p>
-      <div class="chk"><input type="checkbox" id="c_exento"><label for="c_exento" style="margin:0;font-weight:500">No lleva IVA (educación, salud, arriendo sin muebles…)</label></div>
+      <div class="row"><div><label>Monto</label><input id="c_monto" type="number" inputmode="numeric" min="0" step="1" placeholder="${e.demo ? "1190" : ""}"></div>
+        <div><label>Ese monto es…</label><select id="c_modo"><option value="total">con IVA incluido (lo que paga)</option><option value="neto">neto (sin IVA)</option></select></div></div>
+      <details class="mas" id="c_mas" ${!e.demo && !e.usa_sw_propio ? "open" : ""}><summary>Más opciones: sin IVA, monto en UF</summary>
+        <div class="chk"><input type="checkbox" id="c_exento"><label for="c_exento" style="margin:0;font-weight:500">No lleva IVA (educación, salud, arriendo sin muebles…)</label></div>
+        <label>Monto en UF (se convierte con la UF de hoy y se escribe arriba)</label><input id="c_uf" type="number" min="0" step="0.01" placeholder="80">
+        <p class="mut" id="c_uf_nota"></p>
+      </details>
       <div class="totales"><div><span>Neto</span><b id="t_neto">—</b></div><div><span>IVA 19%</span><b id="t_iva">—</b></div><div><span>Total</span><b id="t_total">—</b></div></div>
       <p class="mut" id="c_tipo"></p>
       <div id="c_aviso"></div>
@@ -215,7 +297,7 @@ vistas.cobrar = async (el) => {
     const aEmpresa = document.querySelector('input[name="c_quien"]:checked').value === "empresa";
     $("c_datos_emp").style.display = aEmpresa ? "block" : "none";
     const tipo = aEmpresa ? (ex ? 34 : 33) : (ex ? 41 : 39);
-    $("c_tipo").textContent = `Documento: ${TIPOS[tipo]} (tipo ${tipo}).`;
+    $("c_tipo").innerHTML = `Vas a emitir una <b>${TIPOS[tipo].toLowerCase()}</b>.`;
     const w = mundo();
     $("c_aviso").innerHTML = w === "real"
       ? `<div class="banner rojo"><b>Esto es real.</b> Un folio gastado no vuelve. Revisa el RUT, el monto y el tipo antes de emitir.</div>`
@@ -226,13 +308,13 @@ vistas.cobrar = async (el) => {
   el.querySelectorAll("input,select").forEach((i) => i.addEventListener("input", rec));
   // Monto en UF: se convierte con la UF vigente a la fecha de emisión (hoy) y se escribe en Monto.
   let ufHoy = null;
-  api("GET", "/api/v1/valores/uf").then((v) => { ufHoy = v; $("c_uf_nota").textContent = `UF de hoy: ${num(v.valor, 2)}${v.rezago_dias > 0 ? " (del " + v.fecha_valor + ")" : ""}`; }).catch(() => { $("c_uf_nota").textContent = "Sin UF cacheada: abre Valores o corre nucleo-valores actualizar."; });
+  api("GET", "/api/v1/valores/uf").then((v) => { ufHoy = v; $("c_uf_nota").textContent = `UF de hoy: ${num(v.valor, 2)}${v.rezago_dias > 0 ? " (del " + fechaLarga(v.fecha_valor) + ")" : ""}`; }).catch(() => { $("c_uf_nota").textContent = "Todavía no hay UF guardada: abre Valores para traerla."; });
   $("c_uf").addEventListener("input", () => {
     const uf = Number($("c_uf").value || 0);
     if (!uf || !ufHoy) return;
     const pesos = Math.round(uf * ufHoy.valor);
     $("c_monto").value = pesos; $("c_modo").value = "neto";
-    $("c_uf_nota").textContent = `${num(uf, 2)} UF × ${num(ufHoy.valor, 2)} (UF del ${ufHoy.fecha_valor}) = $ ${num(pesos, 0)}`;
+    $("c_uf_nota").textContent = `${num(uf, 2)} UF × ${num(ufHoy.valor, 2)} (UF del ${fechaLarga(ufHoy.fecha_valor)}) = $ ${num(pesos, 0)}`;
     rec();
   });
   rec();
@@ -242,7 +324,10 @@ vistas.cobrar = async (el) => {
     if (aEmpresa && !$("c_rut").value.trim()) return aviso("Falta el RUT del cliente.");
     const que = $("c_que").value.trim() || "Venta";
     const total = neto + iva;
-    if (!confirm(`Emitir ${TIPOS[tipo]} por ${clp(total)}?`)) return;
+    const para = aEmpresa ? `${$("c_nombre").value.trim() || "CLIENTE"} (${$("c_rut").value.trim()})` : "Consumidor final (una persona, sin nombre)";
+    // La revisión va antes de emitir con el motor propio o en práctica; con el sistema del SII
+    // la revisión es lo que el propio SII valida, más abajo.
+    if ((e.demo || e.usa_sw_propio) && !(await revisar({ tipo, de: e.razon_social || e.rut, para, que, neto, iva, total, w: mundo() }))) return;
     $("c_btn").disabled = true;
     try {
       if (e.demo) {
@@ -280,7 +365,8 @@ vistas.cobrar = async (el) => {
             : `<p class="mut"><b>Todavía no se emite desde aquí:</b> la cadena de emisión desde el núcleo Go espera su primera corrida real verificada. Hasta entonces se emite con el comando <code>nucleo-siiengine factura</code> (docs/PLAN-PORT.md, fase 6).</p>`}</div>`;
         const b = $("c_sii_ok");
         if (b) b.onclick = async () => {
-          if (!confirm(`Emitir en el SII una factura exenta por ${clp(v.monto_total)} a ${v.receptor.razon_social}? Un folio gastado no vuelve.`)) return;
+          if (!(await revisar({ tipo: 34, de: v.emisor.razon_social, para: `${v.receptor.razon_social} (${v.receptor.rut})`, que, neto: v.monto_total, iva: 0, total: v.monto_total, w: "real",
+            extra: `<p class="mut">Validado por el SII el ${fechaLarga(v.fecha)}, contado.</p>` }))) return;
           b.disabled = true;
           try {
             const r = JSON.parse(await enGo(e.rut, k.rut_usuario, k.tributaria || "", k.certificado || "", false, JSON.stringify(doc), true));
@@ -319,15 +405,21 @@ async function emisorDe(rut) {
 
 // ---------- ver (visor de PDF embebido) ----------
 vistas.ver = async (el) => {
-  const id = param("id");
+  let id = param("id");
+  if (!id) { try { id = localStorage.getItem("ultimo_dte"); } catch {} }   // sin id: el último documento visto
   const docs = (await api("GET", "/api/v1/dte/documentos?limite=200")).documentos;
   const d = docs.find((x) => String(x.id) === String(id));
-  if (!d) throw new Error("No encontré ese documento.");
+  if (!d) {
+    el.innerHTML = `<h1>Documento</h1><p class="sub">Aquí se ve un documento emitido: sus partes, el PDF y las acciones.</p>
+      <div class="card"><div class="vacio">${icono("vacio")}Todavía no hay ninguno que mostrar.<br><span class="lnk" onclick="ir('cobrar')">Emitir el primero</span></div></div>`;
+    return;
+  }
+  try { localStorage.setItem("ultimo_dte", String(d.id)); } catch {}
   const b64 = d.tiene_pdf ? await window.go.main.App.Bytes(`/api/v1/dte/documentos/${d.id}/pdf`) : null;
   const sim = d.ambiente === "simulacion";
   el.innerHTML = `
     <h1>${esc(TIPOS[d.tipo_dte] || d.tipo_dte)} N° ${d.folio}</h1>
-    <p class="sub">${esc(d.razon_social_receptor || d.rut_receptor)} · ${esc((d.fecha_emision || "").slice(0, 10))} · ${clp(d.monto_total)}
+    <p class="sub">${esc(d.razon_social_receptor || d.rut_receptor)} · ${esc(fechaLarga(d.fecha_emision))} · ${clp(d.monto_total)}
       ${sim ? '<span class="pill p-ok">práctica</span>' : ""} ${d.estado === "anulado_simulado" ? '<span class="pill p-no">anulada</span>' : ""}</p>
     <div class="banner ${sim ? "verde" : ""}">Mira las partes: quién vende y su RUT, el <b>folio</b>, la fecha, el detalle, <b>neto, IVA y total</b>, y abajo el <b>timbre</b> (el código de barras cuadrado). ${sim ? "Es idéntico a uno real; solo que este no salió de tu computador." : ""}</div>
     ${b64 ? `<iframe style="width:100%;height:70vh;border:1px solid var(--bd);border-radius:12px;background:#fff" src="data:application/pdf;base64,${b64}"></iframe>` : '<p class="mut">Este documento no tiene PDF.</p>'}
@@ -335,26 +427,29 @@ vistas.ver = async (el) => {
       ${b64 ? `<button class="sec" onclick="bajar(${d.id},'pdf',${d.tipo_dte},${d.folio})">Guardar PDF</button>` : ""}
       ${d.tiene_xml ? `<button class="sec" onclick="bajar(${d.id},'xml',${d.tipo_dte},${d.folio})">Guardar XML</button>` : ""}
       ${sim && ![56, 61].includes(d.tipo_dte) && d.estado !== "anulado_simulado" ? `<button class="peligro" onclick="anularDemo(${d.id})">Anular con nota de crédito</button>` : ""}
+      <button class="sec" onclick="ir('documentos')">Mis documentos</button>
       <button onclick="ir('cobrar')">Emitir otro</button>
     </div>`;
 };
 window.anularDemo = async (id) => {
-  if (!confirm("Se va a emitir una nota de crédito por el total de este documento. El original no se borra: queda anulado. ¿Seguir?")) return;
+  const ok = await dialogo({ titulo: "Anular con nota de crédito", cuerpo: `<p class="mut">Se emite una nota de crédito por el total de este documento. El original no se borra: queda anulado.</p>`,
+    botones: [{ texto: "Volver", clase: "sec", valor: false }, { texto: "Anular este documento", clase: "peligro", valor: true }] });
+  if (!ok) return;
   try { const nc = await api("POST", `/api/v1/simulacion/anular/${id}`, { motivo: "Anula documento" }); aviso(`Nota de crédito N° ${nc.folio} emitida.`); ir(`ver?id=${nc.dte_id}`); }
   catch (e) { aviso(e.message, 6000); }
 };
 
 // ---------- mi mes ----------
-vistas.mes = async (el) => {
-  await cargarNegocios();
-  const e = empresa();
-  const hoy = new Date(), per = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}`;
+// Las rutas viejas siguen llegando al mismo lugar.
+vistas.mes = async () => ir("documentos?tab=mes");
+vistas.corregir = async () => ir("documentos");
+function pintarMes(el, e) {
+  const hoy = new Date(), meses = [];
+  for (let i = 0; i < 24; i++) { const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1); meses.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`); }
   el.innerHTML = `
-    <h1>Mi mes</h1>
-    <p class="sub">Lo que esta app tiene registrado de <b>${esc(e.razon_social || e.rut)}</b>. El SII arma su propio registro con lo que le llegó; si no coinciden, falta algo de un lado.</p>
+    <p class="mut">Lo que esta app tiene registrado. El SII arma su propio registro con lo que le llegó; si no coinciden, falta algo de un lado.</p>
     <div class="card"><div class="row">
-      <div><label>Mes</label><input id="m_per" type="month" value="${per}"></div>
-      <div><button class="sec" onclick="calcMes()">Ver</button></div></div>
+      <div><label>Mes</label><select id="m_per" onchange="calcMes()">${meses.map((p) => `<option value="${p}">${mesLargo(p)}</option>`).join("")}</select></div></div>
       <div id="m_res"></div></div>`;
   window.calcMes = async () => {
     const p = $("m_per").value;
@@ -364,28 +459,14 @@ vistas.mes = async (el) => {
     const sum = (k) => docs.reduce((a, d) => a + signo(d) * (d[k] || 0), 0);
     const neto = sum("monto_neto") + sum("monto_exento"), iva = sum("iva"), total = sum("monto_total");
     $("m_res").innerHTML = `
-      <div class="totales"><div><span>Vendido (neto + exento)</span><b>${clp(neto)}</b></div><div><span>IVA cobrado (débito)</span><b>${clp(iva)}</b></div><div><span>Total documentos</span><b>${clp(total)}</b></div></div>
-      <p class="mut">${docs.length} documento(s) en ${p}. Las notas de crédito restan. El IVA de tus <b>compras</b> con factura (crédito) se descuenta de este débito en el F29; eso lo trae el SII, no esta lista.</p>
+      <div class="totales"><div><span>Vendido (sin IVA)</span><b>${clp(neto)}</b></div><div><span>IVA cobrado</span><b>${clp(iva)}</b></div><div><span>Total con IVA</span><b>${clp(total)}</b></div></div>
+      <p class="mut">${docs.length} documento(s) en ${mesLargo(p)}. Las notas de crédito restan. El IVA de tus <b>compras</b> con factura (crédito) se descuenta de este débito en el F29; eso lo trae el SII, no esta lista.</p>
       <div class="banner verde">Aunque no haya nada, el F29 se presenta igual: <b>sin movimiento</b>.</div>
       ${docs.length ? tabla(docs) : ""}`;
   };
   calcMes();
-};
+}
 
-// ---------- corregir ----------
-vistas.corregir = async (el) => {
-  await cargarNegocios();
-  const e = empresa();
-  const r = await api("GET", "/api/v1/dte/documentos?" + new URLSearchParams({ limite: 100, rut_emisor: e.rut }));
-  const corregibles = r.documentos.filter((d) => ![56, 61].includes(d.tipo_dte) && d.estado !== "anulado_simulado");
-  el.innerHTML = `
-    <h1>Corregir</h1>
-    <p class="sub">Un documento emitido no se borra. Se corrige con otro: la nota de crédito resta, la nota de débito suma.</p>
-    <div class="banner ${e.demo ? "verde" : ""}">Elige el documento que salió mal. La nota de crédito se arma por el <b>total registrado</b> de ese documento, para que quede en cero.</div>
-    <div class="card">${tabla(corregibles, true)}</div>
-    <div id="cor_aviso"></div>
-    ${e.demo ? "" : `<p class="mut">Los documentos emitidos en el sistema del SII se anulan desde aquí con el SII engine (vista previa validada por el SII; la emisión real espera la cadena verificada). Los del motor propio, por ahora, desde el panel web del motor.</p>`}`;
-};
 // Anular por el SII engine: el portal pre-construye la NC del documento (receptor e ítems tal
 // cual), el SII la valida en seco, y solo se emite con la cadena verificada desde Go.
 window.anularSII = async (id) => {
@@ -405,7 +486,10 @@ window.anularSII = async (id) => {
         : `<p class="mut"><b>Todavía no se emite desde aquí:</b> la cadena de la nota de crédito desde el núcleo Go espera su primera corrida real verificada. Hasta entonces: <code>nucleo-siiengine nc-anular</code> (docs/PLAN-PORT.md, fase 6).</p>`}</div>`;
     const b = $("cor_ok");
     if (b) b.onclick = async () => {
-      if (!confirm(`Emitir en el SII la nota de crédito por ${clp(v.monto_total)} que anula el N° ${v.anula.folio}? Un folio gastado no vuelve.`)) return;
+      const ok = await dialogo({ titulo: "Emitir la nota de crédito en el SII", cuerpo: `<div class="rev"><span>Anula</span><b>${esc(TIPOS[v.anula.tipo] || v.anula.tipo)} N° ${v.anula.folio}</b></div><div class="rev"><span>Para</span><b>${esc(v.receptor.razon_social)}</b></div><div class="rev"><span>Total</span><b>${clp(v.monto_total)}</b></div>
+          <div class="banner rojo"><b>Esto es real.</b> Un folio gastado no vuelve.</div>`,
+        botones: [{ texto: "Volver", clase: "sec", valor: false }, { texto: `Anular en el SII por ${clp(v.monto_total)}`, clase: "peligro", valor: true }] });
+      if (!ok) return;
       b.disabled = true;
       try {
         const r = JSON.parse(await enGo(e.rut, k.rut_usuario, k.tributaria || "", k.certificado || "", false, id, true));
@@ -420,22 +504,29 @@ window.anularSII = async (id) => {
 vistas.documentos = async (el) => {
   await cargarNegocios();
   const e = empresa();
-  const r = await api("GET", "/api/v1/dte/documentos?" + new URLSearchParams({ limite: 100, rut_emisor: e.rut }));
+  const tab = param("tab") === "mes" ? "mes" : "todos";
   el.innerHTML = `
     <h1>Documentos</h1>
     <p class="sub">Boletas, facturas y notas de <b>${esc(e.razon_social || e.rut)}</b>${e.demo ? " (práctica)" : ", tanto las del motor como las del gratuito del SII"}.</p>
-    <div class="card">${tabla(r.documentos)}</div>`;
+    <div class="tabs"><a class="${tab === "todos" ? "on" : ""}" href="#documentos">Todos</a><a class="${tab === "mes" ? "on" : ""}" href="#documentos?tab=mes">Mi mes</a></div>
+    <div id="doc_cuerpo"></div>`;
+  if (tab === "mes") { pintarMes($("doc_cuerpo"), e); return; }
+  const r = await api("GET", "/api/v1/dte/documentos?" + new URLSearchParams({ limite: 100, rut_emisor: e.rut }));
+  $("doc_cuerpo").innerHTML = `
+    <div class="card">${tabla(r.documentos)}</div>
+    <div id="cor_aviso"></div>
+    <p class="mut">Un documento emitido no se borra. Si salió mal, pulsa <b>anular</b> en su fila: una nota de crédito por el total lo deja en cero.${e.demo ? "" : " Los del sistema del SII se anulan con el propio SII; los del motor propio, por ahora, desde el panel del motor."}</p>`;
 };
 
-function tabla(docs, elegir = false) {
-  if (!docs.length) return `<div class="vacio"><div class="ico">🗂️</div>No hay documentos todavía.<br><span class="lnk" onclick="ir('cobrar')">Emitir el primero</span></div>`;
+function tabla(docs) {
+  if (!docs.length) return `<div class="vacio">${icono("vacio")}No hay documentos todavía.<br><span class="lnk" onclick="ir('cobrar')">Emitir el primero</span></div>`;
   const est = (e) => { e = e || ""; const c = e.includes("acept") || e.includes("emitido") || e === "simulado" ? "p-ok" : e.includes("rechaz") || e.includes("anulado") ? "p-no" : e.includes("envi") ? "p-warn" : "p-mut";
     const t = e === "simulado" ? "práctica" : e === "anulado_simulado" ? "anulada" : e.replace("_mipyme", " · gratuito SII"); return `<span class="pill ${c}">${esc(t)}</span>`; };
   return `<div class="tablewrap"><table><tr><th>Fecha</th><th>Documento</th><th>N°</th><th>Para</th><th class="num">Total</th><th>Estado</th><th></th></tr>
-    ${docs.map((d) => `<tr><td>${esc((d.fecha_emision || "").slice(0, 10))}</td><td>${esc(TIPOS[d.tipo_dte] || d.tipo_dte)}</td><td>${d.folio}</td>
+    ${docs.map((d) => `<tr><td>${esc(fechaCorta(d.fecha_emision))}</td><td>${esc(TIPOS[d.tipo_dte] || d.tipo_dte)}</td><td>${d.folio}</td>
       <td>${esc(d.razon_social_receptor || d.rut_receptor || "")}</td><td class="num">${clp(d.monto_total)}</td><td>${est(d.estado)}</td>
-      <td>${elegir ? `<span class="lnk" onclick="${d.ambiente === "simulacion" ? `anularDemo(${d.id})` : d.canal === "mipyme" ? `anularSII(${d.id})` : `aviso('Anular documentos del motor propio desde la app: próxima versión.')`}">anular</span>` :
-        `${d.tiene_pdf ? `<span class="lnk" onclick="ir('ver?id=${d.id}')">ver</span> <span class="lnk" onclick="bajar(${d.id},'pdf',${d.tipo_dte},${d.folio})">PDF</span>` : ""} ${d.tiene_xml ? `<span class="lnk" onclick="bajar(${d.id},'xml',${d.tipo_dte},${d.folio})">XML</span>` : ""}`}</td></tr>`).join("")}
+      <td>${d.tiene_pdf ? `<span class="lnk" onclick="ir('ver?id=${d.id}')">ver</span> <span class="lnk" onclick="bajar(${d.id},'pdf',${d.tipo_dte},${d.folio})">PDF</span>` : ""} ${d.tiene_xml ? `<span class="lnk" onclick="bajar(${d.id},'xml',${d.tipo_dte},${d.folio})">XML</span>` : ""}
+        ${![56, 61].includes(d.tipo_dte) && d.estado !== "anulado_simulado" ? `<span class="lnk no" data-tour="anular" onclick="${d.ambiente === "simulacion" ? `anularDemo(${d.id})` : d.canal === "mipyme" ? `anularSII(${d.id})` : `aviso('Anular documentos del motor propio desde la app: próxima versión.')`}">anular</span>` : ""}</td></tr>`).join("")}
     </table></div>`;
 }
 window.bajar = async (id, que, tipo, folio) => {
@@ -451,8 +542,7 @@ vistas.valores = async (el) => {
     <h1>Valores</h1>
     <p class="sub">UF, UTM y dólar de las páginas oficiales del SII. El histórico se cargó una vez; el año en curso se refresca cada día.</p>
     <div class="card"><div class="row">
-      <div><label>¿Cuánto valía el…?</label><input id="v_fecha" type="date" value="${hoy}" max="${hoy}"></div>
-      <div><button class="sec" onclick="valoresFecha()">Ver</button></div></div>
+      <div><label>¿Cuánto valía el…?</label><input id="v_fecha" type="date" value="${hoy}" max="${hoy}" onchange="valoresFecha()"></div></div>
       <div class="totales" id="v_tres"></div>
       <p class="mut" id="v_nota"></p></div>
     <div class="card"><div class="row">
@@ -462,9 +552,9 @@ vistas.valores = async (el) => {
     try {
       const v = await api("GET", "/api/v1/valores?fecha=" + $("v_fecha").value);
       const c = (x, dec) => `<div><span>${x ? "" : ""}</span><b>${x ? num(x.valor, dec) : "—"}</b><span>${x && x.rezago_dias > 0 ? "del " + x.fecha_valor : ""}</span></div>`;
-      $("v_tres").innerHTML = `<div><span>UF</span><b>${v.uf ? num(v.uf.valor, 2) : "—"}</b><span>${v.uf && v.uf.rezago_dias > 0 ? "del " + v.uf.fecha_valor : ""}</span></div>
-        <div><span>UTM</span><b>${v.utm ? num(v.utm.valor, 0) : "—"}</b><span>${v.utm ? "mes " + v.utm.fecha_valor.slice(0, 7) : ""}</span></div>
-        <div><span>Dólar</span><b>${v.dolar ? num(v.dolar.valor, 2) : "—"}</b><span>${v.dolar && v.dolar.rezago_dias > 0 ? "del " + v.dolar.fecha_valor : ""}</span></div>`;
+      $("v_tres").innerHTML = `<div><span>UF</span><b>${v.uf ? num(v.uf.valor, 2) : "—"}</b><span>${v.uf && v.uf.rezago_dias > 0 ? "del " + fechaLarga(v.uf.fecha_valor) : ""}</span></div>
+        <div><span>UTM</span><b>${v.utm ? num(v.utm.valor, 0) : "—"}</b><span>${v.utm ? mesLargo(v.utm.fecha_valor) : ""}</span></div>
+        <div><span>Dólar</span><b>${v.dolar ? num(v.dolar.valor, 2) : "—"}</b><span>${v.dolar && v.dolar.rezago_dias > 0 ? "del " + fechaLarga(v.dolar.fecha_valor) : ""}</span></div>`;
       $("v_nota").textContent = (v.dolar && v.dolar.rezago_dias > 3) ? "El dólar de la página oficial del SII llega con rezago: se muestra el último publicado y su fecha." : "";
     } catch (e) { $("v_tres").innerHTML = `<div><span>${esc(e.message)}</span></div>`; }
   };
@@ -475,7 +565,7 @@ vistas.valores = async (el) => {
       $("v_anio").innerHTML = h.anios_disponibles.slice().reverse().map((x) => `<option value="${x}" ${x === a ? "selected" : ""}>${x}</option>`).join("");
     }
     $("v_tabla").innerHTML = `<div class="tablewrap"><table><tr><th>Mes</th><th class="num">UF día 1</th><th class="num">UF fin de mes</th><th class="num">UTM</th><th class="num">Dólar día 1</th><th class="num">Dólar fin de mes</th></tr>
-      ${h.meses.map((m) => `<tr><td>${m.mes}</td><td class="num">${num(m.uf, 2)}</td><td class="num">${num(m.uf_fin, 2)}</td><td class="num">${num(m.utm, 0)}</td><td class="num">${num(m.dolar, 2)}</td><td class="num">${num(m.dolar_fin, 2)}</td></tr>`).join("")}</table></div>`;
+      ${h.meses.map((m) => `<tr><td>${mesLargo(m.mes)}</td><td class="num">${num(m.uf, 2)}</td><td class="num">${num(m.uf_fin, 2)}</td><td class="num">${num(m.utm, 0)}</td><td class="num">${num(m.dolar, 2)}</td><td class="num">${num(m.dolar_fin, 2)}</td></tr>`).join("")}</table></div>`;
   };
   valoresFecha(); valoresAnio();
 };

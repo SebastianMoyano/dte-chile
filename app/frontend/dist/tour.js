@@ -6,20 +6,25 @@
 // vida real. Cada paso apunta a algo de una pantalla o explica un concepto. Es PROGRESIVO: al
 // entrar por primera vez a una pantalla aparecen solo sus pasos de la etapa en curso; desde
 // "Guía" se ve el camino entero y se repite cualquier etapa. El avance queda en localStorage.
+//
+// Decir que no se respeta: "Ahora no" en una pista automática (o "Explorar por mi cuenta" en la
+// bienvenida) apaga las pistas automáticas, y se vuelve a ellas desde Guía; "Salir" en un
+// recorrido solo lo cierra. Ninguno marca pasos como vistos: el progreso cuenta lo que la
+// persona recorrió de verdad.
 (() => {
   const ETAPAS = [
     { id: "entender", n: 1, titulo: "Entender", mundo: "sim", resumen: "Qué es una boleta, el IVA, el folio y el SII. Todo en práctica: nada sale de tu computador.",
       pasos: [
         { vista: "inicio", sel: "#mundo", t: "Mira siempre este semáforo", p: "Dice en qué mundo estás. Verde: práctica, nada sale de aquí. Amarillo: pruebas del SII, sin efecto. Rojo: real, cada documento cuenta." },
-        { vista: "inicio", sel: "#empresa", t: "La empresa activa", p: "Aquí eliges por quién trabajas. EMPRESA DEMO SPA es la de práctica: úsala para aprender sin riesgo." },
+        { vista: "inicio", sel: ".sel-wrap", t: "La empresa activa", p: "Hoy trabajas con EMPRESA DEMO SPA, la de práctica: úsala para aprender sin riesgo. Cuando agregues una empresa real, arriba aparece un selector para elegir por quién trabajas." },
         { vista: "inicio", sel: "[data-tour='cobrar']", t: "Lo primero: cobrar", p: "Una boleta es lo que le das a una persona; una factura, a otra empresa. Entra aquí y emite tu primera boleta de práctica." },
         { vista: "cobrar", sel: "#c_monto", t: "El monto y el IVA", p: "Escribe 1190 con IVA incluido: verás que el neto es 1.000 y el IVA 190. El IVA es el 19% que va al Estado; tú solo lo recaudas." },
         { vista: "cobrar", sel: ".totales", t: "Neto, IVA y total", p: "Estos tres números aparecen en todo documento. Si el monto es exento, el IVA es cero." },
         { vista: "cobrar", sel: "#c_btn", t: "Revisar y emitir", p: "Al emitir, la app arma el documento, lo firma y le pone el timbre, igual que uno real. En práctica no sale de tu computador." },
-        { vista: "ver", sel: "iframe", t: "Las partes del documento", p: "Quién vende y su RUT, el folio (un número que nunca se repite), la fecha, el detalle, neto, IVA y total, y abajo el timbre: el código de barras cuadrado." },
+        { vista: "ver", hash: () => { let id = null; try { id = localStorage.getItem("ultimo_dte"); } catch {} return id ? "ver?id=" + id : null; }, sel: "iframe", t: "Las partes del documento", p: "Quién vende y su RUT, el folio (un número que nunca se repite), la fecha, el detalle, neto, IVA y total, y abajo el timbre: el código de barras cuadrado." },
         { vista: "documentos", sel: "table", t: "Todo queda registrado", p: "Un documento emitido no se borra nunca. Aquí ves todos, con su estado." },
-        { vista: "corregir", sel: "table", t: "Equivocarse se arregla con otro documento", p: "Una nota de crédito resta lo que salió mal y deja el original anulado. Prueba a anular uno de práctica." },
-        { vista: "mes", sel: ".totales", t: "Lo que pide el F29", p: "Cada mes declaras lo vendido y el IVA cobrado. Aunque no vendas nada, el F29 se presenta igual: sin movimiento." },
+        { vista: "documentos", sel: "[data-tour='anular']", t: "Equivocarse se arregla con otro documento", p: "Pulsa «anular» en un documento de práctica: una nota de crédito resta lo que salió mal y deja el original anulado. Nada se borra." },
+        { vista: "documentos", hash: "documentos?tab=mes", sel: ".totales", t: "Lo que pide el F29", p: "Cada mes declaras lo vendido y el IVA cobrado. Aunque no vendas nada, el F29 se presenta igual: sin movimiento." },
       ] },
     { id: "crear", n: 2, titulo: "Crear la empresa", mundo: "sim", resumen: "Persona natural o empresa, Empresa en un Día, el RUT propio. La app te guía; el trámite lo haces tú.",
       pasos: [
@@ -31,14 +36,14 @@
         { vista: "aprender", sel: "[data-tour='etapa-3']", t: "Antes de emitir, el SII tiene que saber quién eres", p: "Inicio de actividades y giro en sii.cl, clave tributaria de la persona y de la empresa, y un certificado digital para firmar." },
         { vista: "inicio", sel: "[data-tour='panel']", t: "El certificado va al panel", p: "Cuando tengas el certificado digital (.p12), cárgalo en el panel del motor. La empresa aparecerá en el selector de arriba." },
       ] },
-    { id: "sii", n: 4, titulo: "Usar lo que el SII da", mundo: "real", resumen: "El SII tiene un emisor propio. La app lo opera por ti y le agrega lo que falta. Real desde el primer clic.",
+    { id: "sii", n: 4, titulo: "Emitir con el SII", mundo: "real", resumen: "El SII tiene un emisor propio. La app lo opera por ti y le agrega lo que falta. Real desde el primer clic.",
       pasos: [
         { vista: "inicio", sel: "#empresa", t: "Elige una empresa real", p: "Las empresas que emiten en el sistema del SII aparecen aquí con la etiqueta 'gratuito'. El semáforo se pone rojo: lo que hagas cuenta." },
         { vista: "inicio", sel: "[data-tour='sincronizar']", t: "Traer lo emitido en el SII", p: "La app entra al SII como tú, lista todo lo emitido y guarda aquí PDF y XML. Solo lectura, no gasta nada." },
         { vista: "cobrar", sel: "#c_btn", t: "Cobrar por el SII", p: "Con 'Una empresa' y 'No lleva IVA', la app valida la factura en el SII sin gastar folio y te la muestra antes de emitir." },
-        { vista: "corregir", sel: "table", t: "Anular en el SII", p: "La nota de crédito la pre-arma el propio SII con los datos del documento; la app la valida y te la muestra." },
+        { vista: "documentos", sel: "[data-tour='anular']", t: "Anular en el SII", p: "La nota de crédito la pre-arma el propio SII con los datos del documento; la app la valida y te la muestra." },
       ] },
-    { id: "motor", n: 5, titulo: "El motor propio", mundo: "pruebas", resumen: "CAF, firma y certificación: para quien emite mucho o integra sistemas. Primero en el ambiente de pruebas del SII.",
+    { id: "motor", n: 5, titulo: "Tu propio sistema", mundo: "pruebas", resumen: "CAF, firma y certificación: para quien emite mucho o integra sistemas. Primero en el ambiente de pruebas del SII.",
       pasos: [
         { vista: "aprender", sel: "[data-tour='etapa-5']", t: "Folios propios y firma propia", p: "Con el motor propio el SII te entrega folios (CAF) y tú firmas con tu certificado. Antes hay que certificar: un set de pruebas que el SII revisa." },
         { vista: "cobrar", sel: "#c_btn", t: "Emitir con el núcleo", p: "Para una empresa con motor propio, cobrar firma y timbra en tu computador y envía al SII. Primero en pruebas (amarillo), luego en real (rojo)." },
@@ -55,14 +60,18 @@
   const etapaActual = () => ETAPAS[Math.min(st.etapa, ETAPAS.length - 1)];
   const vistaActual = () => (location.hash || "#inicio").slice(1).split("?")[0];
 
-  let cola = [], idx = 0, modo = "contextual", primeraColocacion = true;
+  let cola = [], idx = 0, modo = "contextual", primeraColocacion = true, programado = null, vistaPrevia = null;
   const el = () => document.getElementById("tour");
+  const programar = (f, ms) => { clearTimeout(programado); programado = setTimeout(f, ms); };
+  const avisar = (t) => { if (typeof window.aviso === "function") window.aviso(t, 5000); };
 
   function pintarCamino() {
-    const ol = document.getElementById("camino_lista");
-    if (!ol) return;
-    ol.innerHTML = ETAPAS.map((e, i) => `<li class="${hecha(e) ? "hecha" : ""} ${i === st.etapa ? "actual" : ""}" onclick="Tour.etapa(${i})" title="${e.resumen}">
-      <span class="dot">${hecha(e) ? "✓" : e.n}</span><span>${e.titulo}</span></li>`).join("");
+    const c = document.getElementById("camino_lista");
+    if (!c) return;
+    const e = etapaActual(), listas = ETAPAS.filter(hecha).length;
+    const pct = Math.round((ETAPAS.reduce((a, x) => a + progreso(x), 0) / ETAPAS.reduce((a, x) => a + x.pasos.length, 0)) * 100);
+    c.innerHTML = `<button class="camino-res" onclick="Tour.abrir()" title="${e.resumen} · ${listas === ETAPAS.length ? "camino completo" : `${listas} de ${ETAPAS.length} etapas listas`}">
+      <b>Guía</b><span>Etapa ${e.n} · ${e.titulo}</span><div class="barra"><i style="width:${pct}%"></i></div></button>`;
   }
 
   function cerrar() { el().style.display = "none"; el().innerHTML = ""; cola = []; pintarCamino(); }
@@ -75,6 +84,7 @@
     const r = target ? target.getBoundingClientRect() : null;
     if (!(r && r.width && r.height)) {
       hole.className = "tour-hole sin";
+      hole.removeAttribute("style");   // sin elemento no queda el recorte anterior dibujado
       card.className = "tour-card";
       Object.assign(card.style, { left: Math.max(16, (window.innerWidth - card.offsetWidth) / 2) + "px", top: "20%" });
       return;
@@ -99,25 +109,33 @@
   function mostrarPaso() {
     if (idx >= cola.length) { finDeRecorrido(); return; }
     const { etapa, i } = cola[idx], paso = etapa.pasos[i];
-    if (paso.vista !== vistaActual() && modo === "guiado") { location.hash = "#" + paso.vista; setTimeout(mostrarPaso, 400); return; }
-    const target = paso.sel ? document.querySelector(paso.sel) : null;
+    const hashActual = (location.hash || "#inicio").slice(1);
+    const hashPaso = typeof paso.hash === "function" ? paso.hash() : paso.hash;
+    if (typeof paso.hash === "function" && !hashPaso) { idx++; mostrarPaso(); return; }   // no hay a qué apuntar todavía (p. ej. ningún documento)
+    if (modo === "guiado" && (paso.vista !== vistaActual() || (hashPaso && hashActual !== hashPaso))) { location.hash = "#" + (hashPaso || paso.vista); setTimeout(mostrarPaso, 400); return; }
+    let target = paso.sel ? document.querySelector(paso.sel) : null;
+    if (target && !target.getBoundingClientRect().width) target = null;   // oculto: se trata como ausente
     if (paso.sel && !target && modo === "contextual") { idx++; mostrarPaso(); return; }
     if (target) target.scrollIntoView({ block: "center", behavior: "instant" });
     const t = el();
     const nuevo = t.style.display !== "block" || !t.querySelector(".tour-hole");
     if (nuevo) { t.innerHTML = `<div class="tour-hole sin"></div>`; primeraColocacion = true; }
+    // Al cambiar de pantalla el recorte aparece donde corresponde, sin deslizarse desde la anterior.
+    if (vistaActual() !== vistaPrevia) primeraColocacion = true;
+    vistaPrevia = vistaActual();
     t.style.display = "block";
     t.querySelectorAll(".tour-card,.tour-panel,.tour-centro").forEach((x) => x.remove());
     const card = document.createElement("div");
     card.className = "tour-card";
+    card.style.visibility = "hidden";   // se mide y se coloca antes de mostrarse: nunca asoma en la esquina
     card.innerHTML = `<div class="etapa">Etapa ${etapa.n} · ${etapa.titulo}</div><h3>${paso.t}</h3><p>${paso.p}</p>
       <div class="acciones"><span class="puntos">${cola.map((_, k) => `<i class="${k === idx ? "on" : ""}"></i>`).join("")}</span>
-        <button class="sec" onclick="Tour.saltar()">Saltar</button>
+        <button class="sec" onclick="Tour.saltar()">${modo === "guiado" ? "Salir" : "Ahora no"}</button>
         ${idx > 0 ? `<button class="sec" onclick="Tour.atras()">Anterior</button>` : ""}
         <button onclick="Tour.siguiente()">${idx === cola.length - 1 ? "Listo" : "Siguiente"}</button></div>
-      <div class="tecla"><kbd>Enter</kbd> siguiente · <kbd>Esc</kbd> saltar</div>`;
+      <div class="tecla"><kbd>Enter</kbd> siguiente · <kbd>Esc</kbd> ${modo === "guiado" ? "salir" : "ahora no"}</div>`;
     t.appendChild(card);
-    requestAnimationFrame(() => colocar(target, card));
+    requestAnimationFrame(() => { colocar(target, card); card.style.visibility = ""; card.classList.add("lista"); });
     st.vistos[idPaso(etapa, i)] = true; guardar(); pintarCamino();
   }
 
@@ -144,26 +162,26 @@
   function bienvenida() {
     st.bienvenida = true; guardar();
     centro("👋", "Hola, bienvenido a DTE Chile",
-      "Aquí aprendes a cobrar y a declarar como lo hace cualquier negocio en Chile, practicando con una empresa de mentira. Te guío paso a paso, y puedes saltarte lo que quieras.",
-      `<button onclick="Tour.etapa(0)">Empezar el recorrido</button><button class="sec" onclick="Tour.cerrar()">Explorar por mi cuenta</button>`);
+      "Aquí aprendes a cobrar con boletas y facturas, como cualquier negocio en Chile, practicando con una empresa de mentira. Te guío paso a paso, y puedes saltarte lo que quieras.",
+      `<button onclick="Tour.etapa(0)">Empezar el recorrido</button><button class="sec" onclick="Tour.explorar()">Explorar por mi cuenta</button>`);
   }
 
   // Llamado al pintar cada pantalla: pasos pendientes de esa pantalla, etapa en curso.
   function alEntrar(vista) {
     pintarCamino();
-    if (st.apagado) return;
+    if (st.apagado || document.querySelector(".modal")) return;
     if (el().style.display === "block") {
       // Un consejo contextual anclado a otra vista no se queda flotando: se cierra al cambiar de vista.
       const actual = cola[idx];
       if (modo === "contextual" && actual && actual.etapa.pasos[actual.i].vista !== vista) cerrar();
       else return;
     }
-    if (!st.bienvenida) { setTimeout(bienvenida, 400); return; }
+    if (!st.bienvenida) { programar(bienvenida, 400); return; }
     const e = etapaActual();
     const pendientes = e.pasos.map((_, i) => ({ etapa: e, i })).filter(({ i }) => e.pasos[i].vista === vista && !st.vistos[idPaso(e, i)]);
     if (!pendientes.length) return;
     cola = pendientes; idx = 0; modo = "contextual";
-    setTimeout(mostrarPaso, 300);
+    programar(mostrarPaso, 300);
   }
 
   function abrir() {
@@ -193,7 +211,10 @@
     alEntrar, abrir, etapa, cerrar,
     siguiente() { idx++; mostrarPaso(); },
     atras() { idx = Math.max(0, idx - 1); mostrarPaso(); },
-    saltar() { cola.forEach(({ etapa, i }) => { st.vistos[idPaso(etapa, i)] = true; }); guardar(); const c = cola.length; cola = []; if (c && hecha(etapaActual())) { finDeRecorrido(); } else cerrar(); },
+    // "Salir" (recorrido) cierra sin marcar nada; "Ahora no" (pista automática) además apaga las
+    // pistas automáticas, que vuelven desde Guía.
+    saltar() { clearTimeout(programado); cola = []; cerrar(); st.apagado = true; guardar(); avisar("Listo, sin pistas automáticas. Cuando quieras, están en Guía (arriba a la derecha)."); },
+    explorar() { clearTimeout(programado); st.apagado = true; st.bienvenida = true; guardar(); cerrar(); avisar("Explora tranquilo. La guía queda en el botón Guía, arriba a la derecha."); },
     apagar(v) { st.apagado = !!v; guardar(); },
     reiniciar() { st = { vistos: {}, etapa: 0, checks: {}, apagado: false, bienvenida: false }; guardar(); cerrar(); location.hash = "#inicio"; setTimeout(bienvenida, 300); },
     etapas: ETAPAS, estado: () => st,
