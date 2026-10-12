@@ -40,6 +40,15 @@ echo "== 3. núcleo Go: vet + tests"; gate go_vet bash -c 'cd nucleo && go vet .
 echo "== 4. corpus dorado (Go, port externo)"
 gate go_build bash -c 'cd nucleo && go build -o bin/nucleo-dorado ./cmd/nucleo-dorado && go build -o bin/nucleo-servidor ./cmd/nucleo-servidor'
 gate corpus_go "$PY" test_dorado.py --port nucleo/bin/nucleo-dorado
+if command -v cargo >/dev/null 2>&1; then
+  echo "== 4b. núcleo Rust (fase 8): tests + clippy + corpus"
+  gate rust_test bash -c 'cd nucleo-rs && cargo test --quiet 2>&1 | tail -3'
+  gate rust_clippy bash -c 'cd nucleo-rs && cargo clippy --release --quiet -- -D warnings'
+  gate rust_build bash -c 'cd nucleo-rs && cargo build --release --quiet'
+  gate corpus_rust "$PY" test_dorado.py --port nucleo-rs/target/release/nucleo-dorado
+else
+  echo "== 4b. núcleo Rust: sin cargo en este equipo, se omite (CI sí lo corre)"
+fi
 echo "== 5. esquema dorado"; gate esquema "$PY" tools/esquema_dorado.py --go nucleo/bin/nucleo-servidor
 echo "== 6. contrato dorado (dos motores, copia de la base)"
 puerto_libre() { "$PY" -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1]); s.close()'; }

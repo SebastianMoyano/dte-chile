@@ -31,7 +31,7 @@ Código y comentarios **en español**.
 | **Emitir por el gratuito del SII** (empresa en MiPyme, NC de anulación por el portal) | [`MIPYME.md`](MIPYME.md) → `core/sii_mipyme.py` |
 | **Volver a dibujar el PDF de un documento** (solo XML: emitidos por Go o importados) | `core/dte_xml.py` → `POST /api/v1/dte/documentos/{id}/pdf` |
 | **App de escritorio** (Go + Wails, motor como sidecar o empaquetado con PyInstaller, clave efímera) | [`APP.md`](APP.md) → `app/`, `motor.spec` |
-| **Portar el núcleo a Go/Rust** (plan por fases, criterios, riesgos) | [`PLAN-PORT.md`](PLAN-PORT.md) → `nucleo/` (Go; fases 1-4; `test_fase2.py`, `fase3_envio.py`, CI `.github/workflows/dorado.yml`) |
+| **Portar el núcleo a Go/Rust** (plan por fases, criterios, riesgos) | [`PLAN-PORT.md`](PLAN-PORT.md) → `nucleo/` (Go, fases 1-7) y `nucleo-rs/` (Rust, fase 8; `nucleo-rs/README.md`), CI `.github/workflows/dorado.yml` |
 | **Antes y después del port** (recursos, capacidad, qué ganamos y qué perdimos, medido) | [`COMPARACION-PYTHON-GO.md`](COMPARACION-PYTHON-GO.md) |
 | **RVD / consumo de folios de boletas en Go** (programador, catch-up, registro) | `nucleo/rvd/` + `nucleo/servidor/rvd.go` (`GET /api/v1/rvd/estado`, `POST /rvd/procesar`, `GET /rvd/registros/{rut}`); vector dorado `tests/dorado/rvd/` |
 | **Enviar boletas por el REST del SII desde Go** | `nucleo/sii/boleta.go` → `POST /api/v1/boletas/enviar`, `/boletas/estado` (solo Go; Python tenía el cliente sin ruta) |

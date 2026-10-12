@@ -1,0 +1,32 @@
+[package]
+name = "dtechile"
+version = "0.1.0"
+edition = "2021"
+description = "DTE Chile: el núcleo del motor de facturación electrónica para el SII, en Rust (fase 8 del port; bytes idénticos al corpus dorado)"
+license = "MIT"
+publish = false
+
+[lib]
+name = "dtechile"
+path = "src/lib.rs"
+
+[[bin]]
+name = "nucleo-dorado"
+path = "src/bin/nucleo-dorado.rs"
+
+[dependencies]
+rsa = { version = "0.9", features = ["sha1", "pem"] }
+sha1 = { version = "0.10", features = ["oid"] }
+base64 = "0.22"
+quick-xml = "0.37"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+x509-cert = { version = "0.2", features = ["pem"] }
+p12-keystore = "0.4"
+regex = "1"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true

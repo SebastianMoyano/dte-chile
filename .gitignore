@@ -52,3 +52,6 @@ dist/
 
 # capturas de la app para el README (sin datos reales: empresa de práctica)
 !docs/img/*.png
+
+# Rust (fase 8): artefactos de cargo
+nucleo-rs/target/

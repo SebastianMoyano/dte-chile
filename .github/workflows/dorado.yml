@@ -5,7 +5,7 @@ name: corpus dorado
 # Los mismos gates, en local y de una vez: ./tools/prueba_final.sh (con red) — aquí sin red.
 on:
   push:
-    paths: ["core/**", "api/**", "nucleo/**", "tests/dorado/**", "tools/**", "docs/**", "*.py", "*.md", "requirements.txt", ".github/workflows/dorado.yml"]
+    paths: ["core/**", "api/**", "nucleo/**", "nucleo-rs/**", "tests/dorado/**", "tools/**", "docs/**", "*.py", "*.md", "requirements.txt", ".github/workflows/dorado.yml"]
   pull_request:
 
 jobs:
@@ -28,6 +28,15 @@ jobs:
         run: go vet ./... && go test ./... && go build -o bin/nucleo-dorado ./cmd/nucleo-dorado && go build -o bin/nucleo-servidor ./cmd/nucleo-servidor
       - name: Go == esperado (port externo)
         run: python test_dorado.py --port nucleo/bin/nucleo-dorado
+      - uses: dtolnay/rust-toolchain@stable
+        with: { components: clippy }
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: nucleo-rs }
+      - name: Núcleo Rust (fase 8) — tests + clippy + build
+        working-directory: nucleo-rs
+        run: cargo test --quiet && cargo clippy --release --quiet -- -D warnings && cargo build --release --quiet
+      - name: Rust == esperado (port externo)
+        run: python test_dorado.py --port nucleo-rs/target/release/nucleo-dorado
       - name: Mundo de práctica (sin red)
         run: python test_simulacion.py
       - name: Esquema dorado (la base de Go == la de Python)

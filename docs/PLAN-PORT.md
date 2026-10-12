@@ -297,6 +297,16 @@ un servidor Rust equivalente (tokio, axum, reqwest, rustls, serde, rusqlite, Rus
 trae del orden de 100-150 crates transitivos: la biblioteca estándar de Rust es mínima a
 propósito, la de Go trae HTTP, TLS, criptografía, JSON, XML y SQL.
 
+#### Avance de la fase 8 (`nucleo-rs/`)
+
+| bloque | módulos | gate | estado |
+|---|---|---|---|
+| 1. núcleo puro | totales, ted, c14n, xmlgen, firma, `nucleo-dorado` | corpus dorado byte a byte (`test_dorado.py --port nucleo-rs/target/release/nucleo-dorado`), en `prueba_final.sh` (gates `rust_*`, `corpus_rust`) y en CI | **hecho 2026-10-12: 15/15 idénticos** a la primera corrida; dependencias puras Rust (sin OpenSSL) |
+| 2. XSD, PDF417, PDF | `xsd`, `pdf417`, `pdf` | vectores de paridad con lxml, vectores PDF417, PDF equivalente | pendiente |
+| 3. SII | `sii`, `siiengine`, `portal`, `rcv`, `rvd`, `certificacion` | paridad de cuerpos contra las evidencias | pendiente |
+| 4. servidor | `almacen`, `servidor`, `mcp`, `conectores`, binarios | esquema dorado, contrato dorado, prueba del MCP | pendiente |
+| 5. app | Tauri en vez de Wails | prueba de la app en carpeta vacía | pendiente |
+
 ## Riesgos y cómo se mitigan
 
 - **C14N distinta** entre lxml y la librería del port. Es el riesgo mayor. Mitigación: la fase
