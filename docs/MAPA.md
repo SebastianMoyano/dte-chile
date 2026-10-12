@@ -116,7 +116,7 @@ uvicorn main:app --reload --port 8000         # API (/docs, /redoc)
 | Timbraje de folios | ✅ automatizado (T34/T39/T41 libres; **T33 y T61 bloqueados** por anti-acaparamiento) |
 | Emisión de boletas | ✅ **cableada y en producción** (`core/orchestrator_boleta.py` + `core/sii_boleta.py`, folio 1 con `ACEPTADOS: 1` en el REST de boletas, 2026-07-22) |
 | RVD diario | ✅ se envía por `DTEUpload`/SOAP (`core/rvd.py::enviar_rvd`); **no es obligatorio en producción** desde 2022-08-01 (Res. Ex. SII 53/2022) |
-| RCV / F29 | ✅ RCV **verificado en vivo** (2026-10-04, Auxin, sesión por clave: ventas y compras cuadran con la propuesta del SII) · F29: API de propuesta mapeada, envío (GWT-RPC) pendiente |
+| RCV / F29 | ✅ RCV **verificado en vivo** (2026-10-04, la empresa del gratuito, sesión por clave: ventas y compras cuadran con la propuesta del SII) · F29: API de propuesta mapeada, envío (GWT-RPC) pendiente |
 | Certificación de facturas | 🔴 bloqueada: folios T33/T61 en anti-acaparamiento |
 | Certificación de boletas | ✅ **completa** — SOFTWARE DEMO SPA (78111111-2) autorizada en producción, emite boletas reales |
 | Canal MIPYME (gratuito por httpx) | ✅ lectura, importación (PDF+XML), firma central y **emisión** verificadas desde el repo (2026-10-08: factura 63 + NC 60 de anulación, `CADENAS_VERIFICADAS` = {34, 61}) · NC de corrección de montos, ND y boletas siguen con `--acepto-riesgo-folio` · **en Go**: `nucleo/siiengine` segmento 1 (sesión, historial, PDF, XML, importar) verificado en vivo 2026-10-08; emisión en Go y Rust con dry-run validado por el SII, a la espera de la primera corrida real que habilite `CadenasVerificadas` |

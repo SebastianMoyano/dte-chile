@@ -18,7 +18,7 @@ por HTTP en vez de a mano.
 | ambiente | certificación o producción | **solo producción** |
 | quién puede | empresa con software propio certificado | empresa en el gratuito para facturas |
 | transporte | SOAP `DTEUpload` | CGI legacy `www1.sii.cl/cgi-bin/Portal001/` |
-| evidencia | TrackID 253113966 → `ACEPTADOS: 1` | factura: T34 folio 59 (2026-09-06) y 62 (2026-10-08) sin reparos, **no emitidas por este repo** (herramienta Auxin / a mano) · lectura/importación: verificada desde este repo (Auxin, 46 documentos, 2026-09-07) · NC por httpx desde este repo: **FALLÓ** (2026-10-02, folio perdido) |
+| evidencia | TrackID 253113966 → `ACEPTADOS: 1` | factura: T34 folio 59 (2026-09-06) y 62 (2026-10-08) sin reparos, **no emitidas por este repo** (herramienta la empresa del gratuito / a mano) · lectura/importación: verificada desde este repo (la empresa del gratuito, 46 documentos, 2026-09-07) · NC por httpx desde este repo: **FALLÓ** (2026-10-02, folio perdido) |
 
 ## Para qué sirve
 
@@ -47,7 +47,7 @@ por HTTP en vez de a mano.
   desde la página PreViewDTE. Ir directo a `mipeGenXMLFirma` desde una sesión httpx limpia devuelve
   "No se pudo generar XML para firmar" (código 02.35.209.44…; 2026-10-08, sin folio perdido). La
   cadena de septiembre funcionó porque reutilizaba la sesión del navegador, que ya había
-  previsualizado (contrato de Auxin, §3). Un fallo en GenXMLFirma ahora también deja evidencia.
+  previsualizado (contrato de la empresa del gratuito, §3). Un fallo en GenXMLFirma ahora también deja evidencia.
 - **Una sesión por corrida, y cerrada de verdad.** `cerrar()` (el `with`) llama a
   `zeusr.sii.cl/cgi_AUT2000/autTermino.cgi` **siguiendo la redirección**; verificado 2026-10-08:
   tras cerrar, `mipeSelEmpresa` manda al login. El cierre anterior (`herculesr`, sin seguir el 302)
@@ -66,7 +66,7 @@ por HTTP en vez de a mano.
   tres casos GenXMLFirma y la firma central funcionaron y el envío final fue rechazado por el WAF
   (246 B). La evidencia del 61 está completa (`storage/mipyme_fallidos/…/T34_F61_…`). La causa era el
   cuerpo del envío (orden, duplicado, CRLF); con el envío calcado de la captura de la 62 el módulo
-  emitió solo la **factura 63** y la **NC 60** que la anula (prueba Auxin → Moyoli por $1.000,
+  emitió solo la **factura 63** y la **NC 60** que la anula (prueba la empresa del gratuito → la de software propio por $1.000,
   2026-10-08, BD id 118 y 119).
 - **Forma de pago: contado (1) por defecto** desde 2026-10-08. Las facturas de la primera prueba en
   vivo (septiembre 2026) salieron a crédito (2) porque ese era el default del CLI, no por decisión
@@ -124,11 +124,11 @@ de notas (56/61) NO reconstruye el body por schema: toma los campos del `<form n
 que devuelve `mipeGenXMLFirma` (`armar_send_xml_desde_form`), usa su `action`, pone la cookie
 `usa_firma_central`, usa `mipeGenXMLFirma.cgi` como Referer y respeta `ES_BORR`/`EFXP_FMA_PAGO`/
 `INDICA_PRIMERA_EJECUCION` tal como vienen del portal. Es lo que hace la implementación que SÍ
-emitió la NC 56 (repo Auxin, `app/sii/service_http.py`). **Esa rama nueva no se ha vuelto a
+emitió la NC 56 (repo de la empresa del gratuito, `app/sii/service_http.py`). **Esa rama nueva no se ha vuelto a
 correr.** Las facturas siguen con la reconstrucción por schema (`armar_send_xml`).
 
 **NC para CORREGIR MONTOS (código 3) — cadena real capturada el 2026-10-04** (extensión Captura SII,
-NC 59 de Auxin emitida con éxito en el navegador; replicada en `preparar_nc_correccion_montos()`):
+NC 59 de la empresa del gratuito emitida con éxito en el navegador; replicada en `preparar_nc_correccion_montos()`):
 
 ```
 GET  mipeGenFacEx.cgi?IGUAL=CORR_MNT&VALOR=<DHDR>&PTDC_CODIGO=61      form editable (39 inputs + JS)
@@ -163,10 +163,10 @@ todavía; `emitir()` la trataría como nota (frmSign) si alguien arma el payload
   TPO_DOC, ESTADO, ORDEN, NUM_PAG` (paginado, "Página N de M", hasta `pag_max=20` páginas). Cada
   fila trae el enlace `mipeGesDocEmi.cgi?CODIGO=<DHDR>` y las celdas `[RUT receptor, razón social,
   tipo (texto), folio, fecha, monto, estado]`. `ClienteMipyme.listar_emitidos()` + `parsear_listado()`.
-  **Verificado desde este repo** (2026-09-07, Auxin: 46 documentos importados con PDF).
+  **Verificado desde este repo** (2026-09-07, la empresa del gratuito: 46 documentos importados con PDF).
   ⚠️ El `monto` del listado es la LÍNEA, no el total firmado (factura 57: 3.270.323 vs 3.068.005).
 - **PDF**: `mipeDisplayPDF.cgi?DHDR_CODIGO=<id>`. `descargar_pdf()`. Verificado desde este repo
-  (los 46 PDF de Auxin) y por el tool externo.
+  (los 46 PDF de la empresa del gratuito) y por el tool externo.
 - **Importar al motor**: `importar_emitidos()` mete cada documento en `dtes` (canal MIPYME,
   estado `emitido_mipyme`, DHDR en `track_id`, idempotente por rut/tipo/folio) y guarda el PDF en
   `storage/pdfs/mipyme/<rut>/`. Endpoint `POST /api/v1/mipyme/importar`; botón **Importar
@@ -199,14 +199,14 @@ Envío" (`mipeGenDLNewEnvio.cgi`: el XML de un documento emitido, pide la clave)
   usuario los llena a mano; el módulo pone la ciudad del receptor y deja la de origen como venga.
   "Corregir" desde la vista previa reenvía los 243 campos a `mipeGenFacEx.cgi`.
 - **RCV (`core/rcv.py`) verificado en vivo desde el repo** con la sesión por clave tributaria:
-  ventas y compras de Auxin 2026-09 coinciden con el portal y con la propuesta F29 del SII.
+  ventas y compras de la empresa del gratuito 2026-09 coinciden con el portal y con la propuesta F29 del SII.
   Contrato real: `conversationId` = cookie `CSESSIONID`, `transactionId` uuid, Export con
   `accionRecaptcha` (`RCV_DDETV` ventas / `RCV_DDETC` compras) y `tokenRecaptcha="t-o-k-e-n-web"`
   (placeholder, no hay reCAPTCHA), `estadoContab` vacío en ventas y `REGISTRO` en compras; la
   respuesta es CSV con `;` dentro de `data`. `getResumen` da totales por tipo.
 - **F29 (app `propuestaf29ui` + formulario GWT `rfiInternet`)**: API JSON con el mismo sobre
   `metaData/data`. `getDeclaracionConCondicionesYTipoPropuesta` entrega la propuesta del SII con
-  códigos (Auxin 2026-09: 142=6.136.010, 511/520=10.627, 586=4, 563=6.136.010, 115=1), es decir,
+  códigos (la empresa del gratuito 2026-09: 142=6.136.010, 511/520=10.627, 586=4, 563=6.136.010, 115=1), es decir,
   **la propuesta de septiembre lleva 6.136.010 en exentas** (la corrección ND 1 + NC 59 cae en
   octubre: +202.318). `PPTA_HABILITAR_SMOV:N` → el "sin movimiento" no está en la app de
   propuesta; vive en el formulario GWT, que habla GWT-RPC (`formularioFacade`, payloads `7|0|…`).
@@ -269,7 +269,7 @@ en `track_id` va el **`DHDR_CODIGO`** (el id que el portal usa para el PDF y par
 ## Pendiente / no verificado
 
 - **Factura exenta y NC de anulación: VERIFICADAS** (2026-10-08, factura 63 y NC 60, prueba
-  Auxin → Moyoli por $1.000, emitidas por `emitir_mipyme.py` sin navegador). La **NC de corrección
+  la empresa del gratuito → la de software propio por $1.000, emitidas por `emitir_mipyme.py` sin navegador). La **NC de corrección
   de montos** (`--corregir-dhdr`, otro form de 60 campos) solo está verificada en seco contra la
   captura de la NC 59: la próxima real es la prueba, con `--acepto-riesgo-folio`.
 - **Nota de débito (T56)**: form capturado, sin `preparar_nota_debito`; la ND 1 se emitió a mano.

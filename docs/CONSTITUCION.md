@@ -164,7 +164,7 @@ El código se publica bajo licencia MIT en GitHub. Lo que se commitea lo lee cua
   del proyecto** y en `storage/` (PDF, XML, base, evidencias), que están fuera de git y así deben
   seguir. `storage/` y `.env` están en `.gitignore`: **no se quitan de ahí**.
 - Antes de cada commit: `grep` de RUT y nombres reales sobre lo que va a entrar. Costó una
-  limpieza de 5 archivos (2026-10-04) escritos con datos del cliente de Auxin en los tests.
+  limpieza de 5 archivos (2026-10-04) escritos con datos del cliente de la empresa del gratuito en los tests.
 - Las capturas de la extensión `tools/captura-sii` tachan claves y omiten cookies, pero traen
   RUT y razones sociales: se guardan en `storage/`, no en el repo.
 

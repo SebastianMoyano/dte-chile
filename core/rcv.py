@@ -64,7 +64,7 @@ RCV_METODOS = {
 RCV_ENDPOINTS = {op: RCV_BASE + metodo for op, metodo in RCV_METODOS.items()}
 RCV_ENDPOINTS["resumen"] = RCV_BASE + "getResumen"
 
-# Contrato REAL capturado del navegador (extensión Captura SII, 2026-10-04, Auxin):
+# Contrato REAL capturado del navegador (extensión Captura SII, 2026-10-04, la empresa del gratuito):
 #   - el detalle "Export" exige `accionRecaptcha` + `tokenRecaptcha`; el cliente web manda el
 #     placeholder "t-o-k-e-n-web" (no hay reCAPTCHA real) y `estadoContab` VACÍO;
 #   - `metaData.conversationId` = cookie CSESSIONID/TOKEN de la sesión; `transactionId` = uuid;

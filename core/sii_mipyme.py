@@ -40,7 +40,7 @@ Estado de verificación DESDE ESTE REPO (`CADENAS_VERIFICADAS` sigue vacía; det
     comparación fiel contra el envío real del navegador (factura 62, a mano) mostró solo
     diferencias de forma, ya corregidas: orden ASCII de los campos, el input duplicado
     `EFXP_FMA_PAGO`, saltos CRLF en los XML. Sin corrida real después de esa corrección.
-  - Las facturas 48/57/59 de septiembre y la NC 56 salieron de la herramienta del repo Auxin
+  - Las facturas 48/57/59 de septiembre y la NC 56 salieron de la herramienta del repo de la empresa del gratuito
     (sesión del navegador), no de aquí. La NC 59 y la ND 1 se emitieron a mano en el portal.
 
 Dos claves distintas (Ley L6: son credenciales, nunca a logs ni a disco en claro):
@@ -111,7 +111,7 @@ def preparar_dato_firma(xml: str) -> str:
 # factura 63 y la NC 60 que la anuló. Emitir un tipo que NO esté aquí (p. ej. la nota de débito 56
 # o la NC de corrección de montos, que es otro form) exige `aceptar_riesgo_folio=True`.
 CADENAS_VERIFICADAS: dict = {
-    TIPO_FACTURA_EXENTA: "factura 63 del 2026-10-08, DHDR 2881744181 (prueba Auxin → Moyoli, $1.000; "
+    TIPO_FACTURA_EXENTA: "factura 63 del 2026-10-08, DHDR 2881744181 (prueba la empresa del gratuito → la de software propio, $1.000; "
                          "BD id 118); cadena DisplayPreView → PreView → GenXMLFirma → SendXML",
     TIPO_NOTA_CREDITO: "NC 60 del 2026-10-08, DHDR 2881747811, anula (código 1) la factura 63 "
                        "(BD id 119); misma cadena vía preparar_nc_anulacion",
@@ -398,7 +398,7 @@ def extraer_xml_dte(html: str) -> Optional[str]:
 def extraer_form_firma(html: str) -> Optional[dict]:
     """El `<form name="frmSign">` que `mipeGenXMLFirma` devuelve: `{"action": ..., "campos": {...}}`.
     Es lo que el navegador envía a `mipeSendXML` (más txtSignText y los datos de firma). La
-    implementación que SÍ emitió una NC por httpx (app/sii/service_http.py del repo Auxin,
+    implementación que SÍ emitió una NC por httpx (app/sii/service_http.py del repo de la empresa del gratuito,
     port de un Apps Script) manda ESTOS campos, no una reconstrucción del schema."""
     for m in re.finditer(r"<form\b([^>]*)>([\s\S]*?)</form>", html, re.I):
         attrs, inner = m.group(1), m.group(2)
@@ -427,7 +427,7 @@ def extraer_form_firma(html: str) -> Optional[dict]:
 
 
 def parsear_respuesta_firma(cruda: str) -> Tuple[int, str]:
-    """`postFirmaDigital` responde en más de un formato (port del repo Auxin, que sí emitió):
+    """`postFirmaDigital` responde en más de un formato (port del repo de la empresa del gratuito, que sí emitió):
     JSON `{"status"|"statusCode": n, "text": "<xml firmado>"}` (a veces con prefijo anti-JSON
     `while(1);`), un objeto estilo JS, o el XML firmado directo. Devuelve `(status, xml)`;
     status 0 = OK, 2 + "clave no corresponde" = clave del certificado incorrecta.
@@ -924,7 +924,7 @@ class ClienteMipyme:
         (`mipeDisplayPreView`, 54 campos, como el navegador) y arma el payload desde la página
         PreViewDTE que devuelve. NO gasta folio: el folio se asigna recién en GenXMLFirma.
 
-        Por qué el paso previo: la cadena verificada en septiembre (contrato de Auxin) fue
+        Por qué el paso previo: la cadena verificada en septiembre (contrato de la empresa del gratuito) fue
         PreView → DisplayPreView → GenXMLFirma; la sesión del navegador ya traía la
         previsualización hecha. Ir directo a GenXMLFirma desde una sesión httpx limpia devuelve
         "No se pudo generar XML para firmar" (2026-10-08). Mismo esquema que
@@ -1024,7 +1024,7 @@ class ClienteMipyme:
                                       receptor: ReceptorMipyme, items: Sequence[ItemMipyme],
                                       fecha: Optional[str] = None, verificar_monto: bool = True) -> PayloadMipyme:
         """NC (T61) para CORREGIR MONTOS del documento `dhdr` (código de referencia 3). Replica el
-        flujo real capturado el 2026-10-04 (NC 59 de Auxin, emitida con éxito en el navegador):
+        flujo real capturado el 2026-10-04 (NC 59 de la empresa del gratuito, emitida con éxito en el navegador):
         GET del form `IGUAL=CORR_MNT` → POST "Validar y visualizar" a `mipeDisplayPreView.cgi` con
         los 60 campos exactos → página PreViewDTE (243 campos) → de ahí `emitir()` sigue igual que
         el navegador (GenXMLFirma → firma central → frmSign → mipeSendXML).

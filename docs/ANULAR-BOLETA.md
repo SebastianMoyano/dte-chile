@@ -2,7 +2,7 @@
 
 > **Por qué existe este documento**: el SII tiene esta información **dispersa** entre FAQs,
 > guías, alerts de JavaScript y manuales de 2003. Acá está consolidado y **verificado en vivo**
-> (2026-07, RUT Moyoli Tech 77777777-7) para que no haya que reconstruirlo cada vez.
+> (2026-07, RUT de la empresa con software propio 77777777-7) para que no haya que reconstruirlo cada vez.
 
 ---
 
@@ -124,8 +124,8 @@ Para una NC de anulación, la NC repite los montos de la boleta original con `Co
 ## Si aun así te rebota
 
 ⚠️ **Verificado en vivo (2026-07): este bloqueo se reproduce en DOS empresas distintas con la
-misma persona** — una con software propio (Moyoli Tech) y otra que usa el sistema gratuito del
-SII (Auxin). Falla idéntico en ambas, sin importar cómo se emitió la boleta. **Eso descarta que
+misma persona** — una con software propio (la empresa con software propio) y otra que usa el sistema gratuito del
+SII (la empresa del gratuito). Falla idéntico en ambas, sin importar cómo se emitió la boleta. **Eso descarta que
 sea por el software propio, por nuestro motor, o por el setup de una empresa puntual.** El común
 denominador es la **persona que inicia sesión**: el SII no la reconoce como autorizada para
 *esa* opción MIPYME.
@@ -178,7 +178,7 @@ usuario gratuito.
 
 ## Fuentes
 
-- **Verificación en vivo** contra el SII (2026-07, Moyoli Tech): autorización de tipos vía
+- **Verificación en vivo** contra el SII (2026-07, la empresa con software propio): autorización de tipos vía
   `ee_empresa_rut`, asociación MIPYME vía `mipeSelEmpresa.cgi`, alert real de
   `mipeSelEmpresaBol.cgi`. Ver [`LECCIONES-SII.md`](LECCIONES-SII.md).
 - **Resolución Ex. SII N° 74 de 02.07.2020** (rige la boleta electrónica): la anulación por NC

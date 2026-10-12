@@ -405,7 +405,7 @@ cualquier ruta, incluso inventada.
 > empresas que están en el gratuito para facturas (el motor no puede timbrarles CAF) y para la
 > **NC de anulación de boletas** que [`ANULAR-BOLETA.md`](ANULAR-BOLETA.md) manda hacer por el
 > portal. **Solo existe en producción**: cada corrida es un documento real y **gasta un folio**.
-> Las facturas de septiembre y la NC 56 salieron de la herramienta del repo Auxin **reutilizando la
+> Las facturas de septiembre y la NC 56 salieron de la herramienta del repo de la empresa del gratuito **reutilizando la
 > sesión del navegador**; la NC 59, la ND 1 y la factura 62 se emitieron **a mano** en el portal.
 > **Desde este repo**: lectura, importación (PDF + XML), firma central y **emisión** verificadas.
 > La emisión costó tres folios en `mipeSendXML` (57, 58 y 61) hasta calcar el envío de la captura
@@ -471,7 +471,7 @@ el mismo tamaño que devuelve a cualquier URL inexistente). Folio gastado, sin d
 descartaron con cuerpos falsos contra `mipeSendXML` (el SII los rechaza sin crear nada, no gastan
 folio): la descripción larga, el `°`, la clave del certificado. La causa quedó sin ver porque no se
 guardó la respuesta. **Lo que faltó fue leer antes la implementación que SÍ emitió la NC 56**
-(repo Auxin, `app/sii/service_http.py`): manda a `mipeSendXML` los campos del `frmSign` que
+(repo de la empresa del gratuito, `app/sii/service_http.py`): manda a `mipeSendXML` los campos del `frmSign` que
 devuelve la página de firma, con la cookie `usa_firma_central` y el referer de `mipeGenXMLFirma`,
 no una reconstrucción del schema. Es L10 otra vez. Gates agregados: `CADENAS_VERIFICADAS` (emitir
 un tipo no verificado exige `aceptar_riesgo_folio`), evidencia saneada en `storage/mipyme_fallidos/`
@@ -501,7 +501,7 @@ de `<textarea>`). El módulo mandaba otro orden y LF; para facturas además reco
 desde el schema. Corregido (`armar_send_xml_desde_form`, único camino para todos los tipos) y
 verificado en seco (secuencia de 250 campos idéntica a la del navegador) y luego **en real, el
 mismo día: factura 63 (DHDR 2881744181) y la NC 60 que la anula (DHDR 2881747811), prueba
-Auxin → Moyoli por $1.000**. Primera emisión completa desde este repo; `CADENAS_VERIFICADAS` ya
+la empresa del gratuito → la de software propio por $1.000**. Primera emisión completa desde este repo; `CADENAS_VERIFICADAS` ya
 tiene 34 y 61.
 Dos lecciones más del mismo día: el `cerrar()` del módulo no cerraba la sesión (herculesr sin
 seguir el 302) y cada corrida dejaba una viva ~2 h hasta el tope por RUT; y el comparador leía la
@@ -520,7 +520,7 @@ VERSION: v20190409 -->` antes de `<Documento`; POST a `postFirmaDigital` (jQuery
 `nodo=dte:DTE`, `nodoId=dte:Documento`, `nameSpace`; la respuesta cruda va a `txtSignText`;
 inserta hidden `nombre/clave/nodo/nodoId/nameSpace` **antes de `txtPlainText`** y hace
 `frmSign.submit()` (TMST_SIGN intacto). El módulo replica esto para notas desde 2026-10-02.
-**No todo lo del repo Auxin funcionó**: los intentos Python de abril acabaron en "Firma no
+**No todo lo del repo de la empresa del gratuito funcionó**: los intentos Python de abril acabaron en "Firma no
 reconocida"; el Apps Script (`_external_assets/gas-dashboard/Code.gs`) parsea `postFirmaDigital`
 como JSON `{statusCode,text}` y manda `frmSign` sin tocar `TMST_SIGN`.
 **Firma central VERIFICADA desde este repo (2026-10-04, flujo "Obtener Envío", sin folio).** Capturado
@@ -545,7 +545,7 @@ negocio "57 ya tiene NC" quedó descartada en la práctica: el portal aceptó un
 próxima nota real emitida por el módulo (ahora `preparar_dato_firma` pone el comentario).
 
 ⚠️ No verificado: la NC de **boletas** (`mipeSelEmpresaBol.cgi`, con la especificidad descrita en
-`ANULAR-BOLETA.md`) no está ni cableada. La NC de factura por httpx la logró el repo Auxin; desde
+`ANULAR-BOLETA.md`) no está ni cableada. La NC de factura por httpx la logró el repo de la empresa del gratuito; desde
 este repo todavía no (ver arriba).
 
 ---
