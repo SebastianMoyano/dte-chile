@@ -290,8 +290,8 @@ vistas.cobrar = async (el) => {
         <p class="mut" id="c_uf_nota"></p>
       </details>
       <div class="totales"><div><span>Neto</span><b id="t_neto">—</b></div><div><span>IVA 19%</span><b id="t_iva">—</b></div><div><span>Total</span><b id="t_total">—</b></div></div>
-      <div class="row" style="align-items:center;margin-top:14px"><p class="mut" id="c_tipo" style="margin:0"></p><button id="c_btn" style="margin:0;flex:none" onclick="emitir()">Revisar y emitir</button></div>
-      <p class="mut">El total es lo que paga la persona. El IVA (19%) no es tuyo: lo cobras y después se lo pasas al Estado. Lo tuyo es el neto.</p>
+      <p class="mut" style="margin-top:10px">El total es lo que paga la persona. El IVA (19%) no es tuyo: lo cobras y después se lo pasas al Estado. Lo tuyo es el neto.</p>
+      <div class="accion-fija"><p class="mut" id="c_tipo" style="margin:0"></p><button id="c_btn" style="margin:0;flex:none" onclick="emitir()">Revisar y emitir</button></div>
       <div id="c_aviso"></div>
     </div>`;
   const rec = () => {

@@ -117,7 +117,7 @@ h1 { font-size:1.9rem; letter-spacing:-.025em; margin:0 0 4px; text-shadow:0 2px
 h2 { font-size:1.15rem; margin:24px 0 8px; } h3 { font-size:1rem; margin:0 0 6px; }
 .sub { color:var(--mut); margin:0 0 22px; font-size:.98rem; max-width:62ch; }
 
-.dock { position:fixed; left:50%; bottom:18px; transform:translateX(-50%); z-index:6; display:flex; align-items:center; gap:4px; padding:8px;
+.dock { position:fixed; left:50%; bottom:18px; transform:translateX(-50%); z-index:3; display:flex; align-items:center; gap:4px; padding:8px;
   border-radius:24px; background:var(--vidrio-2); border:1px solid var(--bd-2); backdrop-filter:var(--blur); box-shadow:var(--sh-2); }
 .dock a { display:flex; flex-direction:column; align-items:center; gap:4px; min-width:84px; padding:8px 10px 7px; border-radius:16px; color:var(--mut); text-decoration:none; position:relative;
   transition:background .12s, transform .12s; }
@@ -254,6 +254,11 @@ iframe { background:#fff; }
 .lista-check { list-style:none; padding:0; margin:10px 0 0; display:flex; flex-direction:column; gap:8px; }
 .lista-check li { display:flex; gap:10px; align-items:flex-start; padding:10px 12px; background:var(--vidrio); border-radius:var(--r-sm); font-size:.92rem; }
 .lista-check li input { width:auto; margin-top:3px; accent-color:var(--inv-bg); }
+/* la acción principal de un formulario: siempre visible, por encima del dock, en la zona derecha
+   que el dock no cubre; "sticky" para que no haya que bajar a buscarla */
+.accion-fija { position:sticky; bottom:96px; z-index:4; display:flex; align-items:center; justify-content:flex-end; gap:14px; margin-top:14px; padding:8px 0; }
+.accion-fija button { box-shadow:0 14px 30px -12px rgba(0,0,0,.6); }
+@media (max-width:1180px) { .accion-fija { bottom:16px; } }
 /* elección de tema en Ajustes */
 .segmento { display:inline-flex; gap:2px; padding:3px; background:var(--vidrio); border:1px solid var(--bd); border-radius:99px; }
 .segmento button { margin:0; padding:7px 16px; background:transparent; color:var(--mut); box-shadow:none; font-size:.9rem; }
