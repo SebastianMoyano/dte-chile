@@ -1,6 +1,12 @@
-# 🧾 Faro — facturación electrónica para el SII, libre y para aprender
+# 🧾 Faro DTE — boleta y factura electrónica gratis para el SII de Chile
+
+**Faro** es un programa libre (MIT) para **emitir boletas y facturas electrónicas en Chile** sin
+pagar un proveedor: una app de escritorio pensada para aprender con una empresa de práctica y
+después emitir de verdad con tu certificado digital, más un motor que corre en tu computador o
+en tu servidor y un servidor MCP para que tu asistente de IA opere la facturación.
 
 > Antes se llamaba **DTE Chile**. El motor, los binarios y la API conservan sus nombres internos.
+> Repositorio: [github.com/SebastianMoyano/faro-dte](https://github.com/SebastianMoyano/faro-dte).
 
 **Un programa que emite boletas y facturas electrónicas directo con el SII de Chile**, desde
 tu computador o tu servidor, sin pagar un proveedor. Tú pones tu certificado digital; él asigna
