@@ -25,6 +25,9 @@ x509-cert = { version = "0.2", features = ["pem"] }
 p12-keystore = "0.4"
 regex = "1"
 
+[dev-dependencies]
+flate2 = "1"
+
 [profile.release]
 opt-level = 3
 lto = true
