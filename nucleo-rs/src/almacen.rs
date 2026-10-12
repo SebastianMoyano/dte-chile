@@ -122,15 +122,71 @@ fn ahora_local() -> (i64, u32, u32, u32, u32, u32, u32) {
     )
 }
 
-/// Desfase local respecto de UTC, leído de `TZ`/localtime vía libc no está disponible sin
-/// dependencias: se usa la variable `DTE_TZ_OFFSET_MIN` si existe, y si no UTC. Las marcas de
-/// la base son informativas (creado_en), no participan en firmas.
-fn desfase_local_segundos() -> i64 {
-    std::env::var("DTE_TZ_OFFSET_MIN")
+/// Desfase local respecto de UTC: `localtime_r` de libc (sin dependencias; es lo que usan
+/// `time.Now()` en Go y `datetime.now()` en Python). Donde no haya libc (Windows), la
+/// variable `DTE_TZ_OFFSET_MIN` o UTC.
+pub fn desfase_local_segundos() -> i64 {
+    if let Some(v) = std::env::var("DTE_TZ_OFFSET_MIN")
         .ok()
         .and_then(|v| v.parse::<i64>().ok())
-        .unwrap_or(0)
-        * 60
+    {
+        return v * 60;
+    }
+    desfase_libc().unwrap_or(0)
+}
+
+#[cfg(unix)]
+fn desfase_libc() -> Option<i64> {
+    #[repr(C)]
+    struct Tm {
+        tm_sec: i32,
+        tm_min: i32,
+        tm_hour: i32,
+        tm_mday: i32,
+        tm_mon: i32,
+        tm_year: i32,
+        tm_wday: i32,
+        tm_yday: i32,
+        tm_isdst: i32,
+        tm_gmtoff: std::ffi::c_long,
+        tm_zone: *const std::ffi::c_char,
+    }
+    extern "C" {
+        fn tzset();
+        fn localtime_r(t: *const i64, tm: *mut Tm) -> *mut Tm;
+    }
+    let ahora = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .ok()?
+        .as_secs() as i64;
+    let mut tm = Tm {
+        tm_sec: 0,
+        tm_min: 0,
+        tm_hour: 0,
+        tm_mday: 0,
+        tm_mon: 0,
+        tm_year: 0,
+        tm_wday: 0,
+        tm_yday: 0,
+        tm_isdst: 0,
+        tm_gmtoff: 0,
+        tm_zone: std::ptr::null(),
+    };
+    // SAFETY: `localtime_r` escribe solo en `tm`, un struct con la disposición de `struct tm`
+    // en macOS y Linux (nueve enteros, el desfase y el nombre de la zona).
+    let r = unsafe {
+        tzset();
+        localtime_r(&ahora, &mut tm)
+    };
+    if r.is_null() {
+        return None;
+    }
+    Some(tm.tm_gmtoff as i64)
+}
+
+#[cfg(not(unix))]
+fn desfase_libc() -> Option<i64> {
+    None
 }
 
 pub fn civil_desde_dias(z: i64) -> (i64, u32, u32) {

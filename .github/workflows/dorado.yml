@@ -37,6 +37,8 @@ jobs:
         run: cargo test --quiet && cargo clippy --release --quiet -- -D warnings && cargo build --release --quiet
       - name: Rust == esperado (port externo)
         run: python test_dorado.py --port nucleo-rs/target/release/nucleo-dorado
+      - name: Esquema dorado (la base de Rust == la de Python)
+        run: python tools/esquema_dorado.py --go nucleo-rs/target/release/nucleo-servidor
       - name: Mundo de práctica (sin red)
         run: python test_simulacion.py
       - name: Esquema dorado (la base de Go == la de Python)
@@ -51,3 +53,12 @@ jobs:
           nucleo/bin/nucleo-servidor servir --puerto 8010 --motor http://127.0.0.1:8771 >go.log 2>&1 &
           for i in $(seq 1 60); do curl -sf http://127.0.0.1:8771/ >/dev/null && curl -sf http://127.0.0.1:8010/ >/dev/null && break; sleep 1; done
           python tools/contrato_api.py --python http://127.0.0.1:8771 --go http://127.0.0.1:8010 --escenario todos --sin-red
+      - name: Contrato dorado (Python vs Rust, sin red) + MCP Rust por stdio
+        env:
+          APP_SHELL_KEY: ci-${{ github.run_id }}-${{ github.sha }}
+          RVD_SCHEDULER_ACTIVO: "false"
+        run: |
+          nucleo-rs/target/release/nucleo-servidor servir --puerto 8012 --motor http://127.0.0.1:8771 >rs.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:8012/ >/dev/null && break; sleep 1; done
+          python tools/contrato_api.py --python http://127.0.0.1:8771 --go http://127.0.0.1:8012 --escenario todos --sin-red
+          printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | nucleo-rs/target/release/nucleo-mcp --env /dev/null --db /tmp/mcp-rs.db | grep -q '"name":"emitir_dte"'

@@ -21,6 +21,7 @@ pub const NS_XSI: &str = "http://www.w3.org/2001/XMLSchema-instance";
 pub const NS_SII: &str = "http://www.sii.cl/SiiDte";
 pub const RUT_SII: &str = "60803000-K";
 
+#[derive(Clone)]
 pub struct Certificado {
     pub clave: RsaPrivateKey,
     /// El certificado X.509 en DER, tal cual (va en `<X509Certificate>`).
@@ -106,7 +107,79 @@ fn tlv(b: &[u8]) -> Option<(u8, &[u8], &[u8])> {
     Some((tag, &b[ini..ini + len], &b[ini + len..]))
 }
 
+/// PEM de un DER con el formato de `encoding/pem` de Go y de `cryptography`: líneas de 64.
+pub fn pem(tipo: &str, der: &[u8]) -> String {
+    let b = b64(der);
+    let mut out = format!("-----BEGIN {tipo}-----\n");
+    for ch in b.as_bytes().chunks(64) {
+        out.push_str(std::str::from_utf8(ch).unwrap_or(""));
+        out.push('\n');
+    }
+    out.push_str(&format!("-----END {tipo}-----\n"));
+    out
+}
+
+fn fecha_x509(t: &x509_cert::time::Time) -> String {
+    let d = t
+        .to_system_time()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs() as i64;
+    let dias = d.div_euclid(86400);
+    let s = d.rem_euclid(86400);
+    let (a, m, dd) = crate::almacen::civil_desde_dias(dias);
+    format!(
+        "{a:04}-{m:02}-{dd:02}T{:02}:{:02}:{:02}",
+        s / 3600,
+        (s % 3600) / 60,
+        s % 60
+    )
+}
+
 impl Certificado {
+    /// Arma el certificado desde la clave y el DER (certificado autofirmado de la práctica).
+    pub fn desde_der(clave: RsaPrivateKey, cert_der: Vec<u8>) -> Result<Certificado, String> {
+        let cert = CertX509::from_der(&cert_der).map_err(|e| format!("certificado: {e}"))?;
+        Ok(Certificado {
+            clave,
+            cert_der,
+            cert,
+        })
+    }
+
+    /// `NotAfter` en UTC: "YYYY-MM-DDTHH:MM:SS".
+    pub fn not_after(&self) -> String {
+        fecha_x509(&self.cert.tbs_certificate.validity.not_after)
+    }
+
+    pub fn not_before(&self) -> String {
+        fecha_x509(&self.cert.tbs_certificate.validity.not_before)
+    }
+
+    pub fn subject(&self) -> String {
+        self.cert.tbs_certificate.subject.to_string()
+    }
+
+    pub fn issuer(&self) -> String {
+        self.cert.tbs_certificate.issuer.to_string()
+    }
+
+    /// El certificado en PEM (`CERTIFICATE`).
+    pub fn cert_pem(&self) -> String {
+        pem("CERTIFICATE", &self.cert_der)
+    }
+
+    /// La clave en PEM PKCS#1 (`RSA PRIVATE KEY`), como `x509.MarshalPKCS1PrivateKey` y
+    /// `TraditionalOpenSSL` de cryptography.
+    pub fn key_pem(&self) -> Result<String, String> {
+        use rsa::pkcs1::EncodeRsaPrivateKey;
+        let der = self
+            .clave
+            .to_pkcs1_der()
+            .map_err(|e| format!("clave PKCS#1: {e}"))?;
+        Ok(pem("RSA PRIVATE KEY", der.as_bytes()))
+    }
+
     /// `CertificadoDigital.rut_emisor`: primero el CN, luego el SAN con el OID chileno.
     pub fn rut_emisor(&self) -> Result<String, String> {
         for rdn in self.cert.tbs_certificate.subject.0.iter() {
@@ -285,4 +358,26 @@ fn envolver64(b64: &str) -> String {
         .map(|c| std::str::from_utf8(c).expect("base64 es ASCII"))
         .collect();
     format!("\n{}\n", partes.join("\n"))
+}
+
+#[cfg(test)]
+mod tests_pem {
+    use super::*;
+
+    /// El PEM del keystore debe ser byte a byte el de Python (contrato `contexto`): el
+    /// certificado y la clave del corpus dorado tienen sus PEM como fixtures.
+    #[test]
+    fn pem_identico_a_python() {
+        let raiz =
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/dorado/fixtures");
+        let Ok(p12) = std::fs::read(raiz.join("cert_demo.p12")) else {
+            return;
+        };
+        let c = cargar_p12(&p12, "demo").unwrap();
+        let cert_pem = std::fs::read_to_string(raiz.join("cert_demo.cert.pem")).unwrap();
+        let key_pem = std::fs::read_to_string(raiz.join("cert_demo.key.pem")).unwrap();
+        assert_eq!(c.cert_pem(), cert_pem);
+        assert_eq!(c.key_pem().unwrap(), key_pem);
+        assert_eq!(c.not_after().len(), 19);
+    }
 }

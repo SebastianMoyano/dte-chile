@@ -14,6 +14,8 @@
 #   6. contrato dorado: los dos motores sobre una COPIA de la base     tools/contrato_api.py todos
 #   6b. el MCP en Go por stdio (tools/list y salud sobre una base vacía)
 #   7. la app: vet + test (el motor Go en proceso sobre una carpeta de datos vacía) [+ wails build]
+#   8. motor Rust (fase 8, si hay cargo): esquema dorado + contrato dorado (Python vs Rust) + MCP por
+#      stdio: el servidor Rust responde lo mismo que Python en las 94 rutas
 # Sale 0 solo si TODO pasa. Nada toca la base real: el contrato corre sobre una copia temporal.
 set -u
 cd "$(dirname "$0")/.."
@@ -43,7 +45,7 @@ gate corpus_go "$PY" test_dorado.py --port nucleo/bin/nucleo-dorado
 if command -v cargo >/dev/null 2>&1; then
   echo "== 4b. núcleo Rust (fase 8): tests + clippy + corpus"
   gate rust_test bash -c 'cd nucleo-rs && cargo test --quiet 2>&1 | tail -3'
-  gate rust_clippy bash -c 'cd nucleo-rs && cargo clippy --release --quiet -- -D warnings'
+  gate rust_clippy bash -c 'cd nucleo-rs && cargo clippy --release --all-targets --quiet -- -D warnings'
   gate rust_build bash -c 'cd nucleo-rs && cargo build --release --quiet'
   gate corpus_rust "$PY" test_dorado.py --port nucleo-rs/target/release/nucleo-dorado
 else
@@ -52,7 +54,8 @@ fi
 echo "== 5. esquema dorado"; gate esquema "$PY" tools/esquema_dorado.py --go nucleo/bin/nucleo-servidor
 echo "== 6. contrato dorado (dos motores, copia de la base)"
 puerto_libre() { "$PY" -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1]); s.close()'; }
-contrato() {
+contrato() { # contrato <binario del motor portado>  (Go o Rust: el mismo contrato contra Python)
+  local BIN="${1:-nucleo/bin/nucleo-servidor}"
   cp dte_database.db "$TMP/db.sqlite" && mkdir -p "$TMP/storage"
   local K; K="$(openssl rand -hex 16)"
   # puertos libres, no fijos: un servidor ajeno en el puerto de siempre hacía fallar el gate con 404 en todo
@@ -60,7 +63,7 @@ contrato() {
   APP_SHELL_KEY=$K DATABASE_URL="sqlite:///$TMP/db.sqlite" STORAGE_PATH="$TMP/storage" RVD_SCHEDULER_ACTIVO=false \
     "$PY" -m uvicorn main:app --port "$PPY" >"$TMP/py.log" 2>&1 & echo $! >"$TMP/py.pid"
   APP_SHELL_KEY=$K DATABASE_URL="sqlite:///$TMP/db.sqlite" STORAGE_PATH="$TMP/storage" RVD_SCHEDULER_ACTIVO=false \
-    nucleo/bin/nucleo-servidor servir --puerto "$PGO" --db "$TMP/db.sqlite" --motor "http://127.0.0.1:$PPY" >"$TMP/go.log" 2>&1 & echo $! >"$TMP/go.pid"
+    "$BIN" servir --puerto "$PGO" --db "$TMP/db.sqlite" --motor "http://127.0.0.1:$PPY" >"$TMP/go.log" 2>&1 & echo $! >"$TMP/go.pid"
   for i in $(seq 1 60); do curl -s -o /dev/null "http://127.0.0.1:$PPY/" && curl -s -o /dev/null "http://127.0.0.1:$PGO/" && break; sleep 0.5; done
   APP_SHELL_KEY=$K "$PY" tools/contrato_api.py --python "http://127.0.0.1:$PPY" --go "http://127.0.0.1:$PGO" --escenario todos $SIN_RED
   local rc=$?
@@ -69,19 +72,27 @@ contrato() {
 }
 gate contrato contrato
 echo "== 6b. MCP en Go (stdio, base vacía)"
-mcp_stdio() {
-  (cd nucleo && go build -o bin/nucleo-mcp ./cmd/nucleo-mcp) || return 1
+mcp_stdio() { # mcp_stdio <binario nucleo-mcp>  (Go o Rust)
+  local MCP="${1:-nucleo/bin/nucleo-mcp}"
+  [ "$MCP" = nucleo/bin/nucleo-mcp ] && { (cd nucleo && go build -o bin/nucleo-mcp ./cmd/nucleo-mcp) || return 1; }
+  rm -f "$TMP/mcp.db"
   local out
   out=$(printf '%s\n%s\n' '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"salud","arguments":{}}}' \
-    | nucleo/bin/nucleo-mcp --env "$TMP/no.env" --db "$TMP/mcp.db" 2>/dev/null)
+    | "$MCP" --env "$TMP/no.env" --db "$TMP/mcp.db" 2>/dev/null)
   echo "$out" | grep -q '"name":"emitir_dte"' && echo "$out" | grep -q 'dte-chile-mcp' || return 1
   # el instalador de clientes: escribe la entrada en un HOME de prueba y la vuelve a leer
   rm -rf "$TMP/home"; mkdir -p "$TMP/home/.cursor"
-  HOME="$TMP/home" nucleo/bin/nucleo-mcp instalar --en todos --json | grep -q '"cliente":"cursor"' || return 1
+  HOME="$TMP/home" "$MCP" instalar --en todos --json | grep -q '"cliente":"cursor"' || return 1
   grep -q '"dte-chile"' "$TMP/home/.cursor/mcp.json" || return 1
-  HOME="$TMP/home" nucleo/bin/nucleo-mcp clientes | grep -q '^cursor .*conectado'
+  HOME="$TMP/home" "$MCP" clientes | grep -q '^cursor .*conectado'
 }
 gate mcp mcp_stdio
+if command -v cargo >/dev/null 2>&1; then
+  echo "== 8. motor Rust (fase 8): esquema + contrato (Python vs Rust) + MCP por stdio"
+  gate esquema_rust "$PY" tools/esquema_dorado.py --go nucleo-rs/target/release/nucleo-servidor
+  gate contrato_rust contrato nucleo-rs/target/release/nucleo-servidor
+  gate mcp_rust mcp_stdio nucleo-rs/target/release/nucleo-mcp
+fi
 echo "== 6c. público: ni RUTs reales, ni personas, ni secretos (árbol + historia)"
 gate publico "$PY" tools/auditar_publico.py
 echo "== 7. la app (motor Go en proceso)"
