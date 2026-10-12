@@ -11,29 +11,31 @@ const $ = (id) => document.getElementById(id);
 // Nombre de trabajo del producto (pendiente de decisión): se cambia aquí y en el <title>.
 const MARCA = "Faro";
 document.title = MARCA; document.querySelectorAll(".marca-nombre").forEach((e) => (e.textContent = MARCA));
-// El haz del faro: una luz que gira en horizontal, vista desde la costa. La punta del cono recorre
-// una elipse alrededor de la linterna (centrada un poco más abajo, por la perspectiva): adelante
-// baja hacia el mar y brilla, a los costados queda nivelado, atrás queda a la altura de la
-// linterna y se atenúa. Cuando apunta hacia ti o hacia atrás el cono desaparece y la linterna
-// destella. Se detiene al entrar (de fondo la escena queda quieta) y con "reducir movimiento".
+// El haz del faro: un cono de luz que gira en horizontal, proyectado como se ve desde la costa.
+// La punta recorre una elipse alrededor de la linterna. De costado se ve el cono largo; al girar
+// hacia ti se acorta pero conserva su ancho (ves su sección) hasta volverse un disco de luz
+// alrededor de la linterna y un resplandor cálido sobre toda la escena; hacia atrás se acorta
+// hasta esconderse detrás de la torre. Se detiene al entrar y con "reducir movimiento".
 (() => {
-  const haz = document.querySelector(".haz"), luz = document.querySelector(".luz"), resplandor = document.querySelector(".resplandor");
+  const haz = document.querySelector(".haz"), luz = document.querySelector(".luz"), disco = document.querySelector(".disco"), resplandor = document.querySelector(".resplandor");
   if (!haz || !luz) return;
   const quieto = () => document.documentElement.classList.contains("dentro") || matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const VUELTA = 24000, R = 1500, RY = 90, BAJO = 90;   // ms por vuelta, alcance, semieje vertical, centro bajo la linterna
+  const VUELTA = 24000, R = 1500, RY = 110, BAJO = 70;   // ms por vuelta, alcance, semieje vertical, centro bajo la linterna
+  const suave = (x) => x * x * (3 - 2 * x);
   function paso(t) {
     if (!quieto()) {
       const th = ((t % VUELTA) / VUELTA) * 2 * Math.PI;   // 0 = derecha, π/2 = hacia ti, π = izquierda, 3π/2 = atrás
       const dx = R * Math.cos(th), dy = BAJO + RY * Math.sin(th);
       const largo = Math.hypot(dx, dy), ang = (Math.atan2(dy, dx) * 180) / Math.PI;
       const cerca = (Math.sin(th) + 1) / 2;                 // 1 adelante, 0 atrás
-      const visible = Math.min(1, Math.abs(Math.cos(th)) / 0.3);
-      haz.style.transform = `translate(430px,372px) rotate(${ang}deg) scale(${largo / R},${0.5 + 0.6 * cerca})`;
-      haz.style.opacity = (visible * (0.25 + 0.65 * cerca)).toFixed(3);
-      const destello = (1 - visible) * cerca;               // apunta hacia ti: la linterna brilla
-      luz.style.opacity = (0.55 + 0.45 * destello).toFixed(3);
-      luz.style.transform = `scale(${1 + 1.4 * destello})`;
-      if (resplandor) resplandor.style.opacity = (0.85 * destello).toFixed(3);   // la luz te da en la cara: toda la escena se aclara
+      const frente = suave(Math.max(0, 1 - Math.abs(Math.cos(th)) / 0.45));   // 1 cuando apunta hacia ti o hacia atrás
+      haz.style.transform = `translate(430px,372px) rotate(${ang}deg) scale(${largo / R},1)`;   // se acorta, no se adelgaza
+      haz.style.opacity = ((0.3 + 0.65 * cerca) * (1 - 0.6 * frente)).toFixed(3);
+      const d = frente * (0.15 + 0.85 * cerca);             // el disco: fuerte adelante, apenas atrás (queda tras la torre)
+      if (disco) { disco.style.opacity = d.toFixed(3); disco.setAttribute("cy", String(372 + 40 * Math.sin(th))); }
+      luz.style.opacity = (0.55 + 0.45 * d).toFixed(3);
+      luz.style.transform = `scale(${1 + 1.2 * d})`;
+      if (resplandor) resplandor.style.opacity = (0.8 * frente * cerca).toFixed(3);   // la luz te da en la cara
     }
     requestAnimationFrame(paso);
   }
