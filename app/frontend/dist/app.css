@@ -77,7 +77,9 @@ input,textarea,.sel,code,td { -webkit-user-select:text; user-select:text; }
   --faro:#ffffff; --faro-franja:#6366f1; --faro-oscuro:#2b2f6b; --haz:#ffd166; --astro:#ffe8a3; --estrella:transparent; }
 .fondo { position:fixed; inset:0; z-index:-1; background:var(--base); overflow:hidden; }
 .escena { position:absolute; inset:-4%; width:108%; height:108%; display:block; transition:filter 1.4s ease, transform 1.4s ease, opacity 1.4s ease; }
-html.dentro .escena { filter:blur(22px) saturate(1.25); transform:scale(1.06); opacity:.9; }
+html.dentro .escena { filter:blur(44px) saturate(1.3); transform:scale(1.1); opacity:.85; }
+/* de fondo, la escena queda quieta: nada se mueve detrás de lo que la persona está leyendo */
+html.dentro .haz, html.dentro .luz, html.dentro .olas-lejos, html.dentro .olas-cerca, html.dentro .estrellas circle { animation-play-state:paused; }
 .haz { transform-origin:0 0; transform:translate(430px,372px) rotate(-14deg); animation:barrido 9s ease-in-out infinite alternate; }
 @keyframes barrido { from { transform:translate(430px,372px) rotate(-14deg);} to { transform:translate(430px,372px) rotate(16deg);} }
 .luz { animation:latido 3s ease-in-out infinite; }
