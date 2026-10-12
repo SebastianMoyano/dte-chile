@@ -1,0 +1,34 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "DTE Chile",
+  "version": "1.0.1",
+  "identifier": "cl.extralatte.dtechile",
+  "build": {
+    "frontendDist": "../app/frontend/dist"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "title": "DTE Chile",
+        "width": 1120,
+        "height": 780,
+        "minWidth": 820,
+        "minHeight": 600,
+        "backgroundColor": "#f4f5f7"
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "copyright": "MIT",
+    "shortDescription": "Facturación electrónica para Chile. Gratis, sin garantía.",
+    "icon": ["icons/icon.icns", "icons/icon.ico", "icons/icon.png"],
+    "resources": { "../app/frontend/dist/": "frontend/" },
+    "macOS": { "minimumSystemVersion": "10.13" }
+  }
+}

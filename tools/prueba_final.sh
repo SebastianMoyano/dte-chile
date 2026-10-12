@@ -16,6 +16,8 @@
 #   7. la app: vet + test (el motor Go en proceso sobre una carpeta de datos vacía) [+ wails build]
 #   8. motor Rust (fase 8, si hay cargo): esquema dorado + contrato dorado (Python vs Rust) + MCP por
 #      stdio: el servidor Rust responde lo mismo que Python en las 94 rutas
+#   9. la app Tauri (app-rs, si hay cargo): clippy + test (motor Rust en proceso sobre una carpeta
+#      vacía; la app como MCP) [+ cargo tauri build con --app]
 # Sale 0 solo si TODO pasa. Nada toca la base real: el contrato corre sobre una copia temporal.
 set -u
 cd "$(dirname "$0")/.."
@@ -98,6 +100,12 @@ gate publico "$PY" tools/auditar_publico.py
 echo "== 7. la app (motor Go en proceso)"
 gate app_vet bash -c 'cd app && go vet .'; gate app_test bash -c 'cd app && go test -count=1 . && rm -f app'
 if [ "$APP" = 1 ]; then gate app_wails bash -c 'cd app && PATH="$PATH:$HOME/go/bin" wails build -platform darwin/arm64 -s'; fi
+if command -v cargo >/dev/null 2>&1; then
+  echo "== 9. la app Tauri (motor Rust en proceso)"
+  gate app_rs_clippy bash -c 'cd app-rs && cargo clippy --all-targets --quiet -- -D warnings'
+  gate app_rs_test bash -c 'cd app-rs && cargo test --quiet 2>&1 | tail -3'
+  if [ "$APP" = 1 ]; then gate app_rs_tauri bash -c 'cd app-rs && PATH="$PATH:$HOME/.cargo/bin" cargo tauri build --bundles app'; fi
+fi
 
 echo; echo "== resumen"; printf '%s\n' "${resumen[@]}"
 if [ "$fallas" = 0 ]; then echo "TODO PASÓ"; else echo "$fallas gate(s) con fallas"; fi

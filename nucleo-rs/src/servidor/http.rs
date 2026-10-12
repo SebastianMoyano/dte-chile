@@ -479,13 +479,43 @@ impl<H: Clone> Enrutador<H> {
 
 // ---------------------------------------------------------------- red
 
-/// Sirve por red con `tiny_http`: un hilo por petición, hasta que el proceso muera.
-pub fn servir<F>(direccion: &str, atender: F) -> Result<(), String>
+/// Un servidor de red que se puede detener (`http.Server.Shutdown`): la app lo apaga al cerrar.
+pub struct ServidorHTTP {
+    srv: std::sync::Arc<tiny_http::Server>,
+    hilo: Option<std::thread::JoinHandle<()>>,
+}
+
+impl ServidorHTTP {
+    /// Escucha en `direccion` y atiende en un hilo propio (un hilo por petición).
+    pub fn iniciar<F>(direccion: &str, atender: F) -> Result<ServidorHTTP, String>
+    where
+        F: Fn(Peticion) -> Respuesta + Send + Sync + 'static,
+    {
+        let srv = std::sync::Arc::new(
+            tiny_http::Server::http(direccion)
+                .map_err(|e| format!("escuchar en {direccion}: {e}"))?,
+        );
+        let s2 = srv.clone();
+        let hilo = std::thread::spawn(move || atender_todo(&s2, atender));
+        Ok(ServidorHTTP {
+            srv,
+            hilo: Some(hilo),
+        })
+    }
+
+    /// Deja de aceptar conexiones y cierra el socket.
+    pub fn detener(mut self) {
+        self.srv.unblock();
+        if let Some(h) = self.hilo.take() {
+            let _ = h.join();
+        }
+    }
+}
+
+fn atender_todo<F>(srv: &tiny_http::Server, atender: F)
 where
     F: Fn(Peticion) -> Respuesta + Send + Sync + 'static,
 {
-    let srv =
-        tiny_http::Server::http(direccion).map_err(|e| format!("escuchar en {direccion}: {e}"))?;
     let atender = std::sync::Arc::new(atender);
     for mut req in srv.incoming_requests() {
         let at = atender.clone();
@@ -508,6 +538,16 @@ where
             let _ = req.respond(resp);
         });
     }
+}
+
+/// Sirve por red con `tiny_http` hasta que el proceso muera.
+pub fn servir<F>(direccion: &str, atender: F) -> Result<(), String>
+where
+    F: Fn(Peticion) -> Respuesta + Send + Sync + 'static,
+{
+    let srv =
+        tiny_http::Server::http(direccion).map_err(|e| format!("escuchar en {direccion}: {e}"))?;
+    atender_todo(&srv, atender);
     Ok(())
 }
 

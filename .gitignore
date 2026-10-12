@@ -55,3 +55,7 @@ dist/
 
 # Rust (fase 8): artefactos de cargo
 nucleo-rs/target/
+
+# app Tauri (fase 8, bloque 5): compilados
+app-rs/target/
+app-rs/gen/

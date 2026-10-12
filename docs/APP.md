@@ -121,6 +121,26 @@ sin PyInstaller, sin procesos hijos.
   vacía y comprueba `.env`, base, admin, clave efímera (401 sin ella), `/app/` y una boleta de
   práctica con su PDF, todo sin Python.
 
+## La misma app en Tauri, con el motor Rust (fase 8, bloque 5 — 2026-10-12)
+
+`app-rs/` es la misma app con otro cascarón: **Tauri 2** en vez de Wails, y adentro el motor
+**Rust** (`nucleo-rs/`, el que pasa el contrato dorado 203/203 contra Python) en vez del Go.
+La interfaz es exactamente la misma carpeta (`app/frontend/dist`): `tauri.js` define los 12
+bindings `window.go.main.App.*` sobre los comandos de `app-rs/src/app.rs`, así que `app.js`
+no sabe en qué cascarón corre (en Wails los define Go; en el navegador, `puente.js`). Mismos
+modos (repo en desarrollo, carpeta de datos empaquetada, `DTE_API_URL` externo), misma clave
+efímera, mismo `--mcp` para la IA, mismo evento `motor`.
+
+```bash
+cd app-rs && cargo test                      # motor Rust en proceso sobre carpeta vacía + app como MCP
+cargo tauri build --bundles app              # target/release/bundle/macos/DTE Chile.app (≈14 MB)
+```
+
+Gates en `tools/prueba_final.sh`: `app_rs_clippy`, `app_rs_test` (y `app_rs_tauri` con `--app`).
+**La Wails sigue siendo la que se publica** hasta que la Tauri pase las mismas pruebas manuales
+(tour, capturas, "Tu IA" desde Claude Desktop) y tenga firma y notarización. Detalle en
+[`../app-rs/README.md`](../app-rs/README.md).
+
 ## Empaquetado: la app con el motor adentro
 
 ```bash

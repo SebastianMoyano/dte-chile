@@ -631,10 +631,35 @@ pub fn bytes_latin1(s: &str) -> Vec<u8> {
         .collect()
 }
 
-/// Lo que registra el servidor (stderr, con la hora como `log.Printf` de Go).
+static SALIDA_LOG: Mutex<Option<std::fs::File>> = Mutex::new(None);
+
+/// `log.SetOutput(archivo)`: desde aquí el registro va a ese archivo (la app) en vez de stderr.
+pub fn log_en_archivo(ruta: &str) -> std::io::Result<()> {
+    let f = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(ruta)?;
+    *SALIDA_LOG.lock().expect("log") = Some(f);
+    Ok(())
+}
+
+/// Lo que registra el servidor (stderr o el archivo de `log_en_archivo`, con la hora como
+/// `log.Printf` de Go).
 pub fn log(m: &str) {
+    use std::io::Write;
     let t = crate::almacen::ahora_iso();
-    eprintln!("{}/{}/{} {} {m}", &t[..4], &t[5..7], &t[8..10], &t[11..19]);
+    let linea = format!(
+        "{}/{}/{} {} {m}\n",
+        &t[..4],
+        &t[5..7],
+        &t[8..10],
+        &t[11..19]
+    );
+    if let Some(f) = SALIDA_LOG.lock().expect("log").as_mut() {
+        let _ = f.write_all(linea.as_bytes());
+        return;
+    }
+    eprint!("{linea}");
 }
 
 // ---------------------------------------------------------------- cuerpo JSON

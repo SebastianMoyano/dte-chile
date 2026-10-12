@@ -1,0 +1,29 @@
+[package]
+name = "dte-chile-app"
+version = "1.0.1"
+edition = "2021"
+description = "DTE Chile: la app de escritorio (Tauri) con el motor Rust adentro, en el mismo proceso"
+license = "MIT"
+publish = false
+
+[[bin]]
+name = "dte-chile"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+dtechile = { path = "../nucleo-rs" }
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+tauri-plugin-opener = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+base64 = "0.22"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true

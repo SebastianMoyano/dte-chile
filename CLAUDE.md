@@ -80,7 +80,8 @@ Ver [`docs/LECCIONES-SII.md`](docs/LECCIONES-SII.md).
 
 **El motor también existe en Rust** (`nucleo-rs/`, fase 8 de `docs/PLAN-PORT.md`, 2026-10-12): mismos gates que Go
 (corpus dorado 15/15, esquema dorado 23/23, contrato dorado Python vs Rust 203/203, MCP con 20 tools), ver
-`nucleo-rs/README.md`. La app de escritorio sigue en Go/Wails hasta el bloque 5 (Tauri).
+`nucleo-rs/README.md`. La app Tauri está en `app-rs/` (bloque 5: mismos 12 bindings que la Wails, en `app/frontend/dist/tauri.js`);
+la Wails (Go) sigue siendo la publicada hasta que la Tauri pase las mismas pruebas manuales.
 
 **El motor también existe en Go** (`nucleo/`, fase 7 de `docs/PLAN-PORT.md`, cerrada 2026-10-11): `nucleo/servidor` atiende
 todas las rutas de la API Python con el mismo contrato que FastAPI (`tools/contrato_api.py` lo exige idéntico) más las
