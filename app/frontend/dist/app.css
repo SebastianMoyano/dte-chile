@@ -64,25 +64,42 @@ input,textarea,.sel,code,td { -webkit-user-select:text; user-select:text; }
 :focus-visible { outline:none; box-shadow:var(--ring); }
 
 /* ---------- el fondo ---------- */
-.fondo { position:fixed; inset:0; z-index:-1; background:var(--base);
-  background-image:
-    radial-gradient(60% 55% at 12% 18%, rgba(124,58,237,.6), transparent 62%),
-    radial-gradient(50% 45% at 88% 12%, rgba(14,165,233,.5), transparent 60%),
-    radial-gradient(55% 50% at 72% 88%, rgba(236,72,153,.38), transparent 60%),
-    radial-gradient(45% 45% at 18% 92%, rgba(16,185,129,.32), transparent 60%);
-  animation:respira 24s ease-in-out infinite alternate; }
-@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) .fondo { background-image:
-    radial-gradient(60% 55% at 12% 18%, rgba(167,139,250,.45), transparent 62%),
-    radial-gradient(50% 45% at 88% 12%, rgba(125,211,252,.5), transparent 60%),
-    radial-gradient(55% 50% at 72% 88%, rgba(249,168,212,.4), transparent 60%),
-    radial-gradient(45% 45% at 18% 92%, rgba(110,231,183,.35), transparent 60%); } }
-:root[data-theme="light"] .fondo { background-image:
-    radial-gradient(60% 55% at 12% 18%, rgba(167,139,250,.45), transparent 62%),
-    radial-gradient(50% 45% at 88% 12%, rgba(125,211,252,.5), transparent 60%),
-    radial-gradient(55% 50% at 72% 88%, rgba(249,168,212,.4), transparent 60%),
-    radial-gradient(45% 45% at 18% 92%, rgba(110,231,183,.35), transparent 60%); }
-@keyframes respira { from { background-position:0 0,0 0,0 0,0 0; } to { background-position:3% 2%,-3% 3%,2% -3%,-2% -2%; } }
-@media (prefers-reduced-motion:reduce) { .fondo { animation:none; } }
+/* La escena: un faro en la costa, en vector. De noche (tema oscuro) con estrellas y el haz
+   barriendo el mar; de día (tema claro) con sol y el mismo faro. Nítida en la entrada; al entrar
+   se desenfoca y queda de fondo detrás de los paneles de vidrio. */
+:root { --cielo-1:#0a0c2e; --cielo-2:#2a1f5e; --mar-1:#141a52; --mar-2:#0b0f3a; --cerro:#120f3a; --roca:#0d0b2a;
+  --faro:#e9e6f5; --faro-franja:#7c6cf0; --faro-oscuro:#1b1740; --haz:#fde68a; --astro:#f1f0ff; --estrella:#fff; }
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) {
+  --cielo-1:#dfe7ff; --cielo-2:#f6ecff; --mar-1:#8ec5ff; --mar-2:#5f9ff2; --cerro:#c9d0f5; --roca:#8d93c4;
+  --faro:#ffffff; --faro-franja:#6366f1; --faro-oscuro:#2b2f6b; --haz:#ffd166; --astro:#ffe8a3; --estrella:transparent; } }
+:root[data-theme="light"] {
+  --cielo-1:#dfe7ff; --cielo-2:#f6ecff; --mar-1:#8ec5ff; --mar-2:#5f9ff2; --cerro:#c9d0f5; --roca:#8d93c4;
+  --faro:#ffffff; --faro-franja:#6366f1; --faro-oscuro:#2b2f6b; --haz:#ffd166; --astro:#ffe8a3; --estrella:transparent; }
+.fondo { position:fixed; inset:0; z-index:-1; background:var(--base); overflow:hidden; }
+.escena { position:absolute; inset:-4%; width:108%; height:108%; display:block; transition:filter 1.4s ease, transform 1.4s ease, opacity 1.4s ease; }
+html.dentro .escena { filter:blur(22px) saturate(1.25); transform:scale(1.06); opacity:.9; }
+.haz { transform-origin:0 0; transform:translate(430px,372px) rotate(-14deg); animation:barrido 9s ease-in-out infinite alternate; }
+@keyframes barrido { from { transform:translate(430px,372px) rotate(-14deg);} to { transform:translate(430px,372px) rotate(16deg);} }
+.luz { animation:latido 3s ease-in-out infinite; }
+@keyframes latido { 0%,100% { opacity:.75;} 50% { opacity:1;} }
+.olas-lejos { animation:marea 26s linear infinite; } .olas-cerca { animation:marea 14s linear infinite reverse; }
+@keyframes marea { from { transform:translateX(0);} to { transform:translateX(400px);} }
+.estrellas circle { animation:titila 4s ease-in-out infinite; } .estrellas circle:nth-child(3n) { animation-delay:1.3s; } .estrellas circle:nth-child(3n+1) { animation-delay:2.6s; }
+@keyframes titila { 0%,100% { opacity:.5;} 50% { opacity:1;} }
+@media (prefers-reduced-motion:reduce) { .haz, .luz, .olas-lejos, .olas-cerca, .estrellas circle { animation:none; } }
+
+/* La entrada: la escena nítida, el nombre y un botón. Al entrar se desvanece y la app aparece. */
+.entrada { position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center; text-align:center; transition:opacity .9s ease; }
+html.dentro .entrada { opacity:0; pointer-events:none; }
+.entrada-centro { padding:0 24px; animation:aparece .8s cubic-bezier(.2,.8,.2,1); }
+.entrada-logo svg { width:72px; height:72px; fill:none; stroke:var(--fg); stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; filter:drop-shadow(0 6px 24px rgba(0,0,0,.35)); }
+.entrada h1 { font-size:3.2rem; letter-spacing:-.03em; margin:8px 0 6px; text-shadow:0 4px 30px rgba(0,0,0,.35); }
+.entrada p { margin:0 auto 22px; max-width:34ch; color:var(--fg); opacity:.85; font-size:1.05rem; }
+.entrada button { font-size:1.05rem; padding:13px 30px; }
+.entrada button:disabled { opacity:.7; }
+html:not(.dentro) .shell { opacity:0; }
+.shell { transition:opacity .9s ease .3s; }
+.logo svg { width:20px; height:20px; fill:none; stroke:#fff; stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; }
 
 /* ---------- estructura: cabecera, contenido, dock ---------- */
 .shell { min-height:100vh; display:flex; flex-direction:column; }
@@ -264,6 +281,15 @@ iframe { background:#fff; }
 .accion-fija { position:sticky; bottom:96px; z-index:4; display:flex; align-items:center; justify-content:flex-end; gap:14px; margin-top:14px; padding:8px 0; }
 .accion-fija button { box-shadow:0 14px 30px -12px rgba(0,0,0,.6); }
 @media (max-width:1180px) { .accion-fija { bottom:16px; } }
+/* "Muéstrame": cursor fantasma y velo que impide pulsar mientras corre la demo */
+.demo-velo { position:fixed; inset:0; z-index:55; cursor:wait; }
+.demo-pill { position:absolute; bottom:104px; left:50%; transform:translateX(-50%); padding:8px 16px; border-radius:99px; background:var(--inv-bg); color:var(--inv-fg); font-size:.86rem; font-weight:600; box-shadow:var(--sh-2); animation:sube .18s ease-out; }
+.fantasma { position:fixed; z-index:60; width:30px; height:30px; margin:-4px 0 0 -4px; pointer-events:none;
+  transition:left .7s cubic-bezier(.3,0,.2,1), top .7s cubic-bezier(.3,0,.2,1); filter:drop-shadow(0 4px 10px rgba(0,0,0,.45)); }
+.fantasma svg { width:100%; height:100%; fill:#fff; stroke:#141738; stroke-width:1.6; stroke-linejoin:round; }
+.fantasma::after { content:""; position:absolute; left:-6px; top:-6px; width:26px; height:26px; border-radius:50%; border:3px solid var(--acc); opacity:0; transform:scale(.4); }
+.fantasma.clic::after { animation:onda .45s ease-out; }
+@keyframes onda { from { opacity:.9; transform:scale(.4);} to { opacity:0; transform:scale(1.8);} }
 /* elección de tema en Ajustes */
 .segmento { display:inline-flex; gap:2px; padding:3px; background:var(--vidrio); border:1px solid var(--bd); border-radius:99px; }
 .segmento button { margin:0; padding:7px 16px; background:transparent; color:var(--mut); box-shadow:none; font-size:.9rem; }

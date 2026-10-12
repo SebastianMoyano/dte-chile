@@ -221,7 +221,22 @@ de 16 y esa persona, agentes sin contexto mirando capturas) salieron también: "
 pistas, "Anular este documento", "Mis documentos" en el visor, ejemplos marcados "Ej.:", la
 línea "El IVA no es tuyo" bajo los totales y la bienvenida sin género.
 El protocolo de la prueba con personas reales y el registro de las simuladas está en
-`docs/PRUEBA-DE-USUARIO.md`. Tokens de color en
+`docs/PRUEBA-DE-USUARIO.md`.
+
+**"Muéstrame"** (2026-10-12): los pasos de acción de la guía (monto, revisar y emitir, anular,
+mes) llevan un botón que corre una demo sobre la interfaz real: un cursor fantasma (`.fantasma`)
+se mueve, escribe en los campos de verdad (el formulario reacciona), pulsa (se abre el diálogo
+real y lo cierra con Volver) y al final restaura los valores y vuelve la tarjeta con "Ahora tú".
+Mientras corre, un velo impide pulsar. Las demos son listas de acciones (`DEMOS` en `tour.js`),
+sin GIF ni video: siempre en sincronía con la interfaz y nítidas en cualquier tema. `dialogo()`
+no cierra el tour mientras `Tour.enDemo()`.
+
+**Entrada y escena** (2026-10-12): `index.html` lleva una escena en SVG (un faro en la costa, de
+noche en tema oscuro y de día en claro: colores `--cielo-*`, `--mar-*`, `--haz`…), con el haz
+barriendo, olas y estrellas en CSS. Al abrir, la escena se ve nítida con el nombre y "Entrar"
+(habilitado cuando el motor está listo; Enter también entra). Al entrar, `html.dentro` desenfoca
+la escena (`filter: blur`) y la app aparece encima. El nombre es la constante `MARCA` en `app.js`
+("Faro", nombre de trabajo pendiente de decisión); el logo es el mismo faro en trazo. Tokens de color en
 `app.css` (`:root`), modo oscuro automático, estados vacíos, foco visible. Sin dependencias.
 
 **Tour por etapas** (`app/frontend/dist/tour.js`), pensado como primera introducción para

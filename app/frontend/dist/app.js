@@ -8,6 +8,9 @@
 //   negocio en producción        → REAL: cada documento cuenta
 
 const $ = (id) => document.getElementById(id);
+// Nombre de trabajo del producto (pendiente de decisión): se cambia aquí y en el <title>.
+const MARCA = "Faro";
+document.title = MARCA; document.querySelectorAll(".marca-nombre").forEach((e) => (e.textContent = MARCA));
 // Tema: automático (el del sistema), claro u oscuro. Se recuerda en este equipo.
 const TEMAS = { "": "Automático", light: "Claro", dark: "Oscuro" };
 function aplicarTema(t) { if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme; try { localStorage.setItem("tema", t); } catch {} }
@@ -57,7 +60,7 @@ async function api(metodo, ruta, cuerpo) {
 // Diálogo propio (en vez del confirm() del sistema): título, cuerpo en HTML y botones con su
 // valor. Resuelve con el valor del botón apretado; Esc o "Volver" resuelven false.
 function dialogo({ titulo, cuerpo, botones, ancho = 520 }) {
-  if (window.Tour) window.Tour.cerrar();   // un diálogo es un momento de atención: ninguna pista encima
+  if (window.Tour && !window.Tour.enDemo()) window.Tour.cerrar();   // un diálogo es un momento de atención: ninguna pista encima (salvo que lo abra la propia demo)
   return new Promise((resolve) => {
     const m = document.createElement("div");
     m.className = "modal";
@@ -660,10 +663,23 @@ async function conectarIA(id, quitar) {
   } catch (e) { aviso("No pude: " + (e.message || e), 7000); }
 }
 
-// ---------- arranque ----------
+// ---------- arranque: la entrada (escena nítida) hasta que el motor está listo y la persona entra ----------
+function entrar() {
+  if (document.documentElement.classList.contains("dentro")) return;
+  document.documentElement.classList.add("dentro");          // la escena se desenfoca, la app aparece
+  setTimeout(() => $("entrada")?.remove(), 1200);
+  render();
+}
+function pintarEntrada() {
+  const b = $("entrar"); if (!b) return;
+  if (estado.error) { b.textContent = "El motor no pudo arrancar"; b.disabled = false; b.onclick = entrar; return; }
+  b.disabled = !estado.listo; b.textContent = estado.listo ? "Entrar" : "Arrancando el motor…";
+  b.onclick = entrar;
+  if (estado.listo) b.focus();
+}
 (async () => {
   estado = await window.go.main.App.Estado();
-  pintarSelector(); pintarMundo();
-  window.runtime.EventsOn("motor", (e) => { estado = e; pintarMundo(); render(); });
-  render();
+  pintarSelector(); pintarMundo(); pintarEntrada();
+  window.runtime.EventsOn("motor", (e) => { estado = e; pintarMundo(); pintarEntrada(); if (document.documentElement.classList.contains("dentro")) render(); });
+  document.addEventListener("keydown", (ev) => { if (ev.key === "Enter" && !$("entrar")?.disabled && !document.documentElement.classList.contains("dentro")) entrar(); });
 })();
