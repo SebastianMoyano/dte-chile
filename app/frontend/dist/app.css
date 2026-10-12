@@ -67,33 +67,36 @@ input,textarea,.sel,code,td { -webkit-user-select:text; user-select:text; }
 /* La escena: un faro en la costa, en vector. De noche (tema oscuro) con estrellas y el haz
    barriendo el mar; de día (tema claro) con sol y el mismo faro. Nítida en la entrada; al entrar
    se desenfoca y queda de fondo detrás de los paneles de vidrio. */
-:root { --cielo-1:#0a0c2e; --cielo-2:#2a1f5e; --mar-1:#141a52; --mar-2:#0b0f3a; --cerro:#120f3a; --roca:#0d0b2a;
+:root { --ver-sol:none; --ver-luna:block; --cielo-1:#0a0c2e; --cielo-2:#2a1f5e; --mar-1:#141a52; --mar-2:#0b0f3a; --cerro:#120f3a; --roca:#0d0b2a;
   --faro:#e9e6f5; --faro-franja:#7c6cf0; --faro-oscuro:#1b1740; --haz:#fde68a; --astro:#f1f0ff; --estrella:#fff; }
 @media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) {
-  --cielo-1:#dfe7ff; --cielo-2:#f6ecff; --mar-1:#8ec5ff; --mar-2:#5f9ff2; --cerro:#c9d0f5; --roca:#8d93c4;
+  --ver-sol:block; --ver-luna:none; --cielo-1:#dfe7ff; --cielo-2:#f6ecff; --mar-1:#8ec5ff; --mar-2:#5f9ff2; --cerro:#c9d0f5; --roca:#8d93c4;
   --faro:#ffffff; --faro-franja:#6366f1; --faro-oscuro:#2b2f6b; --haz:#ffd166; --astro:#ffe8a3; --estrella:transparent; } }
 :root[data-theme="light"] {
-  --cielo-1:#dfe7ff; --cielo-2:#f6ecff; --mar-1:#8ec5ff; --mar-2:#5f9ff2; --cerro:#c9d0f5; --roca:#8d93c4;
+  --ver-sol:block; --ver-luna:none; --cielo-1:#dfe7ff; --cielo-2:#f6ecff; --mar-1:#8ec5ff; --mar-2:#5f9ff2; --cerro:#c9d0f5; --roca:#8d93c4;
   --faro:#ffffff; --faro-franja:#6366f1; --faro-oscuro:#2b2f6b; --haz:#ffd166; --astro:#ffe8a3; --estrella:transparent; }
 .fondo { position:fixed; inset:0; z-index:-1; background:var(--base); overflow:hidden; }
+.sol { display:var(--ver-sol); } .luna { display:var(--ver-luna); }
 .escena { position:absolute; inset:-4%; width:108%; height:108%; display:block; transition:filter 1.4s ease, transform 1.4s ease, opacity 1.4s ease; }
 html.dentro .escena { filter:blur(44px) saturate(1.3); transform:scale(1.1); opacity:.85; }
 /* de fondo, la escena queda quieta: nada se mueve detrás de lo que la persona está leyendo */
 html.dentro .haz, html.dentro .luz, html.dentro .olas-lejos, html.dentro .olas-cerca, html.dentro .estrellas circle { animation-play-state:paused; }
-.haz { transform-origin:0 0; transform:translate(430px,372px) rotate(6deg) scale(1,1); animation:giro 10s linear infinite; }
+.haz { transform-origin:0 0; transform:translate(430px,372px) rotate(10deg) scale(1,1.05); animation:giro 12s linear infinite; }
 @keyframes giro {
-  0%   { transform:translate(430px,372px) rotate(6deg) scale(1,1);      opacity:.9; }
-  20%  { transform:translate(430px,372px) rotate(6deg) scale(.3,.7);    opacity:.8; }
-  25%  { transform:translate(430px,372px) rotate(0deg) scale(.02,.2);   opacity:0; }   /* apunta hacia ti: el cono desaparece, brilla la linterna */
-  30%  { transform:translate(430px,372px) rotate(-6deg) scale(-.3,.7);  opacity:.8; }
-  50%  { transform:translate(430px,372px) rotate(-6deg) scale(-1,1);    opacity:.9; }
-  70%  { transform:translate(430px,372px) rotate(-6deg) scale(-.3,.7);  opacity:.3; }
-  75%  { transform:translate(430px,372px) rotate(0deg) scale(.02,.2);   opacity:0; }   /* apunta hacia atrás: no se ve */
-  80%  { transform:translate(430px,372px) rotate(6deg) scale(.3,.7);    opacity:.3; }
-  100% { transform:translate(430px,372px) rotate(6deg) scale(1,1);      opacity:.9; }
+  /* vuelta completa: adelante (0→50%) el cono baja hacia el mar y brilla; atrás (50→100%) sube hacia el cielo y se atenúa */
+  0%   { transform:translate(430px,372px) rotate(10deg)  scale(1,1.05);   opacity:.9; }
+  20%  { transform:translate(430px,372px) rotate(16deg)  scale(.3,.8);    opacity:.85; }
+  25%  { transform:translate(430px,372px) rotate(0deg)   scale(.02,.2);   opacity:0; }
+  30%  { transform:translate(430px,372px) rotate(-16deg) scale(-.3,.8);   opacity:.85; }
+  50%  { transform:translate(430px,372px) rotate(-10deg) scale(-1,1.05);  opacity:.9; }
+  70%  { transform:translate(430px,372px) rotate(6deg)   scale(-.35,.6);  opacity:.3; }
+  75%  { transform:translate(430px,372px) rotate(0deg)   scale(.02,.2);   opacity:0; }
+  80%  { transform:translate(430px,372px) rotate(-6deg)  scale(.35,.6);   opacity:.3; }
+  100% { transform:translate(430px,372px) rotate(10deg)  scale(1,1.05);   opacity:.9; }
 }
 }
-.luz { animation:destello 10s linear infinite; }
+}
+.luz { animation:destello 12s linear infinite; }
 @keyframes destello { 0%,100% { opacity:.6; transform:scale(1);} 22% { opacity:.8; transform:scale(1.4);} 25% { opacity:1; transform:scale(2.4);} 28% { opacity:.8; transform:scale(1.4);} 50% { opacity:.6; transform:scale(1);} 75% { opacity:.3; transform:scale(.8);} }
 .luz { transform-origin:430px 330px; }
 .olas-lejos { animation:marea 26s linear infinite; } .olas-cerca { animation:marea 14s linear infinite reverse; }

@@ -15,6 +15,8 @@
       <linearGradient id="g-haz" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="var(--haz)" stop-opacity=".85"/><stop offset="1" stop-color="var(--haz)" stop-opacity="0"/></linearGradient>
       <radialGradient id="g-luz"><stop offset="0" stop-color="var(--haz)" stop-opacity=".9"/><stop offset="1" stop-color="var(--haz)" stop-opacity="0"/></radialGradient>
       <radialGradient id="g-astro"><stop offset="0" stop-color="var(--astro)"/><stop offset=".6" stop-color="var(--astro)"/><stop offset="1" stop-color="var(--astro)" stop-opacity="0"/></radialGradient>
+      <radialGradient id="g-halo"><stop offset="0" stop-color="var(--astro)" stop-opacity=".35"/><stop offset="1" stop-color="var(--astro)" stop-opacity="0"/></radialGradient>
+      <mask id="m-luna"><circle cx="1240" cy="210" r="62" fill="#fff"/><circle cx="1270" cy="192" r="56" fill="#000"/></mask>
     </defs>
     <rect width="1600" height="900" fill="url(#g-cielo)"/>
     <g class="estrellas" fill="var(--estrella)">
@@ -22,7 +24,8 @@
       <circle cx="1120" cy="60" r="1.8"/><circle cx="1290" cy="140" r="1.3"/><circle cx="1450" cy="90" r="2"/><circle cx="1530" cy="230" r="1.2"/><circle cx="240" cy="260" r="1.3"/>
       <circle cx="640" cy="300" r="1.1"/><circle cx="1010" cy="280" r="1.6"/><circle cx="1380" cy="320" r="1.2"/><circle cx="60" cy="330" r="1.5"/><circle cx="860" cy="230" r="1"/>
     </g>
-    <circle class="astro" cx="1240" cy="210" r="70" fill="url(#g-astro)"/>
+    <circle class="sol" cx="1240" cy="210" r="70" fill="url(#g-astro)"/>
+    <g class="luna"><circle cx="1240" cy="210" r="120" fill="url(#g-halo)"/><circle cx="1240" cy="210" r="62" fill="var(--astro)" mask="url(#m-luna)"/></g>
     <path class="cerros" d="M0 560 Q160 470 330 520 T700 500 T1060 540 T1600 480 V900 H0Z" fill="var(--cerro)"/>
     <g class="olas-lejos"><path d="M-1600 600 Q-1500 585 -1400 600 T-1200 600 T-1000 600 T-800 600 T-600 600 T-400 600 T-200 600 T0 600 T200 600 T400 600 T600 600 T800 600 T1000 600 T1200 600 T1400 600 T1600 600 V900 H-1600Z" fill="url(#g-mar)"/></g>
     <g class="haz"><polygon points="0,-20 1500,-230 1500,230 0,20" fill="url(#g-haz)"/></g>
