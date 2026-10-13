@@ -174,6 +174,7 @@ destino final, que corre dentro de la app de Faro. Cada port se midió, no se su
   boleta, sin jerga. [`docs/APP.md`](docs/APP.md).
 - **[`docs/INICIO-RAPIDO.md`](docs/INICIO-RAPIDO.md)** y el **[glosario](docs/GLOSARIO.md)**:
   qué es un folio, un CAF, un timbre, un TrackID, en dos líneas cada uno.
+- **Aprender, dentro de la app**: una mini academia de 23 lecciones cortas (impuestos, IVA, UF y UTM, F29, tipos de empresa, plazos, folios y notas), cada una con un ejemplo con números, algo para hacer en la app y una pregunta. El mismo texto está en [`docs/aprender/LECCIONES.md`](docs/aprender/LECCIONES.md).
 - **[`docs/aprender/`](docs/aprender/)**: el plan de lecciones por tramos, con quiz y videos.
 - **[`docs/CONSTITUCION.md`](docs/CONSTITUCION.md)**: las leyes del motor. Cada una se pagó con
   días de trabajo o con folios reales; leerlas es la forma más rápida de aprender lo que el SII

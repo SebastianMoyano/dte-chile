@@ -101,5 +101,13 @@ lado a lado con el cálculo de la app. Cuando no coinciden, la app explica por q
   (un archivo por lección, autocontenido). Los prompts de [`videos-tramo-1.md`](videos-tramo-1.md)
   son la alternativa si se generan con un modelo de video en vez de NotebookLM.
 - En la app: **hecho** el modo simulación (EMPRESA DEMO SPA emite, se ve y se anula con el
-  pipeline real, sin envío; `core/simulacion.py`) y la barra de "en qué mundo estás". Falta la
-  ficha de cada lección dentro de la app, enlazada al flujo.
+  pipeline real, sin envío; `core/simulacion.py`) y la barra de "en qué mundo estás".
+- **Hecho (2026-10-13): la mini academia dentro de la app.** 23 lecciones en 5 módulos (lo
+  básico: impuesto, SII y RUT, IVA, boleta o factura, exento, neto/IVA/total; los números del
+  mes: UF y UTM, débito y crédito, F29, PPM, renta y F22; tu empresa: persona o empresa, SpA/EIRL/
+  Ltda./S.A., regímenes Pro-PYME, inicio de actividades y giro, clave tributaria y certificado;
+  las fechas: calendario, honorarios y retención, multas; los documentos: folio y CAF, notas,
+  RCV, gratuito o motor propio). Cada lección: concepto, ejemplo con números, "Hazlo en la app" y
+  una pregunta. El texto completo está en [`LECCIONES.md`](LECCIONES.md), generado desde los
+  mismos datos (`tools/academia_datos.py` → `app/frontend/dist/academia.js`;
+  `tools/revisar_academia.py --md`).

@@ -160,7 +160,7 @@ function param(k) { const q = (location.hash.split("?")[1] || ""); return new UR
 async function render() {
   await revisarBoveda();
   const v = (location.hash || "#inicio").slice(1).split("?")[0];
-  const grupo = { ver: "documentos", mes: "documentos", corregir: "documentos", ia: "ajustes", valores: "ajustes", empresa: "ajustes" }[v] || v;
+  const grupo = { ver: "documentos", mes: "documentos", corregir: "documentos", ia: "ajustes", valores: "ajustes", empresa: "ajustes", leccion: "aprender" }[v] || v;
   document.querySelectorAll("[data-v]").forEach((a) => a.classList.toggle("on", a.dataset.v === grupo));
   const f = vistas[v] || vistas.inicio;
   window.scrollTo(0, 0);
@@ -932,7 +932,10 @@ vistas.aprender = async (el) => {
   const lista = (e) => LISTAS[e.id] ? `<ul class="lista-check">${LISTAS[e.id].map((t, i) => { const id = e.id + ":" + i; return `<li><input type="checkbox" ${st.checks?.[id] ? "checked" : ""} onchange="Tour.check('${id}', this.checked)"><span>${t}</span></li>`; }).join("")}</ul>` : "";
   el.innerHTML = `
     <h1>Aprender</h1>
-    <p class="sub">Para quien no sabe nada de finanzas. Cinco etapas en el orden en que pasan en la vida real; cada una se recorre dentro de la app, paso a paso.</p>
+    <p class="sub">Para quien no sabe nada de finanzas ni de impuestos. Primero la <b>academia</b>: las ideas, con ejemplos y una pregunta por lección. Después el <b>camino</b>: practicar cada cosa dentro de la app.</p>
+    ${academiaHTML()}
+    <h2 style="margin-top:28px">El camino: practicar en la app</h2>
+    <p class="mut">Cinco etapas en el orden en que pasan en la vida real; cada una se recorre dentro de la app, paso a paso.</p>
     ${et.map((e, i) => `<div class="card" data-tour="etapa-${e.n}" id="etapa-${e.n}" style="${i === st.etapa ? "border-color:var(--acc)" : ""}">
       <div style="display:flex;align-items:center;gap:12px">
         <span class="pill ${hecha(e) ? "p-ok" : i === st.etapa ? "p-warn" : "p-mut"}">${hecha(e) ? "completa" : i === st.etapa ? "en curso" : "pendiente"}</span>
@@ -943,9 +946,78 @@ vistas.aprender = async (el) => {
       ${lista(e)}
       <button class="${hecha(e) ? "sec" : ""}" onclick="Tour.etapa(${i})">${hecha(e) ? "Repetir el recorrido" : prog(e) ? "Seguir el recorrido" : "Empezar el recorrido"}</button>
     </div>`).join("")}
-    <p class="mut">Las lecciones largas, el quiz y los videos del tramo 1 están en el repo (<code>docs/aprender/</code>).</p>`;
+    <p class="mut">Las lecciones también están en el repo (<code>docs/aprender/LECCIONES.md</code>), junto con el quiz y los videos del tramo 1.</p>`;
   const n = param("etapa");
   if (n) document.getElementById("etapa-" + n)?.scrollIntoView({ block: "start", behavior: "smooth" });
+  if (param("camino")) document.querySelector("[data-tour='etapa-1']")?.scrollIntoView({ block: "start", behavior: "smooth" });
+};
+
+// ---------- mini academia ----------
+// Las lecciones viven en academia.js (window.ACADEMIA): módulos y lecciones con concepto,
+// ejemplo con números, acción en la app y una pregunta. El progreso (leídas y respondidas
+// bien) queda en localStorage; es por computador, como el del camino.
+const ACAD_CLAVE = "academia.v1";
+function acadEstado() { try { return { leidas: {}, correctas: {}, intentos: {}, ...JSON.parse(localStorage.getItem(ACAD_CLAVE) || "{}") }; } catch { return { leidas: {}, correctas: {}, intentos: {} }; } }
+function acadGuardar(st) { try { localStorage.setItem(ACAD_CLAVE, JSON.stringify(st)); } catch {} }
+const acadLecciones = () => (window.ACADEMIA?.lecciones || []);
+const acadModulos = () => (window.ACADEMIA?.modulos || []);
+function academiaHTML() {
+  const L = acadLecciones(), M = acadModulos(), st = acadEstado();
+  if (!L.length) return "";
+  const leidas = L.filter((l) => st.leidas[l.id]).length, bien = L.filter((l) => st.correctas[l.id]).length;
+  const pct = Math.round((bien / L.length) * 100);
+  const siguiente = L.find((l) => !st.correctas[l.id]) || L[0];
+  const completa = bien === L.length;
+  return `
+    <div class="card acad-cab">
+      <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+        <div style="flex:1;min-width:220px"><h2 style="margin:0 0 4px">Mini academia</h2>
+          <p class="mut" style="margin:0">${L.length} lecciones cortas en ${M.length} módulos. Cada una: la idea, un ejemplo con números, algo para hacer en la app y una pregunta.</p></div>
+        <div style="min-width:200px"><div class="barra"><div style="width:${pct}%"></div></div>
+          <p class="mut" style="margin:6px 0 0;font-size:.85rem">${bien} de ${L.length} preguntas bien · ${leidas} leídas</p></div>
+      </div>
+      ${completa ? `<div class="banner verde" style="margin-top:12px"><b>Terminaste la academia.</b> Respondiste bien las ${L.length} preguntas. Ahora toca practicar: el camino, más abajo.</div>`
+        : `<div class="row" style="margin-top:12px"><button onclick="ir('leccion?id=${siguiente.id}')">${bien ? "Seguir" : "Empezar"}: ${esc(siguiente.titulo)}</button></div>`}
+    </div>
+    <div class="grid acad-mods">${M.map((m, i) => { const ls = L.filter((l) => l.modulo === m.id); const ok = ls.filter((l) => st.correctas[l.id]).length; return `
+      <div class="card"><div style="display:flex;align-items:center;gap:10px"><span class="acad-num">${i + 1}</span><h3 style="margin:0">${esc(m.titulo)}</h3><span class="pill ${ok === ls.length ? "p-ok" : ok ? "p-warn" : "p-mut"}" style="margin-left:auto">${ok}/${ls.length}</span></div>
+        <p class="mut" style="margin:8px 0 10px">${esc(m.resumen)}</p>
+        <ul class="acad-lista">${ls.map((l) => `<li onclick="ir('leccion?id=${l.id}')"><span class="acad-ok ${st.correctas[l.id] ? "si" : st.leidas[l.id] ? "leida" : ""}">${st.correctas[l.id] ? "✓" : ""}</span><span>${esc(l.titulo)}</span></li>`).join("")}</ul></div>`; }).join("")}</div>`;
+}
+vistas.leccion = async (el) => {
+  const L = acadLecciones(), id = param("id");
+  const i = Math.max(0, L.findIndex((l) => l.id === id)), l = L[i];
+  if (!l) { ir("aprender"); return; }
+  const m = acadModulos().find((x) => x.id === l.modulo) || {}, st = acadEstado();
+  st.leidas[l.id] = true; acadGuardar(st);
+  const ant = L[i - 1], sig = L[i + 1];
+  const resp = st.correctas[l.id] ? l.pregunta.c : null;
+  el.innerHTML = `
+    <p class="mut" style="margin:0 0 4px"><span class="lnk" onclick="ir('aprender')">Aprender</span> · ${esc(m.titulo || "")} · lección ${i + 1} de ${L.length}</p>
+    <h1>${esc(l.titulo)}</h1>
+    <p class="sub">${esc(l.resumen)}</p>
+    <div class="card acad-lec">${l.concepto}</div>
+    <div class="card acad-ej"><h3>Un ejemplo</h3>${l.ejemplo}</div>
+    ${l.accion ? `<div class="card acad-accion"><h3>Hazlo en la app</h3><p class="mut">${esc(l.accion.t)}.</p><button class="sec" onclick="ir('${l.accion.v}')">Ir ahora</button> <span class="mut" style="font-size:.85rem">Vuelves con el botón Aprender, abajo.</span></div>` : ""}
+    <div class="card acad-quiz" id="acad_quiz"><h3>Una pregunta</h3><p><b>${esc(l.pregunta.t)}</b></p>
+      <div class="acad-ops">${l.pregunta.o.map((o, k) => `<button class="op ${resp === null ? "" : k === l.pregunta.c ? "bien" : ""}" ${resp === null ? "" : "disabled"} onclick="acadResponder('${l.id}', ${k})">${esc(o)}</button>`).join("")}</div>
+      <div id="acad_res">${resp === null ? "" : `<div class="banner verde"><b>Correcto.</b> ${esc(l.pregunta.x)}</div>`}</div></div>
+    <div class="row" style="justify-content:space-between;margin-top:14px">
+      ${ant ? `<button class="sec" onclick="ir('leccion?id=${ant.id}')">← ${esc(ant.titulo)}</button>` : `<button class="sec" onclick="ir('aprender')">← Aprender</button>`}
+      ${sig ? `<button onclick="ir('leccion?id=${sig.id}')">${esc(sig.titulo)} →</button>` : `<button onclick="ir('aprender')">Volver a Aprender</button>`}
+    </div>`;
+};
+window.acadResponder = (id, k) => {
+  const l = acadLecciones().find((x) => x.id === id); if (!l) return;
+  const st = acadEstado(); st.intentos[id] = (st.intentos[id] || 0) + 1;
+  const bien = k === l.pregunta.c;
+  if (bien) st.correctas[id] = true;
+  acadGuardar(st);
+  const ops = document.querySelectorAll("#acad_quiz .op");
+  ops.forEach((b, j) => { b.classList.toggle("bien", bien && j === l.pregunta.c); b.classList.toggle("mal", !bien && j === k); if (bien) b.disabled = true; });
+  $("acad_res").innerHTML = bien
+    ? `<div class="banner verde"><b>Correcto.</b> ${esc(l.pregunta.x)}</div>`
+    : `<div class="banner rojo"><b>No es esa.</b> Vuelve a leer el ejemplo y prueba otra vez: no hay límite de intentos.</div>`;
 };
 
 // ---------- Mi empresa: certificado → empresa → folios, explicado como a un alumno ----------
