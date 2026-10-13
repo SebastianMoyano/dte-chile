@@ -32,6 +32,11 @@ impl Fernet {
         } else {
             Sha256::digest(jwt_secret.as_bytes()).to_vec()
         };
+        Fernet::de_bytes(&raw)
+    }
+
+    /// Los 32 bytes crudos (16 de firma + 16 de cifrado).
+    pub fn de_bytes(raw: &[u8]) -> Result<Fernet, String> {
         if raw.len() != 32 {
             return Err("la clave Fernet debe tener 32 bytes".into());
         }
@@ -42,6 +47,13 @@ impl Fernet {
         f.firma.copy_from_slice(&raw[..16]);
         f.cifra.copy_from_slice(&raw[16..]);
         Ok(f)
+    }
+
+    pub fn bytes(&self) -> [u8; 32] {
+        let mut b = [0u8; 32];
+        b[..16].copy_from_slice(&self.firma);
+        b[16..].copy_from_slice(&self.cifra);
+        b
     }
 
     pub fn cifrar(&self, texto: &[u8]) -> Vec<u8> {

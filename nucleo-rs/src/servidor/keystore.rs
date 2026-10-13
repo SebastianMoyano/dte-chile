@@ -388,10 +388,10 @@ pub fn guardar_claves(
         None => (Vec::new(), Vec::new()),
     };
     if !tributaria.is_empty() {
-        trib = s.cifrar(tributaria.as_bytes());
+        trib = s.cifrar(tributaria.as_bytes()).map_err(|_| ErrorHTTP::boveda_bloqueada())?;
     }
     if !certificado.is_empty() {
-        cert = s.cifrar(certificado.as_bytes());
+        cert = s.cifrar(certificado.as_bytes()).map_err(|_| ErrorHTTP::boveda_bloqueada())?;
     }
     let u: Sql = if !usuario.is_empty() {
         usuario.to_string().into()

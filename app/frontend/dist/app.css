@@ -226,6 +226,7 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
 .radio label:has(input:checked) { border-color:var(--campo-foco); background:var(--vidrio-3); }
 .radio input { width:auto; margin:0; accent-color:var(--inv-bg); }
 .radio.tarjetas label { align-items:flex-start; min-width:220px; padding:12px 14px; }
+input.pin { -webkit-text-security:disc; letter-spacing:.12em; } input.pin.ver { -webkit-text-security:none; letter-spacing:0; }
 .radio.tarjetas input { margin-top:3px; }
 .radio.tarjetas div { display:flex; flex-direction:column; align-items:flex-start; gap:4px; }
 .radio.tarjetas small { font-weight:400; color:var(--mut); line-height:1.4; }

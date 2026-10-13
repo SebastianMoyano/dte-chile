@@ -52,11 +52,18 @@ fn nulo(s: &str) -> Sql {
 }
 
 impl Servidor {
-    pub fn cifrar(&self, b: &[u8]) -> Vec<u8> {
-        self.fernet.lock().expect("fernet").cifrar(b)
+    /// Falla con `boveda::MENSAJE_BLOQUEADA` si la bóveda con PIN está cerrada.
+    pub fn cifrar(&self, b: &[u8]) -> Result<Vec<u8>, String> {
+        match &*self.fernet.lock().expect("fernet") {
+            Some(f) => Ok(f.cifrar(b)),
+            None => Err(super::boveda::MENSAJE_BLOQUEADA.into()),
+        }
     }
     pub fn descifrar(&self, b: &[u8]) -> Result<Vec<u8>, String> {
-        self.fernet.lock().expect("fernet").descifrar(b)
+        match &*self.fernet.lock().expect("fernet") {
+            Some(f) => f.descifrar(b),
+            None => Err(super::boveda::MENSAJE_BLOQUEADA.into()),
+        }
     }
 
     /// `keystore.guardar_certificado`: valida el .p12 con su clave y guarda ambos cifrados
@@ -105,8 +112,11 @@ impl Servidor {
         nombre: Sql,
         alias: Sql,
     ) -> Result<i64, rusqlite::Error> {
-        let p12c = Sql::Blob(self.cifrar(p12));
-        let clc = Sql::Blob(self.cifrar(clave.as_bytes()));
+        let bloqueada = |m: String| {
+            rusqlite::Error::SqliteFailure(rusqlite::ffi::Error::new(rusqlite::ffi::SQLITE_AUTH), Some(m))
+        };
+        let p12c = Sql::Blob(self.cifrar(p12).map_err(bloqueada)?);
+        let clc = Sql::Blob(self.cifrar(clave.as_bytes()).map_err(bloqueada)?);
         let ahora = ahora_utc();
         if let Some(id) = self.escalar::<i64>(
             "SELECT id FROM certificados WHERE cuenta_id=? AND rut=?",
@@ -306,17 +316,25 @@ impl Servidor {
             .map_err(|e| e.to_string())?;
             tx.commit().map_err(|e| e.to_string())?;
         }
-        *self.fernet.lock().expect("fernet") = nuevo;
+        *self.fernet.lock().expect("fernet") = Some(nuevo.clone());
+        // Con bóveda, la clave maestra nueva se envuelve con el PIN y no va al .env.
+        let con_boveda = self.boveda_configurada();
+        if con_boveda {
+            self.boveda_reenvolver(&nuevo)?;
+        }
         // .env
         let mut t = std::fs::read_to_string(ruta_env).unwrap_or_default();
-        for (k, v) in [
+        let mut pares = vec![
             ("JWT_SECRET_KEY", nuevo_jwt.as_str()),
-            ("DTE_MASTER_KEY", nuevo_master.as_str()),
             (
                 "CORS_ORIGINS",
                 "http://localhost:8000,http://127.0.0.1:8000",
             ),
-        ] {
+        ];
+        if !con_boveda {
+            pares.push(("DTE_MASTER_KEY", nuevo_master.as_str()));
+        }
+        for (k, v) in pares {
             let re = regex::Regex::new(&format!(r"(?m)^{k}=.*$")).expect("regex");
             if re.is_match(&t) {
                 t = re.replace_all(&t, format!("{k}={v}")).into_owned();

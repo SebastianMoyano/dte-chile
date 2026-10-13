@@ -3,6 +3,7 @@
 //! (`--motor`), o responde 503. Cada ruta se compara contra Python con `tools/contrato_api.py`.
 
 pub mod auth;
+pub mod boveda;
 pub mod config;
 pub mod errores;
 pub mod fernet;
@@ -118,7 +119,9 @@ pub type Manejador = fn(&Servidor, &mut Peticion) -> Res;
 pub struct Servidor {
     pub cfg: Config,
     pub alm: Almacen,
-    pub fernet: Mutex<fernet::Fernet>,
+    /// None = bóveda bloqueada (`boveda.rs`): no se puede cifrar ni descifrar
+    pub fernet: Mutex<Option<fernet::Fernet>>,
+    pub boveda: Mutex<boveda::Estado>,
     rutas: Enrutador<(Prot, Manejador)>,
     /// el certificado de la práctica, en memoria
     cert_demo: Mutex<Option<Certificado>>,
@@ -138,7 +141,8 @@ impl Servidor {
             rvd: Mutex::new(rvd::EstadoRVD::nuevo(cfg.rvd_intervalo_seg)),
             cfg,
             alm,
-            fernet: Mutex::new(fer),
+            fernet: Mutex::new(Some(fer)),
+            boveda: Mutex::new(boveda::Estado::vacio()),
             rutas: Enrutador::default(),
             cert_demo: Mutex::new(None),
             parar_rvd: std::sync::atomic::AtomicBool::new(false),
@@ -146,6 +150,7 @@ impl Servidor {
         };
         s.registrar_rutas();
         s.asegurar_admin().map_err(|e| e.mensaje)?;
+        s.cargar_boveda();
         let s = Arc::new(s);
         rvd::iniciar_programador(&s);
         Ok(s)
@@ -194,6 +199,7 @@ impl Servidor {
         usuarios::rutas(self);
         apikeys::rutas(self);
         keystore::rutas(self);
+        boveda::rutas(self);
         documentos::rutas(self);
         simulacion::rutas(self);
         xsd_rutas::rutas(self);
@@ -311,6 +317,8 @@ impl Servidor {
     }
 
     fn enrutar(&self, p: &mut Peticion) -> Respuesta {
+        self.boveda_revisar_autobloqueo();
+        let sondeo = p.metodo == "GET" && p.ruta == "/api/v1/boveda";
         match self.rutas.resolver(&p.metodo, &p.ruta) {
             Enrutado::Encontrado((prot, h), params) => {
                 p.params = params;
@@ -319,6 +327,9 @@ impl Servidor {
                     Prot::Protegida => match self.autenticar(p) {
                         Ok(u) => {
                             p.usuario = Some(u);
+                            if !sondeo {
+                                self.boveda_toque();
+                            }
                             h(self, p)
                         }
                         Err(e) => Err(e),
@@ -335,6 +346,10 @@ impl Servidor {
                 };
                 match res {
                     Ok(r) => r,
+                    // lo que falló por bóveda cerrada responde 423, venga envuelto como venga
+                    Err(e) if e.status != 423 && e.mensaje.contains(boveda::MENSAJE_BLOQUEADA) => {
+                        ErrorHTTP::boveda_bloqueada().respuesta(&p.request_id)
+                    }
                     Err(e) => e.respuesta(&p.request_id),
                 }
             }

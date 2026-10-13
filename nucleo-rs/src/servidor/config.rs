@@ -21,6 +21,8 @@ pub struct Config {
     pub jwt_expira_min: i64,
     /// DTE_MASTER_KEY (Fernet); vacía = derivada del secreto JWT, como Python
     pub master_key: String,
+    /// `boveda.json` junto al .env (bóveda con PIN de la app); vacío = sin bóveda
+    pub boveda_path: String,
     pub resolucion_fecha: String,
     pub resolucion_numero: i64,
     pub resolucion_fecha_cert: String,
@@ -99,6 +101,14 @@ pub fn cargar(ruta_env: &str) -> Config {
         cors_origins: get("CORS_ORIGINS", "*"),
         jwt_expira_min: entero("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", 60),
         master_key: get("DTE_MASTER_KEY", ""),
+        boveda_path: if ruta_env.is_empty() {
+            String::new()
+        } else {
+            std::path::Path::new(ruta_env)
+                .parent()
+                .map(|p| p.join("boveda.json").to_string_lossy().into_owned())
+                .unwrap_or_default()
+        },
         resolucion_fecha: get("SII_FECHA_RESOLUCION", "2014-08-22"),
         resolucion_numero: entero("SII_NUMERO_RESOLUCION", 80),
         resolucion_fecha_cert: get("SII_FECHA_RESOLUCION_CERT", "2026-07-08"),

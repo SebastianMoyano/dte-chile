@@ -84,6 +84,7 @@ async function api(metodo, ruta, cuerpo) {
   let datos = null;
   try { datos = JSON.parse(r.cuerpo); } catch { datos = r.cuerpo; }
   if (r.status >= 400) {
+    if (r.status === 423) bovedaBloqueada();   // la bóveda con PIN se cerró: pedir el PIN
     const msg = (datos && (datos.error?.mensaje || datos.detail || datos.mensaje)) || `Error ${r.status}`;
     throw new Error(typeof msg === "string" ? msg : JSON.stringify(msg));
   }
@@ -109,7 +110,12 @@ function dialogo({ titulo, cuerpo, botones, ancho = 520, leer }) {
 }
 // La revisión antes de emitir: quién, a quién, qué, los tres números y en qué mundo. Es la
 // pantalla que promete el botón "Revisar y emitir".
-function revisar({ tipo, de, para, que, neto, iva, total, w, extra = "" }) {
+async function revisar(args) {
+  const ok = await revisarBase(args);
+  if (!ok) return false;
+  return args.w === "real" ? pinParaReal() : true;   // el primer envío real de la sesión pide el PIN
+}
+function revisarBase({ tipo, de, para, que, neto, iva, total, w, extra = "" }) {
   const mundoTxt = w === "real" ? `<div class="banner rojo"><b>Esto es real.</b> Un folio gastado no vuelve: revisa el RUT, el monto y el tipo.</div>`
     : w === "pruebas" ? `<div class="banner">Ambiente de <b>pruebas del SII</b>: el documento no tiene efecto tributario.</div>`
     : `<div class="banner verde"><b>Práctica.</b> Se arma, se firma y se timbra como uno real, pero no sale de tu computador.</div>`;
@@ -152,6 +158,7 @@ const vistas = {};
 function ir(v) { location.hash = "#" + v; }
 function param(k) { const q = (location.hash.split("?")[1] || ""); return new URLSearchParams(q).get(k); }
 async function render() {
+  await revisarBoveda();
   const v = (location.hash || "#inicio").slice(1).split("?")[0];
   const grupo = { ver: "documentos", mes: "documentos", corregir: "documentos", ia: "ajustes", valores: "ajustes", empresa: "ajustes" }[v] || v;
   document.querySelectorAll("[data-v]").forEach((a) => a.classList.toggle("on", a.dataset.v === grupo));
@@ -162,6 +169,152 @@ async function render() {
   document.dispatchEvent(new CustomEvent("vista", { detail: v }));   // el tour escucha (tour.js)
 }
 window.addEventListener("hashchange", render);
+
+// ---------- bóveda con PIN ----------
+// El motor Rust guarda la clave maestra cifrada con el PIN (boveda.json). Mientras está
+// bloqueado responde 423 a todo lo que necesite el certificado o las claves del SII. Si el
+// motor no tiene bóveda (Python, Go), GET /api/v1/boveda da 404 y nada de esto aparece.
+let boveda = { disponible: false, configurada: false, bloqueada: false, autobloqueo_min: 15, pin_minimo: 6, tiene_secretos: false, ofrecida: false };
+let pinReal = false;    // ya escribió el PIN para un envío "de verdad" en esta sesión
+let modalPIN = null;    // la pantalla de bloqueo, si está abierta
+const AUTOBLOQUEOS = [[5, "5 minutos"], [15, "15 minutos"], [60, "1 hora"], [0, "nunca (no recomendado)"]];
+const bovedaErr = (r) => { try { return JSON.parse(r.cuerpo).error?.mensaje || `Error ${r.status}`; } catch { return `Error ${r.status}`; } };
+async function estadoBoveda() {
+  try {
+    const r = await window.go.main.App.API("GET", "/api/v1/boveda", "");
+    if (r.status === 404) { boveda.disponible = false; return boveda; }
+    if (r.status >= 400) return boveda;
+    Object.assign(boveda, JSON.parse(r.cuerpo), { disponible: true });
+    if (boveda.bloqueada) pinReal = false;
+  } catch { /* el motor todavía no está listo */ }
+  return boveda;
+}
+// Un modal propio (no `dialogo`): cuando es obligatorio no se cierra con Esc ni con "Volver".
+// `al(m)` hace el trabajo; si lanza un error, se muestra adentro y el modal sigue abierto.
+function modalPin({ titulo, cuerpo, boton, obligatorio, al }) {
+  if (window.Tour && !window.Tour.enDemo()) window.Tour.cerrar();
+  return new Promise((resolve) => {
+    const m = document.createElement("div"); m.className = "modal";
+    m.innerHTML = `<div class="card" style="max-width:480px;width:92%"><h2 style="margin-top:0">${titulo}</h2>${cuerpo}<div class="pin-err"></div>
+      <div class="row" style="justify-content:flex-end">${obligatorio ? "" : `<button class="sec" data-v="no" style="flex:none">Volver</button>`}<button data-v="si" style="flex:none">${boton}</button></div></div>`;
+    document.body.appendChild(m);
+    const fin = (v) => { document.removeEventListener("keydown", tecla); m.remove(); resolve(v); };
+    const tecla = (ev) => {
+      if (!m.isConnected) return document.removeEventListener("keydown", tecla);
+      if (ev.key === "Escape" && !obligatorio) { ev.preventDefault(); fin(null); }
+      if (ev.key === "Enter" && m.contains(document.activeElement) && document.activeElement.tagName === "INPUT") { ev.preventDefault(); m.querySelector('[data-v="si"]').click(); }
+    };
+    document.addEventListener("keydown", tecla);
+    m.querySelector('[data-v="no"]')?.addEventListener("click", () => fin(null));
+    m.querySelector('[data-v="si"]').onclick = async () => {
+      const b = m.querySelector('[data-v="si"]'); b.disabled = true; m.querySelector(".pin-err").innerHTML = "";
+      try { const v = await al(m); if (v !== undefined) return fin(v); }
+      catch (e) { m.querySelector(".pin-err").innerHTML = `<div class="banner rojo">${esc(e.message || e)}</div>`; }
+      b.disabled = false;
+      const campos = m.querySelectorAll("input.pin");
+      if (campos.length === 1) campos[0].value = "";   // un solo campo (abrir, confirmar): se limpia; con varios, se corrige lo escrito
+      campos[0]?.focus();
+    };
+    setTimeout(() => m.querySelector("input")?.focus(), 30);
+  });
+}
+// El campo del PIN es type=text enmascarado con CSS (no type=password): así el gestor de
+// contraseñas del sistema no lo autollena ni ofrece "contraseña segura", y "Mostrar" deja ver
+// lo escrito para que nadie guarde un PIN con un error de tipeo.
+const campoPin = (id, etiqueta, ayuda) => `<label style="display:flex;justify-content:space-between;align-items:center">${etiqueta}<span class="lnk mut" style="font-weight:400" onclick="const i=document.getElementById('${id}');i.classList.toggle('ver');this.textContent=i.classList.contains('ver')?'Ocultar':'Mostrar'">Mostrar</span></label><input id="${id}" class="pin" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Al menos ${boveda.pin_minimo} caracteres">${ayuda ? `<p class="mut">${ayuda}</p>` : ""}`;
+// Crear el PIN. `obligatorio`: ya hay secretos guardados sin PIN, así que no se puede seguir sin uno.
+window.crearPIN = async (obligatorio) => {
+  const v = await modalPin({ titulo: "Crea tu PIN", obligatorio, boton: "Guardar mi PIN", cuerpo: `
+    <p class="mut">Tu certificado digital y tus claves del SII quedan guardados en este computador, cifrados. El PIN es la llave: <b>sin tu PIN nadie puede abrirlos</b>, ni siquiera con una copia de la carpeta.</p>
+    ${campoPin("pin1", "Tu PIN", "Puede ser una frase corta con espacios, como <i>mi gato se llama tomás</i>. Mientras más larga, mejor. Letras, números o los dos.")}
+    ${campoPin("pin2", "Escríbelo otra vez")}
+    <label>Bloquear sola si no la uso durante</label><select id="pin_auto">${AUTOBLOQUEOS.map(([m, t]) => `<option value="${m}" ${m === 15 ? "selected" : ""}>${t}</option>`).join("")}</select>
+    <div class="banner" style="margin-top:12px"><b>Si lo olvidas, no hay forma de recuperarlo.</b> Tendrías que volver a cargar tu certificado y tus claves. Tus documentos ya emitidos no se pierden.</div>`,
+    al: async (m) => {
+      const a = m.querySelector("#pin1").value, b = m.querySelector("#pin2").value;
+      if (a.length < boveda.pin_minimo) throw new Error(`El PIN debe tener al menos ${boveda.pin_minimo} caracteres.`);
+      if (a !== b) throw new Error("Los dos PIN no son iguales. Escríbelos de nuevo.");
+      const r = await window.go.main.App.API("POST", "/api/v1/boveda", JSON.stringify({ pin: a, autobloqueo_min: Number(m.querySelector("#pin_auto").value) }));
+      if (r.status >= 400) throw new Error(bovedaErr(r));
+      Object.assign(boveda, JSON.parse(r.cuerpo)); return true;
+    } });
+  if (v) aviso("PIN creado. Tus claves quedan bajo llave.", 4000);
+  return !!v;
+};
+// La pantalla de bloqueo: se queda hasta que el PIN sea correcto (o se empiece de nuevo).
+async function abrirBoveda() {
+  if (modalPIN) return modalPIN;
+  modalPIN = modalPin({ titulo: "Escribe tu PIN", obligatorio: true, boton: "Abrir", cuerpo: `
+    <p class="mut">La app está bloqueada. Tu certificado y tus claves siguen cifrados hasta que escribas tu PIN.</p>
+    ${campoPin("pin_abrir", "Tu PIN")}
+    <p class="mut"><span class="lnk" onclick="olvidePIN()">Olvidé mi PIN</span></p>`,
+    al: async (m) => {
+      const r = await window.go.main.App.API("POST", "/api/v1/boveda/abrir", JSON.stringify({ pin: m.querySelector("#pin_abrir").value }));
+      if (r.status >= 400) throw new Error(bovedaErr(r));
+      Object.assign(boveda, JSON.parse(r.cuerpo)); return true;
+    } });
+  const v = await modalPIN; modalPIN = null;
+  if (v) { aviso("Abierta.", 2000); render(); }
+  return v;
+}
+window.olvidePIN = async () => {
+  const ok = await dialogo({ titulo: "Olvidé mi PIN", cuerpo: `
+    <p class="mut">Un PIN no se puede recuperar: por eso sirve. Lo que sí puedes hacer es <b>empezar de nuevo con tus claves</b>:</p>
+    <ul class="lista-check"><li><span>Se borran el certificado digital y las claves del SII guardadas.</span></li><li><span>Tus empresas y todos los documentos ya emitidos se quedan.</span></li><li><span>Después creas un PIN nuevo y vuelves a cargar el certificado en Mi empresa.</span></li></ul>`,
+    botones: [{ texto: "Volver", clase: "sec", valor: false }, { texto: "Sí, borrar mis claves y empezar de nuevo", clase: "peligro", valor: true }] });
+  if (!ok) return;
+  const r = await window.go.main.App.API("POST", "/api/v1/boveda/reiniciar", JSON.stringify({ confirmar: true }));
+  if (r.status >= 400) return aviso(bovedaErr(r), 6000);
+  Object.assign(boveda, JSON.parse(r.cuerpo));
+  document.querySelectorAll(".modal").forEach((m) => m.remove()); modalPIN = null;   // cierra la pantalla de bloqueo
+  aviso("Claves borradas. Ahora crea un PIN nuevo.", 4000);
+  await window.crearPIN(true); render();
+};
+// Antes de un envío "de verdad": el PIN, una vez por sesión.
+async function pinParaReal() {
+  if (!boveda.disponible || !boveda.configurada || pinReal) return true;
+  const v = await modalPin({ titulo: "Tu PIN para enviar de verdad", obligatorio: false, boton: "Confirmar", cuerpo: `
+    <p class="mut">Esto va al SII y cuenta. Para el primer envío real de cada sesión te pedimos el PIN, por si no eres tú quien está frente al computador.</p>${campoPin("pin_real", "Tu PIN")}`,
+    al: async (m) => {
+      const r = await window.go.main.App.API("POST", "/api/v1/boveda/abrir", JSON.stringify({ pin: m.querySelector("#pin_real").value }));
+      if (r.status >= 400) throw new Error(bovedaErr(r)); return true;
+    } });
+  if (v) pinReal = true;
+  return !!v;
+}
+// Al arrancar: ¿bloqueada? ¿hay secretos guardados sin PIN? Y cada medio minuto, ¿se bloqueó sola?
+async function revisarBoveda() {
+  if (!estado.listo) return;
+  await estadoBoveda();
+  if (!boveda.disponible) return;
+  if (boveda.bloqueada) { await abrirBoveda(); return; }
+  if (!boveda.configurada && boveda.tiene_secretos && !boveda.ofrecida) { boveda.ofrecida = true; await window.crearPIN(true); }
+}
+function bovedaBloqueada() { boveda.bloqueada = true; pinReal = false; if (!modalPIN) abrirBoveda(); }
+setInterval(() => { if (boveda.disponible && boveda.configurada && !modalPIN) estadoBoveda().then(() => { if (boveda.bloqueada) abrirBoveda(); }); }, 30000);
+window.bloquearAhora = async () => { await window.go.main.App.API("POST", "/api/v1/boveda/bloquear", ""); bovedaBloqueada(); };
+window.cambiarPIN = async () => {
+  const v = await modalPin({ titulo: "Cambiar tu PIN", obligatorio: false, boton: "Cambiar", cuerpo: `${campoPin("pc0", "Tu PIN actual")}${campoPin("pc1", "El nuevo")}${campoPin("pc2", "El nuevo, otra vez")}`,
+    al: async (m) => {
+      const a = m.querySelector("#pc1").value, b = m.querySelector("#pc2").value;
+      if (a.length < boveda.pin_minimo) throw new Error(`El PIN debe tener al menos ${boveda.pin_minimo} caracteres.`);
+      if (a !== b) throw new Error("Los dos PIN nuevos no son iguales.");
+      const r = await window.go.main.App.API("PUT", "/api/v1/boveda", JSON.stringify({ pin_actual: m.querySelector("#pc0").value, pin_nuevo: a }));
+      if (r.status >= 400) throw new Error(bovedaErr(r));
+      Object.assign(boveda, JSON.parse(r.cuerpo)); return true;
+    } });
+  if (v) aviso("PIN cambiado.", 3000);
+};
+window.autobloqueo = async (min) => {
+  const v = await modalPin({ titulo: "Confirma con tu PIN", obligatorio: false, boton: "Guardar", cuerpo: `<p class="mut">Para cambiar cuándo se bloquea sola hace falta tu PIN.</p>${campoPin("pa0", "Tu PIN")}`,
+    al: async (m) => {
+      const r = await window.go.main.App.API("PUT", "/api/v1/boveda", JSON.stringify({ pin_actual: m.querySelector("#pa0").value, autobloqueo_min: Number(min) }));
+      if (r.status >= 400) throw new Error(bovedaErr(r));
+      Object.assign(boveda, JSON.parse(r.cuerpo)); return true;
+    } });
+  if (v) aviso("Guardado.", 2000);
+  render();
+};
 
 // ---------- inicio ----------
 vistas.inicio = async (el) => {
@@ -210,9 +363,15 @@ vistas.ajustes = async (el) => {
       <div class="card accion" onclick="ir('valores')">${icono("valores")}<h3>Valores</h3><p>UF, UTM y dólar de cualquier día, y el histórico mensual.</p></div>
       <div class="card accion" onclick="ir('empresa')">${icono("panel")}<h3>Mi empresa</h3><p>Tu certificado digital, tu empresa y tus folios, paso a paso.</p></div>
     </div>
+    ${boveda.disponible ? `<div class="card"><h3>Tu PIN</h3>
+      ${boveda.configurada ? `<p class="mut">Tus claves están bajo llave. La app se bloquea sola ${boveda.autobloqueo_min ? `si pasan ${(AUTOBLOQUEOS.find((a) => a[0] === boveda.autobloqueo_min) || [0, boveda.autobloqueo_min + " minutos"])[1]} sin usarla` : "solo cuando la cierras"}, y pide el PIN antes del primer envío real de cada sesión.</p>
+        <label>Bloquear sola si no la uso durante</label><select onchange="autobloqueo(this.value)">${AUTOBLOQUEOS.map(([m, t]) => `<option value="${m}" ${m === boveda.autobloqueo_min ? "selected" : ""}>${t}</option>`).join("")}</select>
+        <div class="row" style="margin-top:12px"><button class="sec" onclick="cambiarPIN()">Cambiar PIN</button><button class="sec" onclick="bloquearAhora()">Bloquear ahora</button></div>`
+      : `<p class="mut">Todavía no tienes PIN. Con PIN, tu certificado y tus claves quedan cifrados con una llave que solo tú sabes: sin él, ni una copia de la carpeta sirve.</p><button onclick="crearPIN(false).then(render)">Crear mi PIN</button>`}
+    </div>` : ""}
     <div class="card"><h3>Dónde quedan tus claves</h3>
       <ul class="lista-check">
-        <li><span><b>Tu certificado digital</b> se guarda cifrado en este computador, con una clave que la app creó aquí la primera vez. Nunca se escribe en claro ni sale de aquí.</span></li>
+        <li><span><b>Tu certificado digital</b> se guarda cifrado en este computador. ${boveda.configurada ? "La llave es tu PIN, y no está escrita en ninguna parte." : "La llave la creó la app aquí la primera vez; con un PIN, la llave pasa a ser el PIN."} Nunca se escribe en claro ni sale de aquí.</span></li>
         <li><span><b>Tu clave del SII</b> solo se pide para operar el sistema gratuito del SII. Vive en memoria mientras la app está abierta y se borra al cerrarla, salvo que marques "recordar en este computador": entonces se guarda cifrada como el certificado.</span></li>
         <li><span><b>La IA</b>, si la conectas, no recibe ninguna clave y no puede emitir sola: todo lo que cuenta ante el SII pasa por tu confirmación en esta app.</span></li>
         <li><span><b>No hay servidor de Faro.</b> Lo único que sale de este computador es lo que va al SII.</span></li>
@@ -552,12 +711,14 @@ async function errorNota(err) {
 window.anularPropio = async (id) => {
   const d = await docDe(id); if (!d) return;
   if (!(await dialogoAnular(d.tipo_dte, d.folio, d.monto_total, true))) return;
+  if (!(await pinParaReal())) return;
   try { const r = await notaPropia(d, 61, 1, "Anula documento", lineasAnula(d)); aviso(`Nota de crédito N° ${r.folio} emitida.`, 6000); ir(`ver?id=${r.dte_id}`); } catch (e) { errorNota(e); }
 };
 window.cobroPropio = async (id) => {
   const d = await docDe(id); if (!d) return;
   const ok = await dialogoCobro(d.tipo_dte, d.folio, true);
   if (!ok) return;
+  if (!(await pinParaReal())) return;
   if (!ok.monto) return aviso("Escribe cuánto faltó cobrar.");
   const exento = [34, 41].includes(d.tipo_dte) || (!d.monto_neto && !!d.monto_exento);
   try { const r = await notaPropia(d, 56, 3, "Corrige montos", [{ nombre: ok.nombre || `Cobro que faltó en ${(TIPOS[d.tipo_dte] || "documento").toLowerCase()} folio ${d.folio}`, precio_unitario: ok.monto, exento }]); aviso(`Nota de débito N° ${r.folio} emitida por ${clp(r.monto_total)}.`, 6000); ir(`ver?id=${r.dte_id}`); } catch (e) { errorNota(e); }
@@ -565,6 +726,7 @@ window.cobroPropio = async (id) => {
 window.anularNCPropio = async (id) => {
   const d = await docDe(id); if (!d) return;
   if (!(await dialogoSinEfecto(d.folio, true))) return;
+  if (!(await pinParaReal())) return;
   try { const r = await notaPropia(d, 56, 1, "Anula nota de crédito", lineasAnula(d)); aviso(`Nota de débito N° ${r.folio} emitida. La nota de crédito quedó sin efecto.`, 6000); ir(`ver?id=${r.dte_id}`); } catch (e) { errorNota(e); }
 };
 
@@ -603,6 +765,7 @@ window.anularSII = async (id) => {
   const enGo = window.go?.main?.App?.SIIEngineNotaCredito;
   if (!enGo) return aviso("Esta versión del cascarón no trae el SII engine.");
   const k = await pedirClaves(e.rut, true);
+  if (!(await pinParaReal())) return;   // el gratuito siempre es real
   if (!k) return;
   if (!k.certificado && !k.rut_usuario) return;
   aviso("Pidiendo al SII la nota de crédito de anulación (sin gastar folio)…", 6000);
@@ -637,6 +800,7 @@ window.anularNCSII = async (id) => {
   const fn = window.go?.main?.App?.SIIEngineNotaDebito;
   if (!fn) return aviso("Esta versión del cascarón no trae el SII engine.");
   const k = await pedirClaves(e.rut, true);
+  if (!(await pinParaReal())) return;   // el gratuito siempre es real
   if (!k) return;
   if (!k.certificado && !k.rut_usuario) return;
   aviso("Pidiendo al SII la nota de débito (sin gastar folio)…", 6000);
@@ -843,6 +1007,7 @@ vistas.empresa = async (el) => {
     $("e_subir").onclick = async () => {
       const clave = $("e_clave").value;
       if (!clave) return aviso("Falta la clave del certificado.");
+      if (boveda.disponible && !boveda.configurada && !(await window.crearPIN(false))) return aviso("Primero crea tu PIN: es lo que protege el certificado.", 5000);
       $("e_subir").disabled = true; $("e_aviso").innerHTML = `<p class="mut">Abriendo el certificado…</p>`;
       try {
         const r = await window.go.main.App.Formulario("/api/v1/keystore/certificados", JSON.stringify({ password: clave }), rutaCert);
@@ -965,6 +1130,7 @@ window.pedirFolios = async (negocioId, tipo, nombre) => {
   const ok = await dialogo({ titulo: `Pedir 5 folios de ${nombre}`, cuerpo: `<p class="mut">La app entra al SII con tu certificado, pide un rango de 5 números y lo guarda aquí. Desde ese momento puedes emitir 5 documentos de este tipo.</p>${negP.ambiente === "produccion" ? "" : `<p class="mut">Como esta empresa está en "practicar con el SII", los folios vienen del SII de pruebas: son de ensayo y no valen para documentos de verdad.</p>`}<div class="banner">Pide solo lo que vayas a usar: el SII frena a quien acumula folios sin emitirlos.</div>`,
     botones: [{ texto: "Volver", clase: "sec", valor: false }, { texto: "Pedir los folios", valor: true }] });
   if (!ok) return;
+  if (negP.ambiente === "produccion" && !(await pinParaReal())) return;
   aviso("Pidiendo folios al SII… puede tardar medio minuto.", 8000);
   try {
     const r = JSON.parse(await window.go.main.App.PedirFolios(negocioId, tipo, 5));

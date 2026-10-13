@@ -55,6 +55,10 @@ impl ErrorHTTP {
     pub fn certificado(m: impl Into<String>) -> ErrorHTTP {
         ErrorHTTP::nuevo(422, "certificado", m)
     }
+    /// 423: la bóveda con PIN está cerrada (`boveda.rs`).
+    pub fn boveda_bloqueada() -> ErrorHTTP {
+        ErrorHTTP::nuevo(423, "boveda_bloqueada", super::boveda::MENSAJE_BLOQUEADA)
+    }
     pub fn autenticacion(m: impl Into<String>) -> ErrorHTTP {
         ErrorHTTP::nuevo(401, "autenticacion", m)
     }

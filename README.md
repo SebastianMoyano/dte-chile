@@ -79,6 +79,12 @@ Para leer de corrido. Cada encabezado dice lo esencial; el párrafo lo explica.
 - **El certificado digital** se guarda **cifrado** en tu carpeta de datos, con una clave
   maestra que la app genera en tu computador la primera vez. Nunca sale de ahí y nunca se
   escribe en claro.
+- **Un PIN es la llave de esa clave maestra.** La app te lo pide al guardar el primer
+  certificado; desde ahí la clave maestra ya no está escrita en ninguna parte: se abre con tu
+  PIN (Argon2id) al arrancar, se cierra sola si no usas la app durante un rato, y el primer
+  envío real de cada sesión vuelve a pedirlo. Sin tu PIN, ni una copia completa de la carpeta
+  sirve. Si lo olvidas no se recupera: se borran certificado y claves guardadas y los cargas de
+  nuevo; los documentos emitidos se quedan.
 - **La clave tributaria** (la del SII) solo hace falta para el camino del sistema gratuito,
   porque es la que abre la sesión en el portal. Se pide cuando se necesita, vive en memoria
   mientras la app está abierta y **se borra al cerrarla**, salvo que marques "recordar en este

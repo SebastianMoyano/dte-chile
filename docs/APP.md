@@ -172,6 +172,20 @@ IDENTIDAD="Developer ID Application: …" ./firmar-mac.sh   # firma y notarizaci
 - La primera vez, el cascarón crea el `.env` con secretos generados ahí mismo (`JWT_SECRET_KEY`,
   `DTE_MASTER_KEY` del keystore) y una `ADMIN_PASSWORD` para el panel web, que Inicio muestra.
   Si el `.env` ya existe no se toca: es la configuración del usuario.
+- **Bóveda con PIN** (2026-10-13, `nucleo-rs/src/servidor/boveda.rs`, solo en el motor Rust): al crear el
+  PIN, la clave maestra sale del `.env` y queda en `boveda.json` cifrada con una llave derivada del PIN
+  (Argon2id 64 MiB × 3, sal aleatoria). El motor arranca **bloqueado** (`fernet = None`) y todo lo que
+  necesite cifrar o descifrar responde **423 `boveda_bloqueada`**; la interfaz lo convierte en la pantalla
+  "Escribe tu PIN". Rutas: `GET/POST/PUT /api/v1/boveda`, `POST …/abrir|bloquear|reiniciar`. Autobloqueo por
+  inactividad (minutos, 0 = nunca; cualquier petición autenticada menos el sondeo cuenta como uso), 5
+  intentos y pausa de 30 s, y el primer envío real de la sesión vuelve a pedir el PIN (`pinParaReal`, en
+  `revisar`, las notas reales, los folios en producción y el gratuito). "Olvidé mi PIN" = `reiniciar`:
+  borra `certificados` y `claves_sii`, `negocios.cert_id = NULL`, clave maestra nueva en el `.env`, sin
+  bóveda; los documentos se quedan. Consecuencias: el MCP por stdio (otro proceso) y los CLI sobre una
+  carpeta con bóveda ven 423 en lo que necesite el certificado; lo que no lo necesita sigue. Python y Go
+  no la tienen (la interfaz lo detecta por el 404 de `GET /api/v1/boveda`). Modelo de amenaza: protege
+  contra copiar la carpeta, no contra un programa corriendo como el usuario con la app abierta; un PIN
+  corto se adivina fuera de línea, por eso el mínimo son 6 caracteres y se sugiere una frase.
 - Esa carpeta queda **solo para el usuario** (2026-10-13, `cliutil::proteger_carpeta_datos`): 700 la
   carpeta y 600 el `.env` y la base con su `-wal`/`-shm`, al crearla y en cada arranque empaquetado.
   Motivo: el `.env` tiene la clave maestra y la base el certificado y las claves cifradas con ella;
@@ -292,7 +306,7 @@ tarjetas que el tour señala llevan `data-tour="…"`.
 | Documentos · anular (en cada fila) | en práctica anula con NC; en el gratuito del SII, por el SII engine; motor propio, próxima versión | `dte/documentos`, `simulacion/anular` |
 | Ver | visor de PDF embebido con las partes explicadas, guardar PDF/XML, anular (práctica) | `dte/documentos/{id}/pdf` |
 | Documentos · Todos | la empresa activa, ver/guardar PDF y XML con diálogo del sistema, anular | `dte/documentos`, `/pdf`, `/xml` |
-| Ajustes | Mi empresa, Tu IA, Valores, Apariencia, "Dónde quedan tus claves", Detalles técnicos (con el panel web para integradores) | — |
+| Ajustes | Mi empresa, Tu IA, Valores, "Tu PIN" (crear/cambiar/bloquear ahora/autobloqueo; 2026-10-13), Apariencia, "Dónde quedan tus claves", Detalles técnicos (con el panel web para integradores) | — |
 | Mi empresa (2026-10-12) | tres pasos explicados como a un alumno: (1) certificado digital: diálogo del sistema + clave, se guarda cifrado (bindings `ElegirArchivo` + `Formulario` → `POST keystore/certificados`); (2) empresa: el SII lista las del certificado o se escribe el RUT, ambiente pruebas/real explicado (`GET certificados/{id}/empresas`, `Formulario` → `POST keystore/negocios`), y por cada empresa sus **datos del emisor** (nombre, giro, código de actividad, dirección, comuna, ciudad, correo, teléfono), cada uno explicado, guardados por negocio con `PUT keystore/negocios/{id}` (2026-10-13; antes eran `EMPRESA_*` del `.env`, uno para todo el motor, y se heredan de ahí si coinciden con el RUT); (3) folios: qué es un folio y un CAF, qué tipos autorizó el SII (`GET negocios/{id}/timbraje`) y "pedir 5 folios" (`PedirFolios`: el portal con el certificado, CAF a `storage/cafs` y a la base, guardarraíles anti-acaparamiento). Reemplaza al "Abrir el panel" de Inicio | ver fila |
 | Valores | UF, UTM y dólar a cualquier fecha desde 2015 (se recalcula al cambiar la fecha) y tabla mensual por año (inicio y fin de mes); fechas en castellano; el histórico se carga una vez al arrancar, el año en curso cada día | `valores`, `valores/historico` |
 | Aprender | los cinco tramos del curso (solo índice) | — |
