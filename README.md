@@ -54,6 +54,55 @@ adentro, en el mismo proceso, en 14 MB.
 
 > Pensado para **una persona que opera sus propias empresas**, no como servicio multi-cliente.
 
+## Cómo funciona, en cuatro respuestas
+
+Para leer de corrido. Cada encabezado dice lo esencial; el párrafo lo explica.
+
+### 1. Hay dos caminos para emitir, y el primero es el del propio SII
+
+- **El sistema gratuito del SII.** El SII ofrece en su página un emisor gratuito de facturas y
+  uno de boletas. Faro no lo reemplaza: **lo opera por ti**, con tu sesión, igual que lo harías
+  en el navegador, y le agrega lo que el SII no entrega: guarda el PDF y el XML de cada
+  documento en tu computador, arma el resumen del mes y te muestra todo en la misma pantalla.
+  Es el camino recomendado para quien recién empieza y no exige ningún trámite extra.
+- **Tu propio motor.** Para quien emite mucho o integra sistemas: Faro mismo arma, timbra y
+  firma el documento y lo envía al SII. Este camino **exige certificarse ante el SII**, un
+  proceso que se hace una vez por empresa: el SII entrega un ambiente de pruebas, pide que se
+  emita un set de documentos de muestra, los revisa, y recién entonces autoriza a emitir de
+  verdad. Faro ya pasó ese proceso para la empresa de quien lo escribe, y trae las herramientas
+  para pasarlo con la tuya ([`docs/CERTIFICACION.md`](docs/CERTIFICACION.md)). No es "conectarse
+  a un servicio web": el SII es exigente con cada byte del documento, y eso es parte de lo que
+  Faro ya resolvió.
+
+### 2. Tus claves se quedan en tu computador
+
+- **El certificado digital** se guarda **cifrado** en tu carpeta de datos, con una clave
+  maestra que la app genera en tu computador la primera vez. Nunca sale de ahí y nunca se
+  escribe en claro.
+- **La clave tributaria** (la del SII) solo hace falta para el camino del sistema gratuito,
+  porque es la que abre la sesión en el portal. Se pide cuando se necesita, vive en memoria
+  mientras la app está abierta y **se borra al cerrarla**, salvo que marques "recordar en este
+  computador", en cuyo caso se guarda cifrada igual que el certificado.
+- **La clave del certificado** se pide solo para firmar y no se guarda, salvo la misma opción
+  de recordar.
+- **Ninguna clave viaja a un servidor de Faro**, porque no existe tal servidor: todo corre en tu
+  máquina, y lo único que sale es lo que va al SII.
+
+### 3. La IA es opcional, y no emite nada sola
+
+Si tienes un asistente de IA en tu computador (Claude, Cursor, VS Code, Gemini, Codex), Faro
+puede conectarlo para que lea tus documentos, revise tus folios o te prepare una boleta. Pero
+**la IA no tiene tus claves y no puede emitir por su cuenta**: todo lo que gasta folios o cuenta
+ante el SII te lo muestra en la app y espera tu confirmación. Está apagada hasta que la
+conectes en Ajustes, y la conexión es local, sin pasar por internet.
+
+### 4. Antes de todo eso, practica
+
+Faro trae una **empresa de práctica** donde cada boleta se arma, se timbra y se firma exactamente
+como una real, pero nunca sale del computador. Ahí se aprende qué es un folio, el IVA, una
+nota de crédito. Cuando quieras emitir de verdad, eliges una empresa real y el semáforo de la
+app pasa a rojo: "esto cuenta".
+
 ## Qué es, en una tabla
 
 | pieza | qué hace | dónde |

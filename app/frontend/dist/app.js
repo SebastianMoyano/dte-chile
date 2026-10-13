@@ -207,11 +207,18 @@ vistas.ajustes = async (el) => {
       <div class="card accion" onclick="ir('valores')">${icono("valores")}<h3>Valores</h3><p>UF, UTM y dólar de cualquier día, y el histórico mensual.</p></div>
       <div class="card accion" onclick="abrirPanel('certificados')">${icono("panel")}<h3>Panel del motor</h3><p>Certificados, folios, usuarios y claves de API, en el navegador.</p></div>
     </div>
+    <div class="card"><h3>Dónde quedan tus claves</h3>
+      <ul class="lista-check">
+        <li><span><b>Tu certificado digital</b> se guarda cifrado en este computador, con una clave que la app creó aquí la primera vez. Nunca se escribe en claro ni sale de aquí.</span></li>
+        <li><span><b>Tu clave del SII</b> solo se pide para operar el sistema gratuito del SII. Vive en memoria mientras la app está abierta y se borra al cerrarla, salvo que marques "recordar en este computador": entonces se guarda cifrada como el certificado.</span></li>
+        <li><span><b>La IA</b>, si la conectas, no recibe ninguna clave y no puede emitir sola: todo lo que cuenta ante el SII pasa por tu confirmación en esta app.</span></li>
+        <li><span><b>No hay servidor de Faro.</b> Lo único que sale de este computador es lo que va al SII.</span></li>
+      </ul></div>
     <div class="card"><h3>Apariencia</h3><p class="mut">Si el fondo oscuro te cansa la vista, elige Claro. Automático sigue al sistema.</p>
       <div class="segmento" id="tema_sel">${Object.entries(TEMAS).map(([k, v]) => `<button class="${(localStorage.getItem("tema") || "") === k ? "on" : ""}" onclick="aplicarTema('${k}'); render()">${v}</button>`).join("")}</div></div>
     <details class="tecnico"><summary>Detalles técnicos</summary>
       <p class="mut">Motor v${esc(estado.version)} en <code>${esc(estado.url)}</code>${estado.externo ? " (externo)" : estado.empaquetado ? " (dentro de la app)" : " (datos del repo)"}.
-      ${estado.empaquetado ? `Tus datos están en <code>${esc(estado.raiz)}</code>.` : ""} La clave del panel web se muestra al pulsar "Panel del motor".</p></details>`;
+      ${estado.empaquetado ? `Tus datos (base, documentos y configuración) están en <code>${esc(estado.raiz)}</code>.` : ""} La clave del panel web se muestra al pulsar "Panel del motor".</p></details>`;
 };
 // El panel web pide usuario y clave; se muestran recién cuando hacen falta, no en Inicio.
 window.abrirPanel = async (pagina) => {
@@ -219,7 +226,7 @@ window.abrirPanel = async (pagina) => {
     const ok = await dialogo({ titulo: "Abrir el panel del motor", ancho: 460,
       cuerpo: `<p class="mut">Se abre en tu navegador. Para entrar usa:</p>
         <div class="rev"><span>Usuario</span><b><code>admin</code></b></div><div class="rev"><span>Clave</span><b><code>${esc(estado.clave_admin)}</code></b></div>
-        <p class="mut">La clave se puede copiar; también está en el archivo <code>.env</code> de tus datos.</p>`,
+        <p class="mut">Al continuar, la clave queda copiada. Si la pierdes, vuelve aquí: siempre se muestra en este mismo lugar.</p>`,
       botones: [{ texto: "Volver", clase: "sec", valor: false }, { texto: "Copiar clave y abrir", valor: true }] });
     if (!ok) return;
     try { await navigator.clipboard.writeText(estado.clave_admin); aviso("Clave copiada."); } catch {}
@@ -256,11 +263,11 @@ async function pedirClaves(rut, necesitaCert) {
     m.className = "modal";
     m.innerHTML = `<div class="card" style="max-width:460px;width:92%">
       <h2 style="margin-top:0">Claves del SII</h2>
-      <p class="mut">Para operar el sistema gratuito del SII por <b>${esc(rut)}</b>, la app entra al SII <b>como tú</b>. Las claves se usan solo para eso y se borran al cerrar la app, salvo que marques recordarlas.</p>
+      <p class="mut">Para operar el sistema gratuito del SII por <b>${esc(rut)}</b>, la app entra al SII <b>como tú</b>, igual que en el navegador. Las claves se usan solo para eso, no salen de este computador y se borran al cerrar la app, salvo que marques recordarlas.</p>
       <label>Tu RUT (persona autorizada en el SII)</label><input id="k_rut" value="${esc(ya.rut_usuario || est.rut_usuario || "")}" placeholder="12345678-5">
       <label>Clave tributaria ${tieneTrib ? '<span class="mut">(ya recordada; deja vacío para usarla)</span>' : ""}</label><input id="k_trib" type="password" autocomplete="off">
       ${necesitaCert ? `<label>Clave del certificado digital (para firmar) ${tieneCert ? '<span class="mut">(ya recordada; deja vacío para usarla)</span>' : ""}</label><input id="k_cert" type="password" autocomplete="off">` : ""}
-      <div class="chk"><input type="checkbox" id="k_rec"><label for="k_rec" style="margin:0;font-weight:500">Recordar en este equipo (cifradas con la clave maestra del motor)</label></div>
+      <div class="chk"><input type="checkbox" id="k_rec"><label for="k_rec" style="margin:0;font-weight:500">Recordar en este computador (se guardan cifradas, como el certificado)</label></div>
       <div class="row"><button class="sec" id="k_no">Cancelar</button><button id="k_ok">Continuar</button></div></div>`;
     document.body.appendChild(m);
     m.querySelector("#k_no").onclick = () => { m.remove(); resolve(null); };
@@ -434,10 +441,11 @@ vistas.cobrar = async (el) => {
 async function emisorDe(rut) {
   const neg = negocios.find((n) => n.rut === rut);
   const e = await api("GET", "/api/v1/dte/emisor");
-  if (!e.configurada) throw new Error("El motor no tiene configurada la empresa (EMPRESA_RUT, EMPRESA_RAZON_SOCIAL, giro, dirección en .env).");
+  if (!e.configurada) throw new Error("A esta empresa le faltan sus datos (razón social, giro, dirección) para emitir con motor propio. En esta versión se completan en la configuración del motor: Ajustes → Detalles técnicos dice dónde está.");
   const faltan = ["giro", "codigo_actividad", "direccion", "comuna", "ciudad"].filter((k) => !e[k]);
-  if (faltan.length) throw new Error(`Faltan datos del emisor en el .env del motor: ${faltan.map((k) => "EMPRESA_" + k.toUpperCase()).join(", ")}. Sin eso el SII rechaza el documento.`);
-  if (e.rut !== rut) throw new Error(`El motor está configurado para ${e.rut}, no para ${rut}. Por ahora solo puede emitir con el motor propio la empresa del .env.`);
+  const nombres = { giro: "giro", codigo_actividad: "código de actividad", direccion: "dirección", comuna: "comuna", ciudad: "ciudad" };
+  if (faltan.length) throw new Error(`A esta empresa le falta: ${faltan.map((k) => nombres[k] || k).join(", ")}. Sin eso el SII rechaza el documento. En esta versión se completa en la configuración del motor (Ajustes → Detalles técnicos dice dónde está).`);
+  if (e.rut !== rut) throw new Error(`En esta versión solo puede emitir con motor propio la empresa configurada en el motor (${e.rut}), y elegiste ${rut}. Las demás pueden usar el camino del sistema gratuito del SII.`);
   return { rut, razon_social: e.razon_social || neg?.razon_social || "", giro: e.giro, codigo_actividad: e.codigo_actividad,
            direccion: e.direccion, comuna: e.comuna, ciudad: e.ciudad, email: e.email, telefono: e.telefono };
 }
