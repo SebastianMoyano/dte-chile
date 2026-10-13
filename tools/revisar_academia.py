@@ -4,7 +4,7 @@
 Revisa que cada lección tenga lo que la app espera (módulo existente, id único, concepto con
 al menos dos párrafos, ejemplo, pregunta con 4 opciones y respuesta válida, acción a una vista
 real, y la secuencia de pasos: adivina opcional al inicio, ideas, una sola pregunta, misión
-opcional a una vista real, cierre con 1 a 3 claves; los números vivos data-v solo neto/iva/total),
+opcional a una vista real, cierre con 1 a 3 claves; los números vivos data-vivo solo neto/iva/total),
 que no haya RUTs reales (L14) y que el texto no use regionalismos vetados. Con --md
 escribe docs/aprender/LECCIONES.md a partir de los mismos datos, para leer fuera de la app.
 
@@ -65,7 +65,7 @@ def revisar(d):
                     errs.append(f"{donde}: xo debe tener 4 entradas, con None en la correcta y texto en las otras")
             if t == "idea" and not x.get("h"): errs.append(f"{donde}: idea sin texto")
             if t == "idea":
-                for v in re.findall(r'data-v="([^"]+)"', x["h"]):
+                for v in re.findall(r'data-vivo="([^"]+)"', x["h"]):
                     if v not in VIVOS: errs.append(f"{donde}: número vivo desconocido {v}")
             if t == "mision":
                 if x.get("v") not in VISTAS: errs.append(f"{donde}: misión a vista desconocida {x.get('v')}")

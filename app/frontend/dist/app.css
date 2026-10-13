@@ -411,20 +411,22 @@ iframe { background:#fff; }
 .acad-dots i { width:10px; height:10px; border-radius:50%; background:var(--bd-2); transition:background .2s, transform .2s; }
 .acad-dots i.visto { background:var(--mut-2); cursor:pointer; } .acad-dots i.on { background:var(--acc); transform:scale(1.3); }
 .acad-dots span { margin-left:6px; font-size:.82rem; }
-.acad-vis.oculto { display:none; }
-@keyframes acadRevelar { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:none; } }
-.acad-vis.revelar { animation:acadRevelar .45s ease-out; }
-@keyframes acadEntra { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
-.acad-paso.entra { animation:acadEntra .3s ease-out; }
+/* nada se mueve después de aparecer: sin desplazamientos; el visual se revela donde está, solo con opacidad */
+.acad-cuerpo { display:flex; flex-direction:column; }
+.acad-cuerpo > .card { margin-bottom:16px; }
+.acad-vis.oculto { display:none; } .acad-vis.abajo { order:2; }
+.acad-vis.atenuado { opacity:.45; }
+@keyframes acadRevelar { from { opacity:0; } to { opacity:1; } }
+.acad-vis.revelar { animation:acadRevelar .35s ease-out; }
 .acad-paso p { font-size:1.08rem; line-height:1.65; margin:0 0 12px; } .acad-paso p:last-child { margin-bottom:0; }
 .acad-paso h3 { margin:0 0 8px; }
 .acad-tag { font-size:.8rem !important; text-transform:uppercase; letter-spacing:.06em; color:var(--mut); font-weight:600; margin-bottom:6px !important; }
 .acad-preg { font-weight:600; }
-.acad-paso [data-v] { background:var(--acc-soft); padding:1px 6px; border-radius:6px; transition:background .2s; }
+.acad-paso [data-vivo] { background:var(--acc-soft); padding:1px 6px; border-radius:6px; }
 .acad-claves { margin:0 0 12px; padding-left:0; list-style:none; display:flex; flex-direction:column; gap:8px; }
 .acad-claves li { padding:10px 14px; border-radius:var(--r-sm); background:var(--ok-soft); border-left:4px solid var(--ok); font-size:1.02rem; }
 .acad-nav { justify-content:space-between; margin-top:14px; flex-wrap:wrap; }
 /* foco: el paso resalta una parte del visual y atenúa el resto */
 .vis [data-parte] { transition:opacity .25s, box-shadow .25s; }
 .vis [data-parte].apagado { opacity:.38; } .vis [data-parte].foco { box-shadow:var(--ring); opacity:1; }
-@media (prefers-reduced-motion: reduce) { .acad-vis.revelar, .acad-paso.entra { animation:none; } }
+@media (prefers-reduced-motion: reduce) { .acad-vis.revelar { animation:none; } }

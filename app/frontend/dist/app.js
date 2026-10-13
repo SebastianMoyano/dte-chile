@@ -993,7 +993,7 @@ const acadFoco = (k) => {
   const op = k && document.querySelector(`#acad_vis .vis-tog button[data-parte="${k}"]:not(.on)`); if (op) op.click();
   document.querySelectorAll("#acad_vis [data-parte]").forEach((e) => { e.classList.toggle("foco", !!k && e.dataset.parte === k); e.classList.toggle("apagado", !!k && e.dataset.parte !== k); });
 };
-const acadVivos = (v) => { if (!v) return; document.querySelectorAll("#acad_paso [data-v]").forEach((e) => { if (v[e.dataset.v] != null) e.textContent = clp(v[e.dataset.v]); }); };
+const acadVivos = (v) => { if (!v) return; document.querySelectorAll("#acad_paso [data-vivo]").forEach((e) => { if (v[e.dataset.vivo] != null) e.textContent = clp(v[e.dataset.vivo]); }); };
 vistas.leccion = async (el) => {
   const L = acadLecciones(), id = param("id");
   const i = Math.max(0, L.findIndex((l) => l.id === id)), l = L[i];
@@ -1005,8 +1005,8 @@ vistas.leccion = async (el) => {
     <h1>${esc(l.titulo)}</h1>
     <p class="sub">${esc(l.resumen)}</p>
     <div class="acad-dots" id="acad_dots"></div>
-    <div class="card acad-vis oculto" id="acad_visc"><div class="vis" id="acad_vis"></div></div>
-    <div class="card acad-paso" id="acad_paso"></div>
+    <div class="acad-cuerpo"><div class="card acad-vis oculto" id="acad_visc"><div class="vis" id="acad_vis"></div></div>
+    <div class="card acad-paso" id="acad_paso"></div></div>
     <div class="row acad-nav" id="acad_nav"></div>`;
   const vc = $("acad_vis");
   const ctx = { valores: () => api("GET", "/api/v1/valores"), cambio: (v) => { acadPaso.valores = v; acadVivos(v); acadFoco((l.pasos[acadPaso.n] || {}).foco); } };
@@ -1024,8 +1024,8 @@ function acadPintar() {
   $("acad_dots").innerHTML = P.map((x, k) => `<i class="${k === n ? "on" : k <= acadPaso.max ? "visto" : ""}" title="${x.tipo}" ${k <= acadPaso.max ? `onclick="acadSaltar(${k})"` : ""}></i>`).join("") + `<span class="mut">${n + 1} de ${P.length}</span>`;
   // el visual: se ve o no según el paso; en "adivina" se revela al responder
   const visc = $("acad_visc");
-  const verVis = p.tipo === "idea" ? p.vis !== false : p.tipo === "pregunta" ? true : p.tipo === "adivina" ? acadPaso.adivinado !== null : false;
-  if (visc) { const estaba = !visc.classList.contains("oculto"); visc.classList.toggle("oculto", !verVis); visc.classList.toggle("revelar", verVis && !estaba); if (verVis && !estaba && p.tipo === "adivina") visc.scrollIntoView({ behavior: "smooth", block: "start" }); }
+  const verVis = p.tipo === "idea" || p.tipo === "pregunta" || (p.tipo === "adivina" && acadPaso.adivinado !== null);
+  if (visc) { const estaba = !visc.classList.contains("oculto"); visc.classList.toggle("oculto", !verVis); visc.classList.toggle("revelar", verVis && !estaba); visc.classList.toggle("atenuado", p.tipo === "idea" && p.vis === false); visc.classList.toggle("abajo", p.tipo === "adivina"); }
   acadFoco(p.tipo === "idea" ? p.foco : null);
   let puedeSeguir = true, h = "";
   if (p.tipo === "adivina") {
@@ -1061,9 +1061,8 @@ function acadPintar() {
     ${ultimo ? (sig ? `<button onclick="ir('leccion?id=${sig.id}')">${esc(sig.titulo)} →</button>` : `<button onclick="ir('aprender')">Volver a Aprender</button>`)
              : `<button onclick="acadSaltar(${n + 1})" ${puedeSeguir ? "" : "disabled"}>Seguir →</button>`}
     ${!puedeSeguir ? `<span class="mut" style="font-size:.85rem">Elige una para seguir.</span>` : ""}`;
-  caja.classList.remove("entra"); void caja.offsetWidth; caja.classList.add("entra");
 }
-window.acadSaltar = (k) => { acadPaso.n = k; acadPintar(); window.scrollTo({ top: 0, behavior: "smooth" }); };
+window.acadSaltar = (k) => { acadPaso.n = k; acadPintar(); if (window.scrollY > 0) window.scrollTo(0, 0); };
 window.acadAdivinar = (k) => { acadPaso.adivinado = k; acadPintar(); };
 window.acadResponder = (id, k) => {
   const l = acadLecciones().find((x) => x.id === id); if (!l) return;

@@ -3,7 +3,7 @@
 # Cada lección se ve en la app como una secuencia de tarjetas ("pasos"), una idea por pantalla:
 #   adivina  → una pregunta antes de explicar (el alumno apuesta, el visual revela)
 #   idea     → dos o tres líneas; puede mostrar el visual, enfocarlo en una parte (foco) y traer
-#              números vivos: <b data-v="iva">$ 190</b> se actualiza cuando el alumno mueve el visual
+#              números vivos: <b data-vivo="iva">$ 190</b> se actualiza cuando el alumno mueve el visual
 #   ejemplo  → un caso con números
 #   pregunta → la de control, con explicación por opción equivocada (xo) cuando se escribió
 #   mision   → opcional: algo para hacer en la app; nunca bloquea (la app acompaña, no obliga)
@@ -45,7 +45,7 @@ lec2("basico", "impuesto", "¿Qué es un impuesto?", "Plata que todos aportan pa
    "De cada jugo, $190 no son de Sofía: son IVA y van al Estado. Ella los cobra y los entrega. Mira cómo se reparte."),
  ideas=[
   ("<p>Un <b>impuesto</b> es una parte de lo que ganas o gastas que va al Estado. Con esa plata se pagan colegios, hospitales, calles, pensiones. No es un castigo ni una multa: es la cuota de cada uno para lo que usamos en común.</p>", V()),
-  ("<p>Mueve el precio del jugo. Si cuesta <b data-v=\"neto\">$ 1.000</b> sin IVA, el Estado recibe <b data-v=\"iva\">$ 190</b> y Sofía se queda con <b data-v=\"neto\">$ 1.000</b>. La parte amarilla nunca es de ella.</p>", V(foco="iva")),
+  ("<p>Mueve el precio del jugo. Si cuesta <b data-vivo=\"neto\">$ 1.000</b> sin IVA, el Estado recibe <b data-vivo=\"iva\">$ 190</b> y Sofía se queda con <b data-vivo=\"neto\">$ 1.000</b>. La parte amarilla nunca es de ella.</p>", V(foco="iva")),
   ("<p>Quien tiene un negocio no solo paga impuestos: también <b>recauda</b>. Cobra el IVA a sus clientes y se lo entrega al Estado a fin de mes. Por eso existen las boletas y las facturas: son la prueba de cuánto se cobró.</p>", V(foco="neg")),
   ("<p>En este curso importan dos impuestos: el <b>IVA</b>, que se paga cada vez que se compra algo, y el <b>impuesto a la renta</b>, que se paga una vez al año sobre lo que se ganó. Los dos aparecen más adelante.</p>", V(vis=False, titulo="Dos impuestos para recordar")),
  ],
@@ -78,7 +78,7 @@ lec2("basico", "iva", "El IVA", "El 19 % que va al Estado cada vez que se vende 
    "Al neto se le suma el 19 %: 1.000 + 190 = $1.190. Los $190 no son ganancia: son el IVA que después entrega. Mueve el deslizador y mira cómo cambia."),
  ideas=[
   ("<p>El <b>IVA</b> es el Impuesto al Valor Agregado. En Chile es el <b>19 %</b> y se suma al precio de casi todo: comida, ropa, servicios, entradas. Lo paga quien compra; el negocio solo lo <b>recauda</b>.</p>", V(foco="iva")),
-  ("<p>Tres palabras: el precio sin IVA es el <b>neto</b>; el IVA es el 19 % del neto; la suma es el <b>total</b>. Ahora mismo arriba: neto <b data-v=\"neto\">$ 10.000</b>, IVA <b data-v=\"iva\">$ 1.900</b>, total <b data-v=\"total\">$ 11.900</b>.</p>", V()),
+  ("<p>Tres palabras: el precio sin IVA es el <b>neto</b>; el IVA es el 19 % del neto; la suma es el <b>total</b>. Ahora mismo arriba: neto <b data-vivo=\"neto\">$ 10.000</b>, IVA <b data-vivo=\"iva\">$ 1.900</b>, total <b data-vivo=\"total\">$ 11.900</b>.</p>", V()),
   ("<p>Cambia arriba a «Sé el precio con IVA». Si solo conoces el total, el neto sale dividiendo por 1,19. La app hace esa cuenta sola cada vez que escribes un precio.</p>", V()),
   ("<p>Lo importante: el IVA nunca es ganancia del negocio. Sofía lo cobra en cada jugo, lo junta, y a fin de mes se lo entrega al SII. Más adelante verás cómo (se llama F29).</p>", V(vis=False)),
  ],
@@ -126,7 +126,7 @@ lec2("basico", "neto-total", "Neto, IVA y total", "Los tres números que aparece
    "Total $11.900. Neto = 11.900 ÷ 1,19 = $10.000. IVA = $1.900. Arriba puedes partir del total y ver cómo se desarma."),
  ideas=[
   ("<p>Cualquier boleta o factura termina con tres números: el <b>neto</b> (lo que vale lo vendido), el <b>IVA</b> (el 19 % del neto) y el <b>total</b> (lo que paga el cliente). Si el documento es exento, el IVA es cero y el neto se llama <b>exento</b>.</p>", V()),
-  ("<p>Al público le pones el precio <b>con IVA incluido</b>: el cliente ve $1.190. Mueve el total arriba: con <b data-v=\"total\">$ 11.900</b>, el neto es <b data-v=\"neto\">$ 10.000</b> y el IVA <b data-v=\"iva\">$ 1.900</b>. La app hace esa cuenta hacia atrás por ti.</p>", V()),
+  ("<p>Al público le pones el precio <b>con IVA incluido</b>: el cliente ve $1.190. Mueve el total arriba: con <b data-vivo=\"total\">$ 11.900</b>, el neto es <b data-vivo=\"neto\">$ 10.000</b> y el IVA <b data-vivo=\"iva\">$ 1.900</b>. La app hace esa cuenta hacia atrás por ti.</p>", V()),
   ("<p>Entre empresas se habla en neto («$100.000 más IVA»), porque a la otra empresa el IVA le da lo mismo: lo descuenta. Los centavos se redondean, y la app lo hace igual que el SII.</p>", V(vis=False)),
  ],
  ejemplo="<p>Vendes tres poleras a $9.990 cada una, IVA incluido. Total: $29.970. Neto: 29.970 ÷ 1,19 = <b>$25.185</b>. IVA: <b>$4.785</b>.</p>",

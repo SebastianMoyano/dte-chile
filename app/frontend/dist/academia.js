@@ -36,7 +36,7 @@ window.ACADEMIA = {
    "id": "impuesto",
    "titulo": "¿Qué es un impuesto?",
    "resumen": "Plata que todos aportan para pagar lo que es de todos.",
-   "concepto": "<p>Un <b>impuesto</b> es una parte de lo que ganas o gastas que va al Estado. Con esa plata se pagan colegios, hospitales, calles, pensiones. No es un castigo ni una multa: es la cuota de cada uno para lo que usamos en común.</p><p>Mueve el precio del jugo. Si cuesta <b data-v=\"neto\">$ 1.000</b> sin IVA, el Estado recibe <b data-v=\"iva\">$ 190</b> y Sofía se queda con <b data-v=\"neto\">$ 1.000</b>. La parte amarilla nunca es de ella.</p><p>Quien tiene un negocio no solo paga impuestos: también <b>recauda</b>. Cobra el IVA a sus clientes y se lo entrega al Estado a fin de mes. Por eso existen las boletas y las facturas: son la prueba de cuánto se cobró.</p><p>En este curso importan dos impuestos: el <b>IVA</b>, que se paga cada vez que se compra algo, y el <b>impuesto a la renta</b>, que se paga una vez al año sobre lo que se ganó. Los dos aparecen más adelante.</p>",
+   "concepto": "<p>Un <b>impuesto</b> es una parte de lo que ganas o gastas que va al Estado. Con esa plata se pagan colegios, hospitales, calles, pensiones. No es un castigo ni una multa: es la cuota de cada uno para lo que usamos en común.</p><p>Mueve el precio del jugo. Si cuesta <b data-vivo=\"neto\">$ 1.000</b> sin IVA, el Estado recibe <b data-vivo=\"iva\">$ 190</b> y Sofía se queda con <b data-vivo=\"neto\">$ 1.000</b>. La parte amarilla nunca es de ella.</p><p>Quien tiene un negocio no solo paga impuestos: también <b>recauda</b>. Cobra el IVA a sus clientes y se lo entrega al Estado a fin de mes. Por eso existen las boletas y las facturas: son la prueba de cuánto se cobró.</p><p>En este curso importan dos impuestos: el <b>IVA</b>, que se paga cada vez que se compra algo, y el <b>impuesto a la renta</b>, que se paga una vez al año sobre lo que se ganó. Los dos aparecen más adelante.</p>",
    "ejemplo": "<p>Compras un cuaderno a $1.190. De esos pesos, $1.000 son de la librería y <b>$190 son IVA</b>: la librería los cobra, pero no son suyos; a fin de mes se los pasa al Estado.</p>",
    "accion": null,
    "pregunta": {
@@ -84,7 +84,7 @@ window.ACADEMIA = {
     },
     {
      "tipo": "idea",
-     "h": "<p>Mueve el precio del jugo. Si cuesta <b data-v=\"neto\">$ 1.000</b> sin IVA, el Estado recibe <b data-v=\"iva\">$ 190</b> y Sofía se queda con <b data-v=\"neto\">$ 1.000</b>. La parte amarilla nunca es de ella.</p>",
+     "h": "<p>Mueve el precio del jugo. Si cuesta <b data-vivo=\"neto\">$ 1.000</b> sin IVA, el Estado recibe <b data-vivo=\"iva\">$ 190</b> y Sofía se queda con <b data-vivo=\"neto\">$ 1.000</b>. La parte amarilla nunca es de ella.</p>",
      "vis": true,
      "foco": "iva",
      "titulo": null
@@ -258,7 +258,7 @@ window.ACADEMIA = {
    "id": "iva",
    "titulo": "El IVA",
    "resumen": "El 19 % que va al Estado cada vez que se vende algo.",
-   "concepto": "<p>El <b>IVA</b> es el Impuesto al Valor Agregado. En Chile es el <b>19 %</b> y se suma al precio de casi todo: comida, ropa, servicios, entradas. Lo paga quien compra; el negocio solo lo <b>recauda</b>.</p><p>Tres palabras: el precio sin IVA es el <b>neto</b>; el IVA es el 19 % del neto; la suma es el <b>total</b>. Ahora mismo arriba: neto <b data-v=\"neto\">$ 10.000</b>, IVA <b data-v=\"iva\">$ 1.900</b>, total <b data-v=\"total\">$ 11.900</b>.</p><p>Cambia arriba a «Sé el precio con IVA». Si solo conoces el total, el neto sale dividiendo por 1,19. La app hace esa cuenta sola cada vez que escribes un precio.</p><p>Lo importante: el IVA nunca es ganancia del negocio. Sofía lo cobra en cada jugo, lo junta, y a fin de mes se lo entrega al SII. Más adelante verás cómo (se llama F29).</p>",
+   "concepto": "<p>El <b>IVA</b> es el Impuesto al Valor Agregado. En Chile es el <b>19 %</b> y se suma al precio de casi todo: comida, ropa, servicios, entradas. Lo paga quien compra; el negocio solo lo <b>recauda</b>.</p><p>Tres palabras: el precio sin IVA es el <b>neto</b>; el IVA es el 19 % del neto; la suma es el <b>total</b>. Ahora mismo arriba: neto <b data-vivo=\"neto\">$ 10.000</b>, IVA <b data-vivo=\"iva\">$ 1.900</b>, total <b data-vivo=\"total\">$ 11.900</b>.</p><p>Cambia arriba a «Sé el precio con IVA». Si solo conoces el total, el neto sale dividiendo por 1,19. La app hace esa cuenta sola cada vez que escribes un precio.</p><p>Lo importante: el IVA nunca es ganancia del negocio. Sofía lo cobra en cada jugo, lo junta, y a fin de mes se lo entrega al SII. Más adelante verás cómo (se llama F29).</p>",
    "ejemplo": "<p>Un jugo cuesta $1.000 neto. IVA: 1.000 × 0,19 = <b>$190</b>. Total: <b>$1.190</b>. Al revés: si la boleta dice $2.380, el neto es 2.380 ÷ 1,19 = $2.000 y el IVA $380.</p>",
    "accion": {
     "t": "Si quieres verlo con tus números, emite una boleta de práctica por $1.000 y mira cómo la app separa neto e IVA",
@@ -309,7 +309,7 @@ window.ACADEMIA = {
     },
     {
      "tipo": "idea",
-     "h": "<p>Tres palabras: el precio sin IVA es el <b>neto</b>; el IVA es el 19 % del neto; la suma es el <b>total</b>. Ahora mismo arriba: neto <b data-v=\"neto\">$ 10.000</b>, IVA <b data-v=\"iva\">$ 1.900</b>, total <b data-v=\"total\">$ 11.900</b>.</p>",
+     "h": "<p>Tres palabras: el precio sin IVA es el <b>neto</b>; el IVA es el 19 % del neto; la suma es el <b>total</b>. Ahora mismo arriba: neto <b data-vivo=\"neto\">$ 10.000</b>, IVA <b data-vivo=\"iva\">$ 1.900</b>, total <b data-vivo=\"total\">$ 11.900</b>.</p>",
      "vis": true,
      "foco": null,
      "titulo": null
@@ -587,7 +587,7 @@ window.ACADEMIA = {
    "id": "neto-total",
    "titulo": "Neto, IVA y total",
    "resumen": "Los tres números que aparecen en todo documento.",
-   "concepto": "<p>Cualquier boleta o factura termina con tres números: el <b>neto</b> (lo que vale lo vendido), el <b>IVA</b> (el 19 % del neto) y el <b>total</b> (lo que paga el cliente). Si el documento es exento, el IVA es cero y el neto se llama <b>exento</b>.</p><p>Al público le pones el precio <b>con IVA incluido</b>: el cliente ve $1.190. Mueve el total arriba: con <b data-v=\"total\">$ 11.900</b>, el neto es <b data-v=\"neto\">$ 10.000</b> y el IVA <b data-v=\"iva\">$ 1.900</b>. La app hace esa cuenta hacia atrás por ti.</p><p>Entre empresas se habla en neto («$100.000 más IVA»), porque a la otra empresa el IVA le da lo mismo: lo descuenta. Los centavos se redondean, y la app lo hace igual que el SII.</p>",
+   "concepto": "<p>Cualquier boleta o factura termina con tres números: el <b>neto</b> (lo que vale lo vendido), el <b>IVA</b> (el 19 % del neto) y el <b>total</b> (lo que paga el cliente). Si el documento es exento, el IVA es cero y el neto se llama <b>exento</b>.</p><p>Al público le pones el precio <b>con IVA incluido</b>: el cliente ve $1.190. Mueve el total arriba: con <b data-vivo=\"total\">$ 11.900</b>, el neto es <b data-vivo=\"neto\">$ 10.000</b> y el IVA <b data-vivo=\"iva\">$ 1.900</b>. La app hace esa cuenta hacia atrás por ti.</p><p>Entre empresas se habla en neto («$100.000 más IVA»), porque a la otra empresa el IVA le da lo mismo: lo descuenta. Los centavos se redondean, y la app lo hace igual que el SII.</p>",
    "ejemplo": "<p>Vendes tres poleras a $9.990 cada una, IVA incluido. Total: $29.970. Neto: 29.970 ÷ 1,19 = <b>$25.185</b>. IVA: <b>$4.785</b>.</p>",
    "accion": {
     "t": "Si quieres, escribe 11900 con IVA incluido en Emitir y mira aparecer los tres números",
@@ -638,7 +638,7 @@ window.ACADEMIA = {
     },
     {
      "tipo": "idea",
-     "h": "<p>Al público le pones el precio <b>con IVA incluido</b>: el cliente ve $1.190. Mueve el total arriba: con <b data-v=\"total\">$ 11.900</b>, el neto es <b data-v=\"neto\">$ 10.000</b> y el IVA <b data-v=\"iva\">$ 1.900</b>. La app hace esa cuenta hacia atrás por ti.</p>",
+     "h": "<p>Al público le pones el precio <b>con IVA incluido</b>: el cliente ve $1.190. Mueve el total arriba: con <b data-vivo=\"total\">$ 11.900</b>, el neto es <b data-vivo=\"neto\">$ 10.000</b> y el IVA <b data-vivo=\"iva\">$ 1.900</b>. La app hace esa cuenta hacia atrás por ti.</p>",
      "vis": true,
      "foco": null,
      "titulo": null
