@@ -147,8 +147,13 @@ Esta rama del módulo tampoco se ha corrido aún para emitir (solo su POST de vi
 cubierto por test en seco).
 
 **Nota de débito (T56):** su formulario es el mismo (`mipeDisplayPreView?EHDR_CODIGO&TIPO_NOTA=56`,
-capturado 2026-10-02 al emitir a mano la ND 1 que anuló la NC 56). No hay `preparar_nota_debito`
-todavía; `emitir()` la trataría como nota (frmSign) si alguien arma el payload.
+capturado 2026-10-02 al emitir a mano la ND 1 que anuló la NC 56). Desde 2026-10-13 existe
+`preparar_nd_anulacion(dhdr_de_la_NC, folio_ref, fecha_ref, receptor, items, …)`: deja sin efecto
+una NC (código 1) y es la misma cadena que `preparar_nc_anulacion` con `TIPO_NOTA=56` (comparten
+`_preparar_nota_anulacion`). CLI: `emitir_mipyme.py --anular-nc-dhdr …`, `nucleo-siiengine
+nd-anular` (Go y Rust), y en la app "dejar sin efecto" sobre una NC del gratuito
+(`SIIEngineNotaDebito`, dry-run). **Sin corrida real**: la cadena 56 no está en
+`CADENAS_VERIFICADAS`, así que `emitir()` exige `aceptar_riesgo_folio=True` y la app solo la valida.
 
 ## Historial de emitidos, PDF y XML
 
@@ -272,7 +277,8 @@ en `track_id` va el **`DHDR_CODIGO`** (el id que el portal usa para el PDF y par
   la empresa del gratuito → la de software propio por $1.000, emitidas por `emitir_mipyme.py` sin navegador). La **NC de corrección
   de montos** (`--corregir-dhdr`, otro form de 60 campos) solo está verificada en seco contra la
   captura de la NC 59: la próxima real es la prueba, con `--acepto-riesgo-folio`.
-- **Nota de débito (T56)**: form capturado, sin `preparar_nota_debito`; la ND 1 se emitió a mano.
+- **Nota de débito (T56)**: `preparar_nd_anulacion` (deja sin efecto una NC) en los tres motores
+  y CLI `nd-anular`; sin corrida real desde el módulo (la ND 1 se emitió a mano).
 - NC de anulación de **boletas** (`mipeSelEmpresaBol.cgi`): ni cableada ni verificada.
 - Los documentos importados sin clave del certificado no tienen XML (`xml_firmado=None`):
   `/documentos/{id}/xml` responde 404 para ellos. Con la clave, Sincronizar los trae.

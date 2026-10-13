@@ -238,6 +238,23 @@ func (a *App) SIIEngineFactura(rutEmpresa, rutUsuario, claveTributaria, claveCer
 // registrado. Sin emitir es un dry-run real sin folio. Emitir exige la cadena 61 verificada
 // desde Go (CadenasVerificadas): la interfaz no acepta el riesgo de folio por la persona.
 func (a *App) SIIEngineNotaCredito(rutEmpresa, rutUsuario, claveTributaria, claveCertificado string, recordar bool, dteID int64, emitir bool) (string, error) {
+	return a.siiEngineNotaAnulacion(siiengine.TipoNotaCredito, rutEmpresa, rutUsuario, claveTributaria, claveCertificado, recordar, dteID, emitir)
+}
+
+// SIIEngineNotaDebito es la nota de débito que deja sin efecto una nota de crédito emitida por
+// el SII engine (misma cadena que la NC, con TIPO_NOTA=56). Sin emitir es un dry-run real sin
+// folio; emitir exige la cadena 56 verificada, que todavía no tiene corrida real.
+func (a *App) SIIEngineNotaDebito(rutEmpresa, rutUsuario, claveTributaria, claveCertificado string, recordar bool, dteID int64, emitir bool) (string, error) {
+	return a.siiEngineNotaAnulacion(siiengine.TipoNotaDebito, rutEmpresa, rutUsuario, claveTributaria, claveCertificado, recordar, dteID, emitir)
+}
+
+// siiEngineNotaAnulacion es lo común a la NC (61) y la ND (56) de anulación por el SII engine.
+func (a *App) siiEngineNotaAnulacion(tipoNota int, rutEmpresa, rutUsuario, claveTributaria, claveCertificado string, recordar bool, dteID int64, emitir bool) (string, error) {
+	esND := tipoNota == siiengine.TipoNotaDebito
+	nombre, cliND := "nota de crédito", "nc-anular"
+	if esND {
+		nombre, cliND = "nota de débito", "nd-anular --acepto-riesgo-folio"
+	}
 	ctx, err := a.contextoSIIEngine(rutEmpresa)
 	if err != nil {
 		return "", err
@@ -259,11 +276,11 @@ func (a *App) SIIEngineNotaCredito(rutEmpresa, rutUsuario, claveTributaria, clav
 		claveCertificado = ctx.ClaveCertificado
 	}
 	if rutUsuario == "" || claveTributaria == "" || claveCertificado == "" {
-		return "", fmt.Errorf("la nota de crédito exige el RUT de la persona autorizada, su clave tributaria y la del certificado")
+		return "", fmt.Errorf("la %s exige el RUT de la persona autorizada, su clave tributaria y la del certificado", nombre)
 	}
-	_, verificada := siiengine.CadenasVerificadas[siiengine.TipoNotaCredito]
+	_, verificada := siiengine.CadenasVerificadas[tipoNota]
 	if emitir && !verificada {
-		return "", fmt.Errorf("la nota de crédito por el SII engine desde Go todavía no está verificada con una corrida real: por ahora se emite con el CLI nucleo-siiengine nc-anular (docs/PLAN-PORT.md, fase 6)")
+		return "", fmt.Errorf("la %s por el SII engine desde Go todavía no está verificada con una corrida real: por ahora se emite con el CLI nucleo-siiengine %s (docs/PLAN-PORT.md, fase 6)", nombre, cliND)
 	}
 	alm, err := almacen.Abrir(ctx.DatabasePath)
 	if err != nil {
@@ -280,6 +297,9 @@ func (a *App) SIIEngineNotaCredito(rutEmpresa, rutUsuario, claveTributaria, clav
 	if siiengine.FormatearRut(doc.RutEmisor, false) != siiengine.FormatearRut(rutEmpresa, false) {
 		return "", fmt.Errorf("el documento %d es de %s, no de %s", dteID, doc.RutEmisor, rutEmpresa)
 	}
+	if esND && doc.TipoDTE != siiengine.TipoNotaCredito {
+		return "", fmt.Errorf("el documento %d no es una nota de crédito: la nota de débito solo deja sin efecto una nota de crédito", dteID)
+	}
 	cli, err := siiengine.Nuevo(rutUsuario, claveTributaria, claveCertificado)
 	if err != nil {
 		return "", err
@@ -293,7 +313,14 @@ func (a *App) SIIEngineNotaCredito(rutEmpresa, rutUsuario, claveTributaria, clav
 		return "", err
 	}
 	dhdr := strconv.FormatInt(doc.TrackID, 10)
-	p, rec, items, err := cli.PrepararNCAnulacionDesdePortal(dhdr, doc.TipoDTE, doc.Folio, doc.FechaEmision, "", true)
+	var p *siiengine.Payload
+	var rec siiengine.Receptor
+	var items []siiengine.Item
+	if esND {
+		p, rec, items, err = cli.PrepararNDAnulacionDesdePortal(dhdr, doc.Folio, doc.FechaEmision, "", true)
+	} else {
+		p, rec, items, err = cli.PrepararNCAnulacionDesdePortal(dhdr, doc.TipoDTE, doc.Folio, doc.FechaEmision, "", true)
+	}
 	if err != nil {
 		return "", err
 	}

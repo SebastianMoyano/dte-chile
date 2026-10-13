@@ -467,41 +467,67 @@ func (c *Cliente) TotalRegistrado(dhdr string, tipo int, rutReceptor string) (in
 // queda mal; costó la NC 56). NO gasta folio.
 func (c *Cliente) PrepararNCAnulacion(dhdr string, tipoRef, folioRef int, fechaRef string, receptor Receptor,
 	items []Item, fecha string, verificarMonto bool) (*Payload, error) {
+	return c.prepararNotaAnulacion(TipoNotaCredito, dhdr, tipoRef, folioRef, fechaRef, receptor, items, fecha, verificarMonto)
+}
+
+// PrepararNDAnulacion es preparar_nd_anulacion: nota de DÉBITO (56) que deja sin efecto la nota
+// de crédito dhdr (código 1): el mismo formulario pre-construido por el portal, con TIPO_NOTA=56
+// (capturado 2026-10-02 al emitir a mano la ND 1 que anuló la NC 56). El documento que esa NC
+// anulaba vuelve a valer. Mismo guardarraíl del total registrado. NO gasta folio; la cadena 56
+// no está en CadenasVerificadas, así que Emitir exige AceptarRiesgoFolio.
+func (c *Cliente) PrepararNDAnulacion(dhdr string, folioRef int, fechaRef string, receptor Receptor,
+	items []Item, fecha string, verificarMonto bool) (*Payload, error) {
+	return c.prepararNotaAnulacion(TipoNotaDebito, dhdr, TipoNotaCredito, folioRef, fechaRef, receptor, items, fecha, verificarMonto)
+}
+
+// siglaNota: "NC" o "ND", para los mensajes y las trazas.
+func siglaNota(tipoNota int) string {
+	if tipoNota == TipoNotaDebito {
+		return "ND"
+	}
+	return "NC"
+}
+
+// prepararNotaAnulacion es lo común a la NC (61) y la ND (56) de anulación:
+// mipeDisplayPreView?EHDR_CODIGO&TIPO_NOTA=<tipoNota>.
+func (c *Cliente) prepararNotaAnulacion(tipoNota int, dhdr string, tipoRef, folioRef int, fechaRef string, receptor Receptor,
+	items []Item, fecha string, verificarMonto bool) (*Payload, error) {
 	if err := c.requiereEmpresa(); err != nil {
 		return nil, err
 	}
 	if err := receptor.validar(); err != nil {
 		return nil, err
 	}
+	sigla := siglaNota(tipoNota)
 	if verificarMonto {
 		totalRef, err := c.TotalRegistrado(dhdr, tipoRef, receptor.Rut)
 		if err != nil {
 			return nil, err
 		}
 		if totalNC := sumaItems(items); totalNC != totalRef {
-			return nil, fmt.Errorf("%w: la NC sumaría %d pero el documento %d/%d está registrado por %d: el SII la aceptaría con reparo REF-2-780 y el abono quedaría mal; usa el total registrado",
-				ErrValidacion, totalNC, tipoRef, folioRef, totalRef)
+			return nil, fmt.Errorf("%w: la %s sumaría %d pero el documento %d/%d está registrado por %d: el SII la aceptaría con reparo REF-2-780 y el abono quedaría mal; usa el total registrado",
+				ErrValidacion, sigla, totalNC, tipoRef, folioRef, totalRef)
 		}
 	}
 	r, err := c.req("GET", Base+"/mipeDisplayPreView.cgi", opciones{navegacion: true,
-		params:  []Par{{"EHDR_CODIGO", dhdr}, {"TIPO_NOTA", strconv.Itoa(TipoNotaCredito)}},
+		params:  []Par{{"EHDR_CODIGO", dhdr}, {"TIPO_NOTA", strconv.Itoa(tipoNota)}},
 		referer: Base + "/mipeGesDocEmi.cgi?CODIGO=" + dhdr})
 	if err != nil {
 		return nil, err
 	}
 	vista := r.Texto()
-	c.traza("nc_anulacion.html", vista)
+	c.traza(strings.ToLower(sigla)+"_anulacion.html", vista)
 	if r.rechazado() || len(r.Cuerpo) < 1000 {
-		return nil, fmt.Errorf("%w: el portal no pre-construyó la NC de anulación (http %d, dhdr %s)", ErrRechazo, r.Status, dhdr)
+		return nil, fmt.Errorf("%w: el portal no pre-construyó la %s de anulación (http %d, dhdr %s)", ErrRechazo, sigla, r.Status, dhdr)
 	}
 	ref := Referencia{Tipo: tipoRef, Folio: folioRef, Fecha: fechaRef, Codigo: CodigoRefAnula, Razon: RazonRefAnula}
-	p, err := ArmarPayload(ParsearFormOrdenado(vista), TipoNotaCredito, receptor, items, fecha, "", []Referencia{ref},
+	p, err := ArmarPayload(ParsearFormOrdenado(vista), tipoNota, receptor, items, fecha, "", []Referencia{ref},
 		[]string{"ES_BORR", "EFXP_FMA_PAGO", "INDICA_PRIMERA_EJECUCION"})
 	if err != nil {
 		return nil, err
 	}
 	// El navegador firma desde la página de revisión: usarla como Referer en GenXMLFirma.
-	p.refererEmision = fmt.Sprintf("%s/mipeDisplayPreView.cgi?EHDR_CODIGO=%s&TIPO_NOTA=%d", Base, dhdr, TipoNotaCredito)
+	p.refererEmision = fmt.Sprintf("%s/mipeDisplayPreView.cgi?EHDR_CODIGO=%s&TIPO_NOTA=%d", Base, dhdr, tipoNota)
 	return p, nil
 }
 
@@ -828,19 +854,30 @@ func ReceptorEItemsDesdeForm(form Form) (Receptor, []Item) {
 // formulario que el portal pre-construye para anular el documento dhdr (lo que usa la app:
 // la persona elige el documento y nada más). Mismo guardarraíl del total registrado.
 func (c *Cliente) PrepararNCAnulacionDesdePortal(dhdr string, tipoRef, folioRef int, fechaRef, fecha string, verificarMonto bool) (*Payload, Receptor, []Item, error) {
+	return c.prepararNotaAnulacionDesdePortal(TipoNotaCredito, dhdr, tipoRef, folioRef, fechaRef, fecha, verificarMonto)
+}
+
+// PrepararNDAnulacionDesdePortal es PrepararNDAnulacion tomando receptor e ítems del formulario
+// que el portal pre-construye para dejar sin efecto la NC dhdr (lo que usa la app).
+func (c *Cliente) PrepararNDAnulacionDesdePortal(dhdr string, folioRef int, fechaRef, fecha string, verificarMonto bool) (*Payload, Receptor, []Item, error) {
+	return c.prepararNotaAnulacionDesdePortal(TipoNotaDebito, dhdr, TipoNotaCredito, folioRef, fechaRef, fecha, verificarMonto)
+}
+
+func (c *Cliente) prepararNotaAnulacionDesdePortal(tipoNota int, dhdr string, tipoRef, folioRef int, fechaRef, fecha string, verificarMonto bool) (*Payload, Receptor, []Item, error) {
 	if err := c.requiereEmpresa(); err != nil {
 		return nil, Receptor{}, nil, err
 	}
+	sigla := siglaNota(tipoNota)
 	r, err := c.req("GET", Base+"/mipeDisplayPreView.cgi", opciones{navegacion: true,
-		params:  []Par{{"EHDR_CODIGO", dhdr}, {"TIPO_NOTA", strconv.Itoa(TipoNotaCredito)}},
+		params:  []Par{{"EHDR_CODIGO", dhdr}, {"TIPO_NOTA", strconv.Itoa(tipoNota)}},
 		referer: Base + "/mipeGesDocEmi.cgi?CODIGO=" + dhdr})
 	if err != nil {
 		return nil, Receptor{}, nil, err
 	}
 	vista := r.Texto()
-	c.traza("nc_anulacion.html", vista)
+	c.traza(strings.ToLower(sigla)+"_anulacion.html", vista)
 	if r.rechazado() || len(r.Cuerpo) < 1000 {
-		return nil, Receptor{}, nil, fmt.Errorf("%w: el portal no pre-construyó la NC de anulación (http %d, dhdr %s)", ErrRechazo, r.Status, dhdr)
+		return nil, Receptor{}, nil, fmt.Errorf("%w: el portal no pre-construyó la %s de anulación (http %d, dhdr %s)", ErrRechazo, sigla, r.Status, dhdr)
 	}
 	form := ParsearFormOrdenado(vista)
 	receptor, items := ReceptorEItemsDesdeForm(form)
@@ -848,7 +885,7 @@ func (c *Cliente) PrepararNCAnulacionDesdePortal(dhdr string, tipoRef, folioRef 
 		return nil, Receptor{}, nil, fmt.Errorf("%w (receptor según el portal: %q)", err, receptor.Rut)
 	}
 	if len(items) == 0 {
-		return nil, Receptor{}, nil, fmt.Errorf("%w: el formulario de la NC no trae líneas del documento", ErrSII)
+		return nil, Receptor{}, nil, fmt.Errorf("%w: el formulario de la %s no trae líneas del documento", ErrSII, sigla)
 	}
 	if verificarMonto {
 		totalRef, err := c.TotalRegistrado(dhdr, tipoRef, receptor.Rut)
@@ -861,11 +898,11 @@ func (c *Cliente) PrepararNCAnulacionDesdePortal(dhdr string, tipoRef, folioRef 
 		}
 	}
 	ref := Referencia{Tipo: tipoRef, Folio: folioRef, Fecha: fechaRef, Codigo: CodigoRefAnula, Razon: RazonRefAnula}
-	p, err := ArmarPayload(form, TipoNotaCredito, receptor, items, fecha, "", []Referencia{ref},
+	p, err := ArmarPayload(form, tipoNota, receptor, items, fecha, "", []Referencia{ref},
 		[]string{"ES_BORR", "EFXP_FMA_PAGO", "INDICA_PRIMERA_EJECUCION"})
 	if err != nil {
 		return nil, Receptor{}, nil, err
 	}
-	p.refererEmision = fmt.Sprintf("%s/mipeDisplayPreView.cgi?EHDR_CODIGO=%s&TIPO_NOTA=%d", Base, dhdr, TipoNotaCredito)
+	p.refererEmision = fmt.Sprintf("%s/mipeDisplayPreView.cgi?EHDR_CODIGO=%s&TIPO_NOTA=%d", Base, dhdr, tipoNota)
 	return p, receptor, items, nil
 }

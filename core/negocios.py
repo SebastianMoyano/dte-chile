@@ -40,12 +40,19 @@ _COLS_ESTADO = [("estado", "TEXT"), ("estado_etiqueta", "TEXT"),
                 # frente a "emite con otro proveedor" sin que nadie lo configure a mano.
                 ("software_registrado", "TEXT")]
 
+# Datos fijos del emisor que van en la carátula de cada DTE (antes vivían en EMPRESA_* del .env,
+# uno solo para todo el motor). Ahora cada negocio tiene los suyos y la app los pide en
+# "Mi empresa"; `settings.empresa_*` queda como valor por defecto para instalaciones viejas.
+CAMPOS_DATOS = ["razon_social", "giro", "codigo_actividad", "direccion", "comuna", "ciudad", "email", "telefono"]
+_COLS_DATOS = [("giro", "TEXT"), ("codigo_actividad", "INTEGER"), ("direccion", "TEXT"),
+               ("comuna", "TEXT"), ("ciudad", "TEXT"), ("email", "TEXT"), ("telefono", "TEXT")]
+
 
 def init_negocios() -> None:
     with database.get_db() as conn:
         conn.execute(SCHEMA_NEGOCIOS)
         cols = {r["name"] for r in conn.execute("PRAGMA table_info(negocios)")}
-        for col, ddl in _COLS_ESTADO:
+        for col, ddl in _COLS_ESTADO + _COLS_DATOS:
             if col not in cols:
                 conn.execute(f"ALTER TABLE negocios ADD COLUMN {col} {ddl}")
 
@@ -120,9 +127,33 @@ def listar_negocios(cuenta_id: int) -> List[dict]:
     init_negocios()
     filas = database.obtener_todos(
         "SELECT id, rut, razon_social, cert_id, ambiente, creado, "
-        "estado, estado_etiqueta, usa_sw_propio, estado_ts FROM negocios "
+        "estado, estado_etiqueta, usa_sw_propio, estado_ts, "
+        "giro, codigo_actividad, direccion, comuna, ciudad, email, telefono FROM negocios "
         "WHERE cuenta_id=? ORDER BY id", (cuenta_id,))
     return [dict(f) for f in filas]
+
+
+def actualizar_datos(cuenta_id: int, negocio_id: int, datos: dict) -> Optional[dict]:
+    """Guarda los datos del emisor de un negocio. Solo toca las claves presentes en `datos`
+    (las de `CAMPOS_DATOS`); un texto vacío deja la columna en NULL. Devuelve la fila
+    actualizada o None si el negocio no es de la cuenta."""
+    init_negocios()
+    sets, args = [], []
+    for k in CAMPOS_DATOS:
+        if k not in datos or datos[k] is None:
+            continue
+        v = datos[k]
+        if isinstance(v, str):
+            v = v.strip() or None
+        sets.append(f"{k}=?")
+        args.append(v)
+    with database.get_db() as conn:
+        if sets:
+            cur = conn.execute(f"UPDATE negocios SET {', '.join(sets)} WHERE id=? AND cuenta_id=?",
+                               (*args, negocio_id, cuenta_id))
+            if cur.rowcount == 0:
+                return None
+    return next((n for n in listar_negocios(cuenta_id) if n["id"] == negocio_id), None)
 
 
 def eliminar_negocio(cuenta_id: int, negocio_id: int) -> bool:

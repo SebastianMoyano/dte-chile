@@ -47,6 +47,12 @@ class AnularIn(BaseModel):
     motivo: str = Field("Anula documento", max_length=90)
 
 
+class NotaDebitoIn(BaseModel):
+    motivo: Optional[str] = Field(None, max_length=90)
+    monto: Optional[int] = Field(None, gt=0, description="Cobro que faltó (neto; no va en la anulación de una NC)")
+    nombre: Optional[str] = Field(None, max_length=80, description="Qué se cobra")
+
+
 @router.get("/estado", summary="Empresa demo, documentos emitidos y folio siguiente por tipo")
 async def estado() -> dict:
     return await run_in_threadpool(simulacion.estado)
@@ -62,6 +68,12 @@ async def emitir(body: EmitirIn) -> dict:
 @router.post("/anular/{dte_id}", summary="Nota de crédito que anula por el total un documento demo")
 async def anular(dte_id: int, body: AnularIn | None = None) -> dict:
     return await run_in_threadpool(simulacion.anular, dte_id, (body.motivo if body else "Anula documento"))
+
+
+@router.post("/nota-debito/{dte_id}", summary="Nota de débito demo: anula una nota de crédito, o agrega un cobro que faltó a un documento")
+async def nota_debito(dte_id: int, body: NotaDebitoIn | None = None) -> dict:
+    b = body or NotaDebitoIn()
+    return await run_in_threadpool(simulacion.nota_debito, dte_id, b.motivo, b.monto, b.nombre)
 
 
 @router.get("/documentos/{dte_id}", summary="Un documento demo con su PDF en base64")

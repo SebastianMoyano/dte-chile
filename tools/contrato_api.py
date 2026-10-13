@@ -114,7 +114,11 @@ ESCENARIOS = {
         paso("DELETE", "/api/v1/auth/usuarios/{usuario_id}", ignorar={"mensaje"}),
     ],
     # solo lectura sobre la base real: el PEM del certificado y la resolución deben ser byte a byte iguales
-    "contexto": [paso("GET", f"/api/v1/keystore/negocios/{i}/contexto-emision") for i in (1, 2, 3, 999999)],
+    "contexto": [paso("GET", f"/api/v1/keystore/negocios/{i}/contexto-emision") for i in (1, 2, 3, 999999)] + [
+        # datos del emisor del negocio 1 (los dos motores escriben la misma fila; la respuesta es la fila)
+        paso("PUT", "/api/v1/keystore/negocios/1", {"giro": "Prueba del contrato", "codigo_actividad": 561000, "direccion": " Calle Ficticia 123 ", "email": ""}, ignorar={"estado_ts"}),
+        paso("GET", "/api/v1/keystore/negocios", ignorar={"estado_ts"}),
+    ],
     # práctica: cada motor emite con el mismo CAF demo (folios distintos) → se ignora lo que depende del folio/id
     "simulacion": [
         paso("POST", "/api/v1/simulacion/reiniciar", {}, ignorar={"documentos_borrados", "cafs_borrados"}),
@@ -130,9 +134,20 @@ ESCENARIOS = {
         paso("POST", "/api/v1/dte/documentos/999999/pdf", {}),
         paso("GET", "/api/v1/dte/documentos/{dte_id}/pdf", ignorar={"*"}),
         paso("GET", "/api/v1/simulacion/documentos/999999"),
-        paso("POST", "/api/v1/simulacion/anular/{factura_id}", {"motivo": "Prueba del contrato"}, ignorar={"dte_id", "folio", "pdf_path", "pdf_b64"}),
+        paso("POST", "/api/v1/simulacion/anular/{factura_id}", {"motivo": "Prueba del contrato"}, ignorar={"dte_id", "folio", "pdf_path", "pdf_b64"}, guarda="dte_id:nc_id"),
         paso("POST", "/api/v1/simulacion/anular/{factura_id}"),
         paso("POST", "/api/v1/simulacion/anular/999999"),
+        # nota de débito: cobro que faltó (código 3) y anulación de una NC (código 1; la factura vuelve a valer)
+        paso("POST", "/api/v1/simulacion/nota-debito/{factura_id}", {"monto": 1000}),
+        paso("POST", "/api/v1/simulacion/nota-debito/{dte_id}", {"monto": 500, "motivo": "Faltó la propina"}, ignorar={"dte_id", "folio", "pdf_path", "pdf_b64"}, guarda="dte_id:nd_id"),
+        paso("POST", "/api/v1/simulacion/nota-debito/{dte_id}"),
+        paso("POST", "/api/v1/simulacion/nota-debito/{dte_id}", {"monto": -5}),
+        paso("POST", "/api/v1/simulacion/nota-debito/{dte_id}", {"monto": "abc", "nombre": 7, "motivo": "m" * 91}),
+        paso("POST", "/api/v1/simulacion/nota-debito/{nc_id}", {"motivo": "La factura sí valía"}, ignorar={"dte_id", "folio", "pdf_path", "pdf_b64"}),
+        paso("POST", "/api/v1/simulacion/nota-debito/{nc_id}"),
+        paso("POST", "/api/v1/simulacion/nota-debito/{nd_id}"),
+        paso("POST", "/api/v1/simulacion/nota-debito/999999"),
+        paso("GET", "/api/v1/simulacion/documentos/{factura_id}", ignorar={"dte_id", "folio", "pdf_path", "pdf_b64"}),
         paso("GET", "/api/v1/simulacion/estado", ignorar={"documentos", "folios"}),
         paso("GET", "/api/v1/dte/documentos?rut_emisor=77777777-7&limite=3", ignorar={"id", "folio", "pdf_path", "total", "documentos"}),
         paso("GET", "/api/v1/dte/documentos/{dte_id}/xml", ignorar={"*"}),
@@ -254,6 +269,12 @@ ESCENARIOS = {
         paso("POST", "/api/v1/keystore/negocios", {"ambiente": "certificacion"}, multipart=True),
         paso("POST", "/api/v1/keystore/negocios", {"rut": "77777777-7", "cert_id": "abc"}, multipart=True, red=True),
         paso("GET", "/api/v1/keystore/negocios/999999/estado"),
+        # datos del emisor por negocio (PUT): validación del cuerpo antes de buscar el negocio
+        paso("PUT", "/api/v1/keystore/negocios/999999", {"giro": "Cafetería", "codigo_actividad": 561000}),
+        paso("PUT", "/api/v1/keystore/negocios/abc", {"giro": "Cafetería"}),
+        paso("PUT", "/api/v1/keystore/negocios/999999", {"codigo_actividad": "abc"}),
+        paso("PUT", "/api/v1/keystore/negocios/999999", {"giro": 5, "comuna": "x" * 21, "codigo_actividad": 1.5}),
+        paso("PUT", "/api/v1/keystore/negocios/999999", {}),
         paso("GET", "/api/v1/keystore/negocios/999999/timbraje"),
         paso("GET", "/api/v1/keystore/negocios/abc/estado"),
         paso("GET", "/api/v1/keystore/negocios/999999/f29?periodo=202601"),

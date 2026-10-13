@@ -34,6 +34,11 @@ pub fn rutas(s: &mut Servidor) {
         listar_negocios,
     );
     s.ruta(
+        "PUT /api/v1/keystore/negocios/{id}",
+        Prot::Protegida,
+        actualizar_negocio,
+    );
+    s.ruta(
         "DELETE /api/v1/keystore/negocios/{id}",
         Prot::Protegida,
         eliminar_negocio,
@@ -155,9 +160,86 @@ pub type Negocio = Map<String, Value>;
 
 pub fn negocios_de(s: &Servidor, cuenta: i64) -> Result<Vec<Negocio>, ErrorHTTP> {
     Ok(s.filas(
-        "SELECT id, rut, razon_social, cert_id, ambiente, creado, estado, estado_etiqueta, usa_sw_propio, estado_ts FROM negocios WHERE cuenta_id=? ORDER BY id",
+        "SELECT id, rut, razon_social, cert_id, ambiente, creado, estado, estado_etiqueta, usa_sw_propio, estado_ts, giro, codigo_actividad, direccion, comuna, ciudad, email, telefono FROM negocios WHERE cuenta_id=? ORDER BY id",
         &sql![cuenta],
     )?)
+}
+
+/// `api/routes/keystore.py::DatosNegocioIn`: campo → largo máximo (los del XSD del SII);
+/// `codigo_actividad` (largo 0) es entero. En el orden de los errores de pydantic.
+const CAMPOS_DATOS_NEGOCIO: [(&str, usize); 8] = [
+    ("razon_social", 100),
+    ("giro", 80),
+    ("codigo_actividad", 0),
+    ("direccion", 70),
+    ("comuna", 20),
+    ("ciudad", 20),
+    ("email", 80),
+    ("telefono", 20),
+];
+
+/// PUT /api/v1/keystore/negocios/{id}: los datos fijos del emisor (giro, código de actividad,
+/// dirección…) que antes vivían en EMPRESA_* del .env, ahora por negocio. Solo cambia los
+/// campos que vienen en el cuerpo; "" deja la columna en NULL.
+fn actualizar_negocio(s: &Servidor, p: &mut Peticion) -> Res {
+    let id: i64 = p
+        .param("id")
+        .parse()
+        .map_err(|_| ErrorHTTP::path("negocio_id"))?;
+    let j = Json::leer(p)?;
+    let mut errs: Vec<Value> = Vec::new();
+    let mut sets: Vec<String> = Vec::new();
+    let mut args: Vec<Sql> = Vec::new();
+    let err = |campo: &str, msg: &str, tipo: &str| json!({"loc": ["body", campo], "msg": msg, "type": tipo});
+    for (campo, largo) in CAMPOS_DATOS_NEGOCIO {
+        let Some(v) = j.get(campo) else { continue };
+        if campo == "codigo_actividad" {
+            match v {
+                Value::Number(n) => match n.as_i64().or_else(|| n.as_f64().filter(|f| f.fract() == 0.0).map(|f| f as i64)) {
+                    Some(x) => {
+                        sets.push("codigo_actividad=?".into());
+                        args.push(Sql::Integer(x));
+                    }
+                    None => errs.push(err(campo, "Input should be a valid integer, got a number with a fractional part", "int_from_float")),
+                },
+                Value::String(_) => errs.push(err(campo, "Input should be a valid integer, unable to parse string as an integer", "int_parsing")),
+                _ => errs.push(err(campo, "Input should be a valid integer", "int_type")),
+            }
+            continue;
+        }
+        let Value::String(t) = v else {
+            errs.push(err(campo, "Input should be a valid string", "string_type"));
+            continue;
+        };
+        if t.chars().count() > largo {
+            let mut e = err(campo, &format!("String should have at most {largo} characters"), "string_too_long");
+            e["ctx"] = json!({"max_length": largo});
+            errs.push(e);
+            continue;
+        }
+        sets.push(format!("{campo}=?"));
+        let t = t.trim();
+        args.push(if t.is_empty() { Sql::Null } else { Sql::Text(t.to_string()) });
+    }
+    if !errs.is_empty() {
+        return Err(ErrorHTTP::datos_invalidos().detalle(json!({"errores": errs})));
+    }
+    let cuenta = s.cuenta_id(p);
+    if !sets.is_empty() {
+        args.push(Sql::Integer(id));
+        args.push(Sql::Integer(cuenta));
+        let n = s.ejecutar(
+            &format!("UPDATE negocios SET {} WHERE id=? AND cuenta_id=?", sets.join(", ")),
+            &args,
+        )?;
+        if n == 0 {
+            return Err(ErrorHTTP::no_encontrado("Negocio no encontrado"));
+        }
+    }
+    match negocios_de(s, cuenta)?.into_iter().find(|n| entero(&n["id"]) == id) {
+        Some(n) => ok(Value::Object(n)),
+        None => Err(ErrorHTTP::no_encontrado("Negocio no encontrado")),
+    }
 }
 
 pub fn cert_id_de(n: &Negocio) -> Option<i64> {

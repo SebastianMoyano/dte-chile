@@ -260,13 +260,47 @@ pub fn nota_credito(
     dte_id: i64,
     emitir: bool,
 ) -> Result<String, String> {
+    nota_anulacion(c, rut_empresa, rut_usuario, trib, cert, recordar, dte_id, emitir, siiengine::TIPO_NOTA_CREDITO)
+}
+
+/// `SIIEngineNotaDebito`: la nota de débito que deja sin efecto una nota de crédito emitida por
+/// el SII engine (misma cadena que la NC, con TIPO_NOTA=56). Sin emitir es un dry-run real sin
+/// folio; emitir exige la cadena 56 verificada, que todavía no tiene corrida real.
+#[allow(clippy::too_many_arguments)]
+pub fn nota_debito(
+    c: &Compartido,
+    rut_empresa: &str,
+    rut_usuario: &str,
+    trib: &str,
+    cert: &str,
+    recordar: bool,
+    dte_id: i64,
+    emitir: bool,
+) -> Result<String, String> {
+    nota_anulacion(c, rut_empresa, rut_usuario, trib, cert, recordar, dte_id, emitir, siiengine::TIPO_NOTA_DEBITO)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn nota_anulacion(
+    c: &Compartido,
+    rut_empresa: &str,
+    rut_usuario: &str,
+    trib: &str,
+    cert: &str,
+    recordar: bool,
+    dte_id: i64,
+    emitir: bool,
+    tipo_nota: i32,
+) -> Result<String, String> {
+    let es_nd = tipo_nota == siiengine::TIPO_NOTA_DEBITO;
+    let nombre = if es_nd { "nota de débito" } else { "nota de crédito" };
     let (ctx, u, t, ce) = preparar_claves(c, rut_empresa, rut_usuario, trib, cert, recordar)?;
     if u.is_empty() || t.is_empty() || ce.is_empty() {
-        return Err("la nota de crédito exige el RUT de la persona autorizada, su clave tributaria y la del certificado".into());
+        return Err(format!("la {nombre} exige el RUT de la persona autorizada, su clave tributaria y la del certificado"));
     }
-    let verificada = siiengine::cadenas_verificadas().contains_key(&siiengine::TIPO_NOTA_CREDITO);
+    let verificada = siiengine::cadenas_verificadas().contains_key(&tipo_nota);
     if emitir && !verificada {
-        return Err("la nota de crédito por el SII engine desde este motor todavía no está verificada con una corrida real: por ahora se emite con el CLI nucleo-siiengine nc-anular (docs/PLAN-PORT.md, fase 6)".into());
+        return Err(format!("la {nombre} por el SII engine desde este motor todavía no está verificada con una corrida real: por ahora se emite con el CLI nucleo-siiengine {} (docs/PLAN-PORT.md, fase 6)", if es_nd { "nd-anular --acepto-riesgo-folio" } else { "nc-anular" }));
     }
     let alm = Almacen::abrir(&ctx.database_path).map_err(|e| e.to_string())?;
     let Some(doc) = alm.dte_por_id(dte_id).map_err(|e| e.to_string())? else {
@@ -283,19 +317,18 @@ pub fn nota_credito(
             doc.rut_emisor
         ));
     }
+    if es_nd && doc.tipo_dte != siiengine::TIPO_NOTA_CREDITO {
+        return Err(format!("el documento {dte_id} no es una nota de crédito: la nota de débito solo deja sin efecto una nota de crédito"));
+    }
     let mut cli = sesion(&ctx, rut_empresa, &u, &t, &ce)?;
     let r = (|| -> Result<Value, String> {
         let dhdr = doc.track_id.to_string();
-        let (p, rec, items) = cli
-            .preparar_nc_anulacion_desde_portal(
-                &dhdr,
-                doc.tipo_dte,
-                doc.folio as i64,
-                &doc.fecha_emision,
-                "",
-                true,
-            )
-            .map_err(|e| e.to_string())?;
+        let (p, rec, items) = if es_nd {
+            cli.preparar_nd_anulacion_desde_portal(&dhdr, doc.folio as i64, &doc.fecha_emision, "", true)
+        } else {
+            cli.preparar_nc_anulacion_desde_portal(&dhdr, doc.tipo_dte, doc.folio as i64, &doc.fecha_emision, "", true)
+        }
+        .map_err(|e| e.to_string())?;
         let mut salida = json!({
             "dry_run": !emitir, "tipo": p.tipo, "monto_total": p.monto_total(), "campos_nuevos": p.campos_nuevos,
             "cadena_verificada": verificada, "fecha": p.valor("EFXP_FCH_EMIS"),

@@ -995,28 +995,48 @@ class ClienteMipyme:
         `mipeSendXML` (WAF). El envío se reescribió con el `frmSign` real y no se ha vuelto a
         correr. Esta función NO gasta folio; `emitir()` sí.
         """
+        return self._preparar_nota_anulacion(TIPO_NOTA_CREDITO, dhdr, tipo_ref, folio_ref, fecha_ref,
+                                             receptor, items, fecha, verificar_monto)
+
+    def preparar_nd_anulacion(self, dhdr: str, folio_ref: int, fecha_ref: str,
+                              receptor: ReceptorMipyme, items: Sequence[ItemMipyme],
+                              fecha: Optional[str] = None, verificar_monto: bool = True) -> PayloadMipyme:
+        """Nota de DÉBITO (T56) que deja sin efecto la nota de crédito `dhdr` (código 1): el mismo
+        formulario que la NC, pre-construido por el portal con `TIPO_NOTA=56` (capturado el
+        2026-10-02 al emitir a mano la ND 1 que anuló la NC 56). El documento que esa NC anulaba
+        vuelve a valer. Mismo guardarraíl: `items` debe sumar el total registrado de la NC.
+        NO gasta folio; la cadena 56 no se ha corrido desde el módulo, así que `emitir()` exige
+        `aceptar_riesgo_folio=True`."""
+        return self._preparar_nota_anulacion(TIPO_NOTA_DEBITO, dhdr, TIPO_NOTA_CREDITO, folio_ref, fecha_ref,
+                                             receptor, items, fecha, verificar_monto)
+
+    def _preparar_nota_anulacion(self, tipo_nota: int, dhdr: str, tipo_ref: int, folio_ref: int, fecha_ref: str,
+                                 receptor: ReceptorMipyme, items: Sequence[ItemMipyme],
+                                 fecha: Optional[str], verificar_monto: bool) -> PayloadMipyme:
+        """Lo común a la NC (61) y la ND (56) de anulación: `mipeDisplayPreView?EHDR_CODIGO&TIPO_NOTA=<tipo_nota>`."""
         self._requiere_empresa()
+        sigla = "NC" if tipo_nota == TIPO_NOTA_CREDITO else "ND"
         if verificar_monto:
             total_ref = self.total_registrado(dhdr)
             total_nc = sum(i.subtotal for i in items)
             if total_nc != total_ref:
                 raise ValidacionError(
-                    f"La NC sumaría {total_nc:,} pero el documento {tipo_ref}/{folio_ref} está "
+                    f"La {sigla} sumaría {total_nc:,} pero el documento {tipo_ref}/{folio_ref} está "
                     f"registrado por {total_ref:,}: el SII la aceptaría con reparo REF-2-780 y el "
                     f"abono quedaría mal. Usa el total registrado.".replace(",", "."),
                     detalle={"monto_nc": total_nc, "total_registrado": total_ref, "dhdr": dhdr})
         r = self._req("GET", f"{BASE}/mipeDisplayPreView.cgi",
-                      params={"EHDR_CODIGO": dhdr, "TIPO_NOTA": str(TIPO_NOTA_CREDITO)},
+                      params={"EHDR_CODIGO": dhdr, "TIPO_NOTA": str(tipo_nota)},
                       referer=f"{BASE}/mipeGesDocEmi.cgi?CODIGO={dhdr}")
         if _esta_rechazado(r) or len(r.content) < 1000:
-            raise SIIRechazoError("El portal no pre-construyó la NC de anulación",
+            raise SIIRechazoError(f"El portal no pre-construyó la {sigla} de anulación",
                                   detalle={"http": r.status_code, "dhdr": dhdr,
                                            "inicio": self._texto(r)[:200]})
         ref = {"tipo": tipo_ref, "folio": folio_ref, "fecha": fecha_ref,
                "codigo": CODIGO_REF_ANULA, "razon": RAZON_REF_ANULA}
         # El navegador firma desde la página de revisión: usarla como Referer en GenXMLFirma.
-        self._referer_emision = f"{BASE}/mipeDisplayPreView.cgi?EHDR_CODIGO={dhdr}&TIPO_NOTA={TIPO_NOTA_CREDITO}"
-        return armar_payload(parsear_form(self._texto(r)), TIPO_NOTA_CREDITO, receptor, items,
+        self._referer_emision = f"{BASE}/mipeDisplayPreView.cgi?EHDR_CODIGO={dhdr}&TIPO_NOTA={tipo_nota}"
+        return armar_payload(parsear_form(self._texto(r)), tipo_nota, receptor, items,
                              fecha, forma_pago="", referencias=[ref],
                              respetar_html=("ES_BORR", "EFXP_FMA_PAGO", "INDICA_PRIMERA_EJECUCION"))
 

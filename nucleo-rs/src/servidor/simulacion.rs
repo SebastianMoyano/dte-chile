@@ -24,6 +24,11 @@ pub fn rutas(s: &mut Servidor) {
         sim_anular,
     );
     s.ruta(
+        "POST /api/v1/simulacion/nota-debito/{id}",
+        Prot::Protegida,
+        sim_nota_debito,
+    );
+    s.ruta(
         "GET /api/v1/simulacion/documentos/{id}",
         Prot::Protegida,
         sim_ver,
@@ -372,6 +377,171 @@ fn sim_anular(s: &Servidor, p: &mut Peticion) -> Res {
         &sql![id],
     );
     ok(s.resultado_demo(nc_id)?)
+}
+
+/// `simulacion._referencia_de`: (tipo, folio) de la primera `<Referencia>` de una nota.
+fn referencia_de(xml: &str) -> Option<(i64, i64)> {
+    let i = xml.find("<TpoDocRef>")? + "<TpoDocRef>".len();
+    let resto = &xml[i..];
+    let j = resto.find("</TpoDocRef>")?;
+    let tipo: i64 = resto[..j].parse().ok()?;
+    let resto = resto[j + "</TpoDocRef>".len()..].trim_start();
+    let resto = resto.strip_prefix("<FolioRef>")?;
+    let k = resto.find("</FolioRef>")?;
+    let folio: i64 = resto[..k].parse().ok()?;
+    Some((tipo, folio))
+}
+
+fn recortar(t: &str, n: usize) -> String {
+    t.chars().take(n).collect()
+}
+
+/// `simulacion.nota_debito`: sobre una NC demo, la anula (código 1) y el documento que esa NC
+/// anulaba vuelve a valer; sobre una boleta/factura/guía, agrega un cobro que faltó (código 3,
+/// "corrige montos") por `monto` neto.
+fn sim_nota_debito(s: &Servidor, p: &mut Peticion) -> Res {
+    let id = id_de(p, "id")?;
+    let (mut motivo, mut nombre, mut monto) = (String::new(), String::new(), 0i64);
+    if !p.cuerpo.is_empty() {
+        let j = Json::leer(p)?;
+        let mut errs: Vec<Value> = Vec::new();
+        fn err(campo: &str, msg: &str, tipo: &str) -> Value {
+            json!({"loc": ["body", campo], "msg": msg, "type": tipo})
+        }
+        fn texto_de(j: &Json, campo: &str, largo: usize, dest: &mut String, errs: &mut Vec<Value>) {
+            match j.get(campo) {
+                None => {}
+                Some(Value::String(t)) if t.chars().count() > largo => {
+                    let mut e = err(campo, &format!("String should have at most {largo} characters"), "string_too_long");
+                    e["ctx"] = json!({"max_length": largo});
+                    errs.push(e);
+                }
+                Some(Value::String(t)) => *dest = t.clone(),
+                Some(_) => errs.push(err(campo, "Input should be a valid string", "string_type")),
+            }
+        }
+        texto_de(&j, "motivo", 90, &mut motivo, &mut errs);
+        match j.get("monto") {
+            None => {}
+            Some(Value::Number(n)) => match n.as_i64().or_else(|| n.as_f64().filter(|f| f.fract() == 0.0).map(|f| f as i64)) {
+                Some(x) if x <= 0 => {
+                    let mut e = err("monto", "Input should be greater than 0", "greater_than");
+                    e["ctx"] = json!({"gt": 0});
+                    errs.push(e);
+                }
+                Some(x) => monto = x,
+                None => errs.push(err("monto", "Input should be a valid integer, got a number with a fractional part", "int_from_float")),
+            },
+            Some(Value::String(_)) => errs.push(err("monto", "Input should be a valid integer, unable to parse string as an integer", "int_parsing")),
+            Some(_) => errs.push(err("monto", "Input should be a valid integer", "int_type")),
+        }
+        texto_de(&j, "nombre", 80, &mut nombre, &mut errs);
+        if !errs.is_empty() {
+            return Err(ErrorHTTP::datos_invalidos().detalle(json!({"errores": errs})));
+        }
+    }
+    let d = s.dte_por_id(id)?;
+    let Some(d) =
+        d.filter(|d| texto(&d["rut_emisor"]) == RUT_DEMO && texto(&d["ambiente"]) == AMBIENTE_DEMO)
+    else {
+        return Err(ErrorHTTP::no_encontrado(
+            "Ese documento no es de la simulación",
+        ));
+    };
+    let tipo = entero(&d["tipo_dte"]) as i32;
+    if tipo == 56 {
+        return Err(ErrorHTTP::validacion(
+            "Una nota de débito no se corrige con otra nota en este curso",
+        ));
+    }
+    let es_nc = tipo == 61;
+    if texto(&d["estado"]) == "anulado_simulado" {
+        return Err(ErrorHTTP::validacion(if es_nc {
+            "Ese documento ya fue anulado"
+        } else {
+            "Ese documento está anulado: no se le agregan cobros"
+        }));
+    }
+    let mut razon = texto(&d["razon_social_receptor"]);
+    if razon.is_empty() {
+        razon = "CONSUMIDOR FINAL".into();
+    }
+    let rec = ReceptorDemo {
+        rut: Some(texto(&d["rut_receptor"])),
+        razon_social: Some(razon),
+        ..Default::default()
+    };
+    let folio = entero(&d["folio"]);
+    let nombre_doc = nombre_tipo(tipo);
+    let fecha_ref: String = texto(&d["fecha_emision"]).chars().take(10).collect();
+    if es_nc {
+        let mut items = Vec::new();
+        let neto = entero(&d["monto_neto"]);
+        if neto != 0 {
+            items.push(ItemDemo {
+                nombre: Some(format!("Anula {nombre_doc} folio {folio}")),
+                precio_unitario: Some(neto as f64),
+                ..Default::default()
+            });
+        }
+        let ex = entero(&d["monto_exento"]);
+        if ex != 0 {
+            items.push(ItemDemo {
+                nombre: Some(format!("Anula {nombre_doc} folio {folio} (exento)")),
+                precio_unitario: Some(ex as f64),
+                exento: true,
+                ..Default::default()
+            });
+        }
+        if motivo.is_empty() {
+            motivo = "Anula nota de crédito".into();
+        }
+        let refs = vec![
+            json!({"numero_linea": 1, "tipo_doc_ref": 61, "folio_ref": folio, "fecha_doc_ref": fecha_ref, "codigo_ref": 1, "razon_ref": recortar(&motivo, 90)}),
+        ];
+        let nd_id = s
+            .emitir_demo(56, &items, Some(&rec), refs, &hoy_iso())
+            .map_err(ErrorHTTP::validacion)?;
+        let _ = s.ejecutar(
+            "UPDATE dtes SET estado='anulado_simulado' WHERE id=?",
+            &sql![id],
+        );
+        if let Some((t, f)) = referencia_de(&texto(&d["xml_firmado"])) {
+            // lo que la NC anulaba vuelve a valer
+            let _ = s.ejecutar(
+                "UPDATE dtes SET estado=? WHERE rut_emisor=? AND ambiente=? AND tipo_dte=? AND folio=? AND estado='anulado_simulado'",
+                &sql![ESTADO_DEMO, RUT_DEMO, AMBIENTE_DEMO, t, f],
+            );
+        }
+        return ok(s.resultado_demo(nd_id)?);
+    }
+    if monto == 0 {
+        return Err(ErrorHTTP::validacion(
+            "Para agregar un cobro hace falta el monto",
+        ));
+    }
+    let exento = tipo == 34
+        || tipo == 41
+        || (entero(&d["monto_neto"]) == 0 && entero(&d["monto_exento"]) != 0);
+    if nombre.is_empty() {
+        nombre = format!("Cobro que faltó en {nombre_doc} folio {folio}");
+    }
+    let items = vec![ItemDemo {
+        nombre: Some(recortar(&nombre, 80)),
+        precio_unitario: Some(monto as f64),
+        exento,
+        ..Default::default()
+    }];
+    if motivo.is_empty() {
+        motivo = "Corrige montos".into();
+    }
+    let refs = vec![
+        json!({"numero_linea": 1, "tipo_doc_ref": tipo, "folio_ref": folio, "fecha_doc_ref": fecha_ref, "codigo_ref": 3, "razon_ref": recortar(&motivo, 90)}),
+    ];
+    let nd_id = s
+        .emitir_demo(56, &items, Some(&rec), refs, &hoy_iso())
+        .map_err(ErrorHTTP::validacion)?;
+    ok(s.resultado_demo(nd_id)?)
 }
 
 fn sim_ver(s: &Servidor, p: &mut Peticion) -> Res {

@@ -224,6 +224,59 @@ def anular(dte_id: int, motivo: str = "Anula documento") -> dict:
     return nc
 
 
+def _referencia_de(xml: str) -> Optional[tuple]:
+    """(tipo, folio) del documento que referencia una nota (su primera <Referencia>), o None."""
+    import re
+    m = re.search(r"<TpoDocRef>(\d+)</TpoDocRef>\s*<FolioRef>(\d+)</FolioRef>", xml or "")
+    return (int(m.group(1)), int(m.group(2))) if m else None
+
+
+def nota_debito(dte_id: int, motivo: Optional[str] = None, monto: Optional[int] = None,
+                nombre: Optional[str] = None) -> dict:
+    """Nota de débito (56): el documento que SUMA. Dos usos (lección 1.4):
+
+    - Sobre una **nota de crédito** demo: la anula (código 1) por su total, y la boleta o factura
+      que esa NC había anulado vuelve a valer (se desmarca `anulado_simulado`).
+    - Sobre una boleta, factura o guía: **agrega un cobro que faltó** (código 3, "corrige
+      montos") por `monto` (neto; el IVA se suma solo, salvo en documentos exentos).
+    Devuelve la ND emitida."""
+    d = obtener_dte(dte_id)
+    if not d or d["rut_emisor"] != RUT_DEMO or d.get("ambiente") != AMBIENTE:
+        raise RecursoNoEncontrado("Ese documento no es de la simulación")
+    if d["tipo_dte"] == 56:
+        raise ValidacionError("Una nota de débito no se corrige con otra nota en este curso")
+    es_nc = d["tipo_dte"] == 61
+    if d["estado"] == "anulado_simulado":
+        raise ValidacionError("Ese documento ya fue anulado" if es_nc
+                              else "Ese documento está anulado: no se le agregan cobros")
+    receptor = {"rut": d["rut_receptor"], "razon_social": d["razon_social_receptor"] or "CONSUMIDOR FINAL",
+                "es_contribuyente": d["rut_receptor"] != RUT_CONSUMIDOR_FINAL}
+    folio, nombre_doc = d["folio"], _nombre(d["tipo_dte"])
+    if es_nc:
+        items = []
+        if d["monto_neto"]:
+            items.append({"nombre": f"Anula {nombre_doc} folio {folio}", "precio_unitario": d["monto_neto"], "exento": False})
+        if d["monto_exento"]:
+            items.append({"nombre": f"Anula {nombre_doc} folio {folio} (exento)", "precio_unitario": d["monto_exento"], "exento": True})
+        ref = {"numero_linea": 1, "tipo_doc_ref": 61, "folio_ref": folio, "fecha_doc_ref": d["fecha_emision"][:10],
+               "codigo_ref": 1, "razon_ref": (motivo or "Anula nota de crédito")[:90]}
+        nd = emitir(56, items, receptor=receptor, referencias=[ref])
+        with database.get_db() as conn:
+            conn.execute("UPDATE dtes SET estado='anulado_simulado' WHERE id=?", (dte_id,))
+            orig = _referencia_de(d.get("xml_firmado"))
+            if orig:   # la boleta o factura que la NC había anulado vuelve a valer
+                conn.execute("UPDATE dtes SET estado=? WHERE rut_emisor=? AND ambiente=? AND tipo_dte=? AND folio=? AND estado='anulado_simulado'",
+                             (ESTADO, RUT_DEMO, AMBIENTE, orig[0], orig[1]))
+        return nd
+    if not monto:
+        raise ValidacionError("Para agregar un cobro hace falta el monto")
+    exento = d["tipo_dte"] in (34, 41) or (not d["monto_neto"] and bool(d["monto_exento"]))
+    items = [{"nombre": (nombre or f"Cobro que faltó en {nombre_doc} folio {folio}")[:80], "precio_unitario": monto, "exento": exento}]
+    ref = {"numero_linea": 1, "tipo_doc_ref": d["tipo_dte"], "folio_ref": folio, "fecha_doc_ref": d["fecha_emision"][:10],
+           "codigo_ref": 3, "razon_ref": (motivo or "Corrige montos")[:90]}
+    return emitir(56, items, receptor=receptor, referencias=[ref])
+
+
 def ver(dte_id: int) -> dict:
     d = obtener_dte(dte_id)
     if not d or d["rut_emisor"] != RUT_DEMO:

@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -27,6 +28,7 @@ func (s *Servidor) rutasSimulacion(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/simulacion/estado", s.protegido(s.simEstado))
 	mux.HandleFunc("POST /api/v1/simulacion/emitir", s.protegido(s.simEmitir))
 	mux.HandleFunc("POST /api/v1/simulacion/anular/{id}", s.protegido(s.simAnular))
+	mux.HandleFunc("POST /api/v1/simulacion/nota-debito/{id}", s.protegido(s.simNotaDebito))
 	mux.HandleFunc("GET /api/v1/simulacion/documentos/{id}", s.protegido(s.simVer))
 	mux.HandleFunc("POST /api/v1/simulacion/reiniciar", s.protegido(s.simReiniciar))
 }
@@ -334,6 +336,190 @@ func (s *Servidor) simAnular(w http.ResponseWriter, r *http.Request) {
 	}
 	s.db.Exec(`UPDATE dtes SET estado='anulado_simulado' WHERE id=?`, id)
 	out, _ := s.resultadoDemo(ncID)
+	responderJSON(w, 200, out)
+}
+
+// referenciaDe es simulacion._referencia_de: (tipo, folio) de la primera <Referencia> de una nota.
+func referenciaDe(xml string) (int, int, bool) {
+	i := strings.Index(xml, "<TpoDocRef>")
+	if i < 0 {
+		return 0, 0, false
+	}
+	resto := xml[i+len("<TpoDocRef>"):]
+	j := strings.Index(resto, "</TpoDocRef>")
+	if j < 0 {
+		return 0, 0, false
+	}
+	tipo, err := strconv.Atoi(resto[:j])
+	if err != nil {
+		return 0, 0, false
+	}
+	resto = strings.TrimLeft(resto[j+len("</TpoDocRef>"):], " \t\r\n")
+	if !strings.HasPrefix(resto, "<FolioRef>") {
+		return 0, 0, false
+	}
+	resto = resto[len("<FolioRef>"):]
+	k := strings.Index(resto, "</FolioRef>")
+	if k < 0 {
+		return 0, 0, false
+	}
+	folio, err := strconv.Atoi(resto[:k])
+	if err != nil {
+		return 0, 0, false
+	}
+	return tipo, folio, true
+}
+
+// errorCuerpo es un error de pydantic sobre un campo del body.
+func errorCuerpo(campo, msg, tipo string, ctx map[string]any) map[string]any {
+	e := map[string]any{"loc": []any{"body", campo}, "msg": msg, "type": tipo}
+	if ctx != nil {
+		e["ctx"] = ctx
+	}
+	return e
+}
+
+// simNotaDebito es simulacion.nota_debito: sobre una NC demo, la anula (código 1) y el
+// documento que esa NC anulaba vuelve a valer; sobre una boleta/factura/guía, agrega un cobro
+// que faltó (código 3, "corrige montos") por `monto` neto.
+func (s *Servidor) simNotaDebito(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		responderError(w, r, 422, "validacion", "Los datos enviados no son válidos.", nil)
+		return
+	}
+	var motivo, nombre string
+	var monto int64
+	if r.ContentLength != 0 {
+		var in map[string]any
+		if !leerJSON(w, r, &in) {
+			return
+		}
+		var errs []map[string]any
+		texto := func(campo string, largo int, dest *string) {
+			v, ok := in[campo]
+			if !ok || v == nil {
+				return
+			}
+			t, es := v.(string)
+			switch {
+			case !es:
+				errs = append(errs, errorCuerpo(campo, "Input should be a valid string", "string_type", nil))
+			case len([]rune(t)) > largo:
+				errs = append(errs, errorCuerpo(campo, fmt.Sprintf("String should have at most %d characters", largo), "string_too_long", map[string]any{"max_length": largo}))
+			default:
+				*dest = t
+			}
+		}
+		texto("motivo", 90, &motivo)
+		if v, ok := in["monto"]; ok && v != nil {
+			f, es := v.(float64)
+			switch {
+			case !es:
+				if _, esTexto := v.(string); esTexto {
+					errs = append(errs, errorCuerpo("monto", "Input should be a valid integer, unable to parse string as an integer", "int_parsing", nil))
+				} else {
+					errs = append(errs, errorCuerpo("monto", "Input should be a valid integer", "int_type", nil))
+				}
+			case f != math.Trunc(f):
+				errs = append(errs, errorCuerpo("monto", "Input should be a valid integer, got a number with a fractional part", "int_from_float", nil))
+			case f <= 0:
+				errs = append(errs, errorCuerpo("monto", "Input should be greater than 0", "greater_than", map[string]any{"gt": 0}))
+			default:
+				monto = int64(f)
+			}
+		}
+		texto("nombre", 80, &nombre)
+		if len(errs) > 0 {
+			responderError(w, r, 422, "validacion", "Los datos enviados no son válidos.", map[string]any{"errores": errs})
+			return
+		}
+	}
+	d, err := s.dtePorID(id)
+	if err != nil {
+		responderError(w, r, 500, "error_interno", "Ocurrió un error interno. Reporta el request_id al soporte.", nil)
+		return
+	}
+	if d == nil || texto(d, "rut_emisor") != rutDemo || texto(d, "ambiente") != ambienteDemo {
+		responderError(w, r, 404, "no_encontrado", "Ese documento no es de la simulación", nil)
+		return
+	}
+	tipo := int(numero(d["tipo_dte"]))
+	if tipo == 56 {
+		responderError(w, r, 422, "validacion", "Una nota de débito no se corrige con otra nota en este curso", nil)
+		return
+	}
+	esNC := tipo == 61
+	if texto(d, "estado") == "anulado_simulado" {
+		if esNC {
+			responderError(w, r, 422, "validacion", "Ese documento ya fue anulado", nil)
+		} else {
+			responderError(w, r, 422, "validacion", "Ese documento está anulado: no se le agregan cobros", nil)
+		}
+		return
+	}
+	rutRec := texto(d, "rut_receptor")
+	razon := texto(d, "razon_social_receptor")
+	if razon == "" {
+		razon = "CONSUMIDOR FINAL"
+	}
+	rec := &receptorDemo{Rut: &rutRec, RazonSocial: &razon}
+	recortar := func(t string, n int) string {
+		if rs := []rune(t); len(rs) > n {
+			return string(rs[:n])
+		}
+		return t
+	}
+	folio := int(numero(d["folio"]))
+	nombreDoc := nombreTipo(tipo)
+	fechaRef := texto(d, "fecha_emision")[:10]
+	if esNC {
+		var items []itemDemo
+		if neto := numero(d["monto_neto"]); neto != 0 {
+			n, p := fmt.Sprintf("Anula %s folio %d", nombreDoc, folio), float64(neto)
+			items = append(items, itemDemo{Nombre: &n, PrecioUnitario: &p})
+		}
+		if ex := numero(d["monto_exento"]); ex != 0 {
+			n, p := fmt.Sprintf("Anula %s folio %d (exento)", nombreDoc, folio), float64(ex)
+			items = append(items, itemDemo{Nombre: &n, PrecioUnitario: &p, Exento: true})
+		}
+		if motivo == "" {
+			motivo = "Anula nota de crédito"
+		}
+		refs := []map[string]any{{"numero_linea": 1, "tipo_doc_ref": 61, "folio_ref": folio, "fecha_doc_ref": fechaRef, "codigo_ref": 1, "razon_ref": recortar(motivo, 90)}}
+		ndID, err := s.emitirDemo(r, 56, items, rec, refs, hoyISO())
+		if err != nil {
+			responderError(w, r, 422, "validacion", err.Error(), nil)
+			return
+		}
+		s.db.Exec(`UPDATE dtes SET estado='anulado_simulado' WHERE id=?`, id)
+		if t, f, ok := referenciaDe(texto(d, "xml_firmado")); ok { // lo que la NC anulaba vuelve a valer
+			s.db.Exec(`UPDATE dtes SET estado=? WHERE rut_emisor=? AND ambiente=? AND tipo_dte=? AND folio=? AND estado='anulado_simulado'`, estadoDemo, rutDemo, ambienteDemo, t, f)
+		}
+		out, _ := s.resultadoDemo(ndID)
+		responderJSON(w, 200, out)
+		return
+	}
+	if monto == 0 {
+		responderError(w, r, 422, "validacion", "Para agregar un cobro hace falta el monto", nil)
+		return
+	}
+	exento := tipo == 34 || tipo == 41 || (numero(d["monto_neto"]) == 0 && numero(d["monto_exento"]) != 0)
+	if nombre == "" {
+		nombre = fmt.Sprintf("Cobro que faltó en %s folio %d", nombreDoc, folio)
+	}
+	n, p := recortar(nombre, 80), float64(monto)
+	items := []itemDemo{{Nombre: &n, PrecioUnitario: &p, Exento: exento}}
+	if motivo == "" {
+		motivo = "Corrige montos"
+	}
+	refs := []map[string]any{{"numero_linea": 1, "tipo_doc_ref": tipo, "folio_ref": folio, "fecha_doc_ref": fechaRef, "codigo_ref": 3, "razon_ref": recortar(motivo, 90)}}
+	ndID, err := s.emitirDemo(r, 56, items, rec, refs, hoyISO())
+	if err != nil {
+		responderError(w, r, 422, "validacion", err.Error(), nil)
+		return
+	}
+	out, _ := s.resultadoDemo(ndID)
 	responderJSON(w, 200, out)
 }
 

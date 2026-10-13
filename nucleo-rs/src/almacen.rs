@@ -258,12 +258,20 @@ impl Almacen {
     /// agregan solo si faltan, así una base adoptada de Python y una creada aquí quedan con el
     /// mismo esquema.
     fn asegurar_columnas(&self) -> Resultado<()> {
-        const COLUMNAS: [(&str, &str, &str); 5] = [
+        const COLUMNAS: [(&str, &str, &str); 12] = [
             ("negocios", "estado", "TEXT"),
             ("negocios", "estado_etiqueta", "TEXT"),
             ("negocios", "usa_sw_propio", "INTEGER"),
             ("negocios", "estado_ts", "TEXT"),
             ("negocios", "software_registrado", "TEXT"),
+            // Datos del emisor por negocio (core/negocios.py::_COLS_DATOS, 2026-10-13).
+            ("negocios", "giro", "TEXT"),
+            ("negocios", "codigo_actividad", "INTEGER"),
+            ("negocios", "direccion", "TEXT"),
+            ("negocios", "comuna", "TEXT"),
+            ("negocios", "ciudad", "TEXT"),
+            ("negocios", "email", "TEXT"),
+            ("negocios", "telefono", "TEXT"),
         ];
         let c = self.conexion();
         for (tabla, columna, ddl) in COLUMNAS {

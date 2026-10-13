@@ -70,7 +70,7 @@ fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let Some(cmd) = args.first().cloned() else {
         eprintln!(
-            "uso: nucleo-siiengine sesion|listar|importar|factura|nc-anular|nc-corregir [opciones]"
+            "uso: nucleo-siiengine sesion|listar|importar|factura|nc-anular|nc-corregir|nd-anular [opciones]"
         );
         std::process::exit(2);
     };
@@ -89,7 +89,7 @@ fn main() {
     if usuario.is_empty() || empresa.is_empty() {
         fatal("error", "faltan --usuario y --empresa");
     }
-    let es_emision = matches!(cmd.as_str(), "factura" | "nc-anular" | "nc-corregir");
+    let es_emision = matches!(cmd.as_str(), "factura" | "nc-anular" | "nc-corregir" | "nd-anular");
     let emitir = f.logico("emitir");
     let necesita_cert = f.logico("xml") || emitir || (es_emision && cmd != "factura");
     let clave_trib = clave_sii("NUCLEO_CLAVE_TRIBUTARIA", "sii-clave-tributaria", &usuario);
@@ -215,6 +215,15 @@ fn main() {
                         }
                         cli.preparar_nc_anulacion(
                             &dhdr, tipo_ref, folio_ref, &fecha_ref, &rec, &items, &fecha, verificar,
+                        )
+                    }
+                    "nd-anular" => {
+                        // deja sin efecto la NC --dhdr/--folio-ref (ND 56, código 1); cadena sin corrida real: exige --acepto-riesgo-folio
+                        if dhdr.is_empty() || folio_ref == 0 || fecha_ref.is_empty() {
+                            return Err("nd-anular exige --dhdr, --folio-ref y --fecha-ref (los de la nota de crédito)".into());
+                        }
+                        cli.preparar_nd_anulacion(
+                            &dhdr, folio_ref, &fecha_ref, &rec, &items, &fecha, verificar,
                         )
                     }
                     _ => {

@@ -113,9 +113,35 @@ async def agregar_negocio(
 
 @router.get("/negocios")
 async def listar_negocios(usuario: dict = Depends(requerir_autenticacion)) -> list[dict]:
-    """Lista los negocios de la cuenta."""
+    """Lista los negocios de la cuenta (con los datos del emisor: giro, dirección…)."""
     negocios.init_negocios()
     return negocios.listar_negocios(usuario["id"])
+
+
+class DatosNegocioIn(BaseModel):
+    """Los datos fijos que van en la carátula de cada documento. Los campos ausentes (o null)
+    no se tocan; un texto vacío borra el dato. Largos: los del XSD del SII (RznSoc 100,
+    GiroEmis 80, DirOrigen 70, CmnaOrigen/CiudadOrigen 20)."""
+    razon_social: Optional[str] = Field(None, max_length=100)
+    giro: Optional[str] = Field(None, max_length=80)
+    codigo_actividad: Optional[int] = None
+    direccion: Optional[str] = Field(None, max_length=70)
+    comuna: Optional[str] = Field(None, max_length=20)
+    ciudad: Optional[str] = Field(None, max_length=20)
+    email: Optional[str] = Field(None, max_length=80)
+    telefono: Optional[str] = Field(None, max_length=20)
+
+
+@router.put("/negocios/{negocio_id}", summary="Guardar los datos del emisor de un negocio (giro, dirección, código de actividad…)")
+async def actualizar_negocio(
+    negocio_id: int, body: DatosNegocioIn, usuario: dict = Depends(requerir_autenticacion),
+) -> dict:
+    """Lo que antes se configuraba en `EMPRESA_*` del `.env` para todo el motor, ahora por
+    negocio y desde la app ("Mi empresa"). Devuelve el negocio con sus datos."""
+    neg = negocios.actualizar_datos(usuario["id"], negocio_id, body.model_dump(exclude_unset=True))
+    if not neg:
+        raise RecursoNoEncontrado("Negocio no encontrado")
+    return neg
 
 
 # Tipos DTE más usados que se muestran en el panel de timbraje.

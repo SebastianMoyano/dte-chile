@@ -23,7 +23,7 @@
         { vista: "cobrar", sel: "#c_btn", demo: "emitir", t: "Revisar y emitir", p: "Al emitir, la app arma el documento, lo firma y le pone el timbre, igual que uno real. En práctica no sale de tu computador." },
         { vista: "ver", hash: () => { let id = null; try { id = localStorage.getItem("ultimo_dte"); } catch {} return id ? "ver?id=" + id : null; }, sel: "iframe", t: "Las partes del documento", p: "Quién vende y su RUT, el folio (un número que nunca se repite), la fecha, el detalle, neto, IVA y total, y abajo el timbre: el código de barras cuadrado." },
         { vista: "documentos", sel: "table", t: "Todo queda registrado", p: "Un documento emitido no se borra nunca. Aquí ves todos, con su estado." },
-        { vista: "documentos", sel: "[data-tour='anular']", demo: "anular", t: "Equivocarse se arregla con otro documento", p: "Pulsa «anular» en un documento de práctica: una nota de crédito resta lo que salió mal y deja el original anulado. Nada se borra." },
+        { vista: "documentos", sel: "[data-tour='anular']", demo: "anular", t: "Equivocarse se arregla con otro documento", p: "Pulsa «anular» en un documento de práctica: una nota de crédito resta lo que salió mal y deja el original anulado. Nada se borra. Y si cobraste de menos, «cobrar más» emite una nota de débito, que suma la diferencia." },
         { vista: "documentos", hash: "documentos?tab=mes", sel: ".totales", demo: "mes", t: "Lo que pide el F29", p: "Cada mes declaras lo vendido y el IVA cobrado. Aunque no vendas nada, el F29 se presenta igual: sin movimiento." },
       ] },
     { id: "crear", n: 2, titulo: "Crear la empresa", mundo: "sim", resumen: "Persona natural o empresa, Empresa en un Día, el RUT propio. La app te guía; el trámite lo haces tú.",

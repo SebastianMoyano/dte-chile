@@ -45,7 +45,7 @@ var camposClave = []string{"PTDC_CODIGO", "EHDR_CODIGO", "PTES_ESTADO", "EFXP_DO
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Fprintln(os.Stderr, "uso: nucleo-siiengine sesion|listar|importar|factura|nc-anular|nc-corregir [opciones]")
+		fmt.Fprintln(os.Stderr, "uso: nucleo-siiengine sesion|listar|importar|factura|nc-anular|nc-corregir|nd-anular [opciones]")
 		os.Exit(2)
 	}
 	cmd := os.Args[1]
@@ -84,7 +84,7 @@ func main() {
 	if *usuario == "" || *empresa == "" {
 		fatal(fmt.Errorf("faltan --usuario y --empresa"))
 	}
-	esEmision := cmd == "factura" || cmd == "nc-anular" || cmd == "nc-corregir"
+	esEmision := cmd == "factura" || cmd == "nc-anular" || cmd == "nc-corregir" || cmd == "nd-anular"
 	necesitaCert := *conXML || *emitir || (esEmision && cmd != "factura")
 	claveTrib := clave("NUCLEO_CLAVE_TRIBUTARIA", "sii-clave-tributaria", *usuario)
 	if claveTrib == "" {
@@ -170,7 +170,7 @@ func main() {
 			fatal(err)
 		}
 		imprimir(res)
-	case "factura", "nc-anular", "nc-corregir":
+	case "factura", "nc-anular", "nc-corregir", "nd-anular":
 		if *receptor == "" || *razon == "" || *glosa == "" || *precio <= 0 {
 			fatal(fmt.Errorf("faltan --receptor, --razon, --glosa o --precio"))
 		}
@@ -190,6 +190,11 @@ func main() {
 				fatal(fmt.Errorf("nc-corregir exige --dhdr, --folio-ref y --fecha-ref"))
 			}
 			p, err = cli.PrepararNCCorreccionMontos(*dhdr, *tipoRef, *folioRef, *fechaRef, rec, items, *fecha, !*sinVerificar)
+		case "nd-anular": // deja sin efecto la NC --dhdr/--folio-ref (ND 56, código 1); cadena sin corrida real: exige --acepto-riesgo-folio
+			if *dhdr == "" || *folioRef == 0 || *fechaRef == "" {
+				fatal(fmt.Errorf("nd-anular exige --dhdr, --folio-ref y --fecha-ref (los de la nota de crédito)"))
+			}
+			p, err = cli.PrepararNDAnulacion(*dhdr, *folioRef, *fechaRef, rec, items, *fecha, !*sinVerificar)
 		}
 		if err != nil {
 			fatal(err)

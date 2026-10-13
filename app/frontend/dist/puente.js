@@ -101,6 +101,7 @@
     async PedirFolios() { soloApp("Pedir folios al SII"); },
     async SIIEngineFactura() { soloApp("Emitir por el SII engine"); },
     async SIIEngineNotaCredito() { soloApp("Anular por el SII engine"); },
+    async SIIEngineNotaDebito() { soloApp("Dejar sin efecto una nota de crédito por el SII engine"); },
   } } };
   window.runtime = window.runtime || { EventsOn() {} };
   document.documentElement.classList.add("navegador");

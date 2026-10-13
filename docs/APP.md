@@ -4,7 +4,7 @@
 adentro, en el mismo proceso. Existe también la construcción en **Go + Wails v2** (`app/`) con
 el motor Go (`nucleo/servidor`) adentro, igual de completa, que se mantiene como alternativa
 mientras dura la transición. Las dos usan **la misma interfaz** (`app/frontend/dist`, HTML/CSS/JS
-sin framework) y los mismos 15 bindings. El proyecto va de servidor + panel web a app fácil de
+sin framework) y los mismos 16 bindings. El proyecto va de servidor + panel web a app fácil de
 usar; la versión web (`/app`, servida por cualquier motor) queda para la sala de clases.
 
 La idea de producto está en [`aprender/00-plan.md`](aprender/00-plan.md): una app para quien no
@@ -192,7 +192,7 @@ conexión local, en memoria, y no las escribe en ningún lado.
 
 La interfaz (`app/frontend/dist`, HTML y JS planos) corre igual en la **app instalada** (Tauri o Wails:
 binario + vista web del sistema, sin Chromium adentro) y en el **navegador**, servida por el
-propio motor en `/app`. Lo que la ata al cascarón son los 15 bindings `window.go.main.App.*` (`Estado`, `API`, `Bytes`, `ElegirArchivo`, `Formulario`, `PedirFolios`,
+propio motor en `/app`. Lo que la ata al cascarón son los 16 bindings `window.go.main.App.*` (`Estado`, `API`, `Bytes`, `ElegirArchivo`, `Formulario`, `PedirFolios`,
 `Guardar`, `EmitirNucleo`, `AbrirURL`, `AbrirPanel`, `Conectores`, `ConectarIA`, `SIIEngine*`); `puente.js`, cargado antes que `app.js`, los define
 sobre HTTP cuando no hay cascarón: inicio de sesión con usuario y clave del motor (JWT en
 `sessionStorage`), descargas por el navegador, panel en otra pestaña, y "Traer lo emitido"
@@ -283,7 +283,7 @@ tarjetas que el tour señala llevan `data-tour="…"`.
 | Ver | visor de PDF embebido con las partes explicadas, guardar PDF/XML, anular (práctica) | `dte/documentos/{id}/pdf` |
 | Documentos · Todos | la empresa activa, ver/guardar PDF y XML con diálogo del sistema, anular | `dte/documentos`, `/pdf`, `/xml` |
 | Ajustes | Mi empresa, Tu IA, Valores, Apariencia, "Dónde quedan tus claves", Detalles técnicos (con el panel web para integradores) | — |
-| Mi empresa (2026-10-12) | tres pasos explicados como a un alumno: (1) certificado digital: diálogo del sistema + clave, se guarda cifrado (bindings `ElegirArchivo` + `Formulario` → `POST keystore/certificados`); (2) empresa: el SII lista las del certificado o se escribe el RUT, ambiente pruebas/real explicado (`GET certificados/{id}/empresas`, `Formulario` → `POST keystore/negocios`); (3) folios: qué es un folio y un CAF, qué tipos autorizó el SII (`GET negocios/{id}/timbraje`) y "pedir 5 folios" (`PedirFolios`: el portal con el certificado, CAF a `storage/cafs` y a la base, guardarraíles anti-acaparamiento). Reemplaza al "Abrir el panel" de Inicio | ver fila |
+| Mi empresa (2026-10-12) | tres pasos explicados como a un alumno: (1) certificado digital: diálogo del sistema + clave, se guarda cifrado (bindings `ElegirArchivo` + `Formulario` → `POST keystore/certificados`); (2) empresa: el SII lista las del certificado o se escribe el RUT, ambiente pruebas/real explicado (`GET certificados/{id}/empresas`, `Formulario` → `POST keystore/negocios`), y por cada empresa sus **datos del emisor** (nombre, giro, código de actividad, dirección, comuna, ciudad, correo, teléfono), cada uno explicado, guardados por negocio con `PUT keystore/negocios/{id}` (2026-10-13; antes eran `EMPRESA_*` del `.env`, uno para todo el motor, y se heredan de ahí si coinciden con el RUT); (3) folios: qué es un folio y un CAF, qué tipos autorizó el SII (`GET negocios/{id}/timbraje`) y "pedir 5 folios" (`PedirFolios`: el portal con el certificado, CAF a `storage/cafs` y a la base, guardarraíles anti-acaparamiento). Reemplaza al "Abrir el panel" de Inicio | ver fila |
 | Valores | UF, UTM y dólar a cualquier fecha desde 2015 (se recalcula al cambiar la fecha) y tabla mensual por año (inicio y fin de mes); fechas en castellano; el histórico se carga una vez al arrancar, el año en curso cada día | `valores`, `valores/historico` |
 | Aprender | los cinco tramos del curso (solo índice) | — |
 
@@ -310,13 +310,19 @@ Registro del motor arrancado por la app: `logs/app-motor.log`.
 
 ## Pendientes
 
-1. **Emitir y anular por el SII engine desde la app**: Emitir y "anular" en la fila ya validan
+1. **Emitir y anular por el SII engine desde la app**: Emitir, "anular" y "dejar sin efecto"
+   (una NC, con nota de débito; binding `SIIEngineNotaDebito`, 2026-10-13) en la fila ya validan
    contra el SII (dry-run) y emiten cuando la cadena esté verificada desde Go o Rust
    (`CadenasVerificadas`), que espera la primera corrida real por el CLI `nucleo-siiengine
-   factura` + `nc-anular`.
-2. **Nota de crédito para documentos del motor propio** desde la fila ("próxima versión").
-3. **Datos del emisor por negocio** en BD (giro, actividad, dirección) en vez de `EMPRESA_*`
-   del `.env`; hoy solo la empresa del `.env` puede emitir con el motor propio.
+   factura` + `nc-anular` + `nd-anular`.
+2. ~~Nota de crédito para documentos del motor propio~~ **hecho 2026-10-13**: desde la fila o el
+   visor, "anular" (NC código 1), "cobrar más" (ND código 3, agrega un cobro que faltó) y "dejar
+   sin efecto" una NC (ND código 1), para la práctica (`POST simulacion/nota-debito/{id}`, en los
+   tres motores) y para el motor propio (`EmitirNucleo` con `referencias`; sin folios de 56/61 la
+   app manda a Mi empresa). El original no cambia de estado fuera de la práctica.
+3. ~~Datos del emisor por negocio~~ **hecho 2026-10-13**: cada empresa guarda los suyos desde
+   Mi empresa (`PUT keystore/negocios/{id}`, en los tres motores); `EMPRESA_*` del `.env` queda
+   solo como herencia para instalaciones viejas.
 4. Cargar las lecciones largas y el quiz (`docs/aprender/`) en la pantalla Aprender (el tour y
    las listas de verificación ya están), enlazados al
    modo práctica (que ya existe).

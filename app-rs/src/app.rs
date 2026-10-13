@@ -560,6 +560,30 @@ async fn sii_engine_nota_credito(
     )
 }
 
+#[tauri::command]
+#[allow(clippy::too_many_arguments)]
+async fn sii_engine_nota_debito(
+    c: State<'_, Estado_>,
+    rut_empresa: String,
+    rut_usuario: String,
+    clave_tributaria: String,
+    clave_certificado: String,
+    recordar: bool,
+    dte_id: i64,
+    emitir: bool,
+) -> Result<String, String> {
+    crate::siiengine::nota_debito(
+        &c,
+        &rut_empresa,
+        &rut_usuario,
+        &clave_tributaria,
+        &clave_certificado,
+        recordar,
+        dte_id,
+        emitir,
+    )
+}
+
 /// La ventana: arma el estado compartido, arranca el motor en un hilo y registra los comandos.
 pub fn correr() {
     let compartido: Estado_ = Arc::new(Compartido {
@@ -596,6 +620,7 @@ pub fn correr() {
             sii_engine_sincronizar,
             sii_engine_factura,
             sii_engine_nota_credito,
+            sii_engine_nota_debito,
             elegir_archivo,
             formulario,
             pedir_folios

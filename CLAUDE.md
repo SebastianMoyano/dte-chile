@@ -88,7 +88,7 @@ Ver [`docs/LECCIONES-SII.md`](docs/LECCIONES-SII.md).
 `nucleo-rs/README.md`. **Rust es el destino final del port.** La app de escritorio se llama **Faro** desde 2026-10-12 (antes "DTE Chile";
 carpeta de datos `Faro`, la antigua se renombra sola; nombres internos sin cambio: paquete `dtechile`, binarios `nucleo-*`, conector MCP `dte-chile`).
 Hay dos apps con **la misma interfaz** (`app/frontend/dist`): **Faro en Tauri (`app-rs/`, motor Rust adentro) es la que se publica**;
-la Wails (`app/`, motor Go adentro; define los mismos 15 bindings desde Go, mientras que en Tauri los define `tauri.js`) es la construcción alternativa mientras dura la transición.
+la Wails (`app/`, motor Go adentro; define los mismos 16 bindings desde Go, mientras que en Tauri los define `tauri.js`) es la construcción alternativa mientras dura la transición.
 Dirección: de servidor + panel web a app fácil de usar; la versión web (`/app`, servida por cualquiera de los motores) queda para la sala de clases.
 
 **El motor también existe en Go** (`nucleo/`, fase 7 de `docs/PLAN-PORT.md`, cerrada 2026-10-11): `nucleo/servidor` atiende
@@ -102,6 +102,7 @@ comportamiento (corpus dorado, contrato dorado); cualquier cambio en una ruta se
 - **XML for the SII is `ISO-8859-1`, not UTF-8**, and sent without pretty-printing. The DB stores the signed XML decoded as ISO-8859-1.
 - **`EPR` NO significa "aceptado"** — significa "Envío Procesado" (el *sobre* se procesó). El veredicto está en `ACEPTADOS`/`RECHAZADOS`. Este malentendido tuvo al proyecto creyendo que el pipeline funcionaba mientras el SII rechazaba todo.
 - **La resolución del SII depende del ambiente y de la empresa** (L4): para la carátula usa `core.resolucion.resolucion_emisor(rut)`; `settings.resolucion` es solo el valor por defecto del ambiente. Nunca `sii_fecha_resolucion`/`sii_numero_resolucion` a pelo (son los de producción → `CRT-3-19` en certificación).
+- **Los datos del emisor (razón social, giro, código de actividad, dirección) son por negocio** (tabla `negocios`, `PUT /api/v1/keystore/negocios/{id}`, pantalla "Mi empresa" de la app, 2026-10-13). `EMPRESA_*` del `.env` / `settings.empresa_*` es solo el valor heredado para instalaciones viejas; no agregues lógica nueva que dependa de él.
 - `.p12`/`.pfx` certificates are processed **in memory only** — never persist them to disk or the DB. A local `firma.pfx` (path configurable via `DTE_CERT_PATH`) is used as a dev fallback.
 - Certification status: the boleta certification (39/41) is **complete** (2026-07-22, `docs/CERTIFICACION.md`); facturas in certification are accepted but the full 16-case set still depends on T33/T61 folios the SII rate-limits (`docs/LECCIONES-SII.md`). Read those two docs before working on certification; the old `task.md` is a local, git-ignored history file.
 - Generated artifacts live under `storage/` (`dtes/`, `pdfs/`, `cafs/`, and `dtes_cert/`/`pdfs_cert/` for certification runs); results summaries are `storage/resultados_*.json`.

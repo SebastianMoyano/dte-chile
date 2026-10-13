@@ -56,6 +56,7 @@ def main() -> int:
     ap.add_argument("--forma-pago", default="1", help="1 contado (lo habitual), 2 crédito")
     ap.add_argument("--anular-dhdr", help="DHDR_CODIGO del documento a anular (NC 61, código 1)")
     ap.add_argument("--corregir-dhdr", help="DHDR_CODIGO del documento cuyo monto se corrige (NC 61, código 3; por el total lo deja en cero)")
+    ap.add_argument("--anular-nc-dhdr", help="DHDR_CODIGO de la NOTA DE CRÉDITO que se deja sin efecto (ND 56, código 1; el documento que anulaba vuelve a valer)")
     ap.add_argument("--folio-ref", type=int, help="folio del documento a anular")
     ap.add_argument("--tipo-ref", type=int, default=34, help="tipo del documento a anular (34 exenta, 33 afecta)")
     ap.add_argument("--fecha-ref", help="fecha (YYYY-MM-DD) del documento a anular")
@@ -66,8 +67,8 @@ def main() -> int:
     ap.add_argument("--salida", default="storage/pdfs", help="carpeta para el PDF")
     a = ap.parse_args()
 
-    if (a.anular_dhdr or a.corregir_dhdr) and not (a.folio_ref and a.fecha_ref):
-        ap.error("--anular-dhdr/--corregir-dhdr necesitan --folio-ref y --fecha-ref")
+    if (a.anular_dhdr or a.corregir_dhdr or a.anular_nc_dhdr) and not (a.folio_ref and a.fecha_ref):
+        ap.error("--anular-dhdr/--corregir-dhdr/--anular-nc-dhdr necesitan --folio-ref y --fecha-ref")
 
     receptor = ReceptorMipyme(rut=a.receptor, razon_social=a.razon, giro=a.giro,
                               direccion=a.dir, ciudad=a.ciudad, comuna=a.comuna)
@@ -91,6 +92,9 @@ def main() -> int:
             elif a.anular_dhdr:
                 payload = cli.preparar_nc_anulacion(a.anular_dhdr, a.tipo_ref, a.folio_ref,
                                                     a.fecha_ref, receptor, items, a.fecha)
+            elif a.anular_nc_dhdr:
+                payload = cli.preparar_nd_anulacion(a.anular_nc_dhdr, a.folio_ref, a.fecha_ref,
+                                                    receptor, items, a.fecha)
             else:
                 payload = cli.preparar(TIPO_FACTURA_EXENTA, receptor, items, a.fecha, a.forma_pago)
 

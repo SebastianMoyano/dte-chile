@@ -56,9 +56,32 @@ try:
 except Exception as ex:
     check("ya fue anulado" in str(ex), "segunda anulación rechazada")
 
+print("[5b] Nota de débito: anular la NC (la boleta vuelve a valer) y agregar un cobro que faltó")
+nd = sim.nota_debito(nc["dte_id"], "La boleta sí valía")
+check(nd["tipo_dte"] == 56 and nd["folio"] == 1 and nd["monto_total"] == 1190, f"ND folio {nd['folio']} por {nd['monto_total']}")
+check("<TpoDocRef>61</TpoDocRef>" in obtener_dte(nd["dte_id"])["xml_firmado"] and "<CodRef>1</CodRef>" in obtener_dte(nd["dte_id"])["xml_firmado"], "la ND referencia la NC con código 1")
+check(obtener_dte(nc["dte_id"])["estado"] == "anulado_simulado" and obtener_dte(b["dte_id"])["estado"] == "simulado", "la NC queda anulada y la boleta vuelve a valer")
+try:
+    sim.nota_debito(nc["dte_id"]); check(False, "no debería anular la NC dos veces")
+except Exception as ex:
+    check("ya fue anulado" in str(ex), "segunda ND sobre la NC rechazada")
+try:
+    sim.nota_debito(nd["dte_id"]); check(False, "ND sobre ND")
+except Exception as ex:
+    check("no se corrige con otra" in str(ex), "ND sobre una ND rechazada")
+try:
+    sim.nota_debito(b2["dte_id"]); check(False, "cobro sin monto")
+except Exception as ex:
+    check("hace falta el monto" in str(ex), "cobro sin monto rechazado")
+nd2 = sim.nota_debito(b2["dte_id"], "Faltó la propina", 500)
+check(nd2["tipo_dte"] == 56 and nd2["folio"] == 2 and (nd2["monto_neto"], nd2["iva"], nd2["monto_total"]) == (500, 95, 595), f"ND folio {nd2['folio']}: 500 + IVA = {nd2['monto_total']}")
+check("<CodRef>3</CodRef>" in obtener_dte(nd2["dte_id"])["xml_firmado"], "la ND de cobro referencia con código 3 (corrige montos)")
+nd3 = sim.nota_debito(x["dte_id"], None, 1000, "Material del taller")
+check(nd3["monto_exento"] == 1000 and nd3["iva"] == 0, "ND sobre exenta: sin IVA")
+
 print("[6] Estado y aislamiento")
 e = sim.estado()
-check(e["documentos"] == 5 and e["folios"]["39"]["siguiente"] == 3 and e["folios"]["61"]["siguiente"] == 2, f"5 docs; boleta sigue en 3, NC en 2")
+check(e["documentos"] == 8 and e["folios"]["39"]["siguiente"] == 3 and e["folios"]["61"]["siguiente"] == 2 and e["folios"]["56"]["siguiente"] == 4, f"8 docs; boleta sigue en 3, NC en 2, ND en 4")
 check(all(d["ambiente"] == "simulacion" for d in listar_dtes(rut_emisor="77777777-7")), "todos los docs demo marcados simulacion")
 try:
     sim.ver(10**9); check(False, "ver de id ajeno")
@@ -67,6 +90,6 @@ except Exception as ex:
 
 print("[7] Reiniciar deja todo limpio")
 r = sim.reiniciar()
-check(r["documentos_borrados"] == 5 and sim.estado()["documentos"] == 0, f"borrados {r['documentos_borrados']}, quedan 0")
+check(r["documentos_borrados"] == 8 and sim.estado()["documentos"] == 0, f"borrados {r['documentos_borrados']}, quedan 0")
 check(not list((Path("storage") / "simulacion" / "pdfs").glob("*.pdf")), "sin PDFs demo en disco")
 print(f"\nTodo OK ({ok} checks)")

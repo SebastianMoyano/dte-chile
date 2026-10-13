@@ -107,6 +107,9 @@ func (a *Almacen) Migrar() ([]int, error) {
 var columnasGarantizadas = []struct{ tabla, columna, ddl string }{
 	{"negocios", "estado", "TEXT"}, {"negocios", "estado_etiqueta", "TEXT"}, {"negocios", "usa_sw_propio", "INTEGER"},
 	{"negocios", "estado_ts", "TEXT"}, {"negocios", "software_registrado", "TEXT"},
+	// Datos del emisor por negocio (core/negocios.py::_COLS_DATOS, 2026-10-13).
+	{"negocios", "giro", "TEXT"}, {"negocios", "codigo_actividad", "INTEGER"}, {"negocios", "direccion", "TEXT"},
+	{"negocios", "comuna", "TEXT"}, {"negocios", "ciudad", "TEXT"}, {"negocios", "email", "TEXT"}, {"negocios", "telefono", "TEXT"},
 }
 
 func (a *Almacen) asegurarColumnas() error {

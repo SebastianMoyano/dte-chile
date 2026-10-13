@@ -659,20 +659,89 @@ impl Cliente {
         fecha: &str,
         verificar_monto: bool,
     ) -> Resultado<Payload> {
+        self.preparar_nota_anulacion(
+            TIPO_NOTA_CREDITO, dhdr, tipo_ref, folio_ref, fecha_ref, receptor, items, fecha, verificar_monto,
+        )
+    }
+
+    /// `preparar_nd_anulacion`: nota de DÉBITO (56) que deja sin efecto la nota de crédito dhdr
+    /// (código 1): el mismo formulario pre-construido por el portal, con TIPO_NOTA=56 (capturado
+    /// 2026-10-02 al emitir a mano la ND 1 que anuló la NC 56). El documento que esa NC anulaba
+    /// vuelve a valer. Mismo guardarraíl del total registrado. NO gasta folio; la cadena 56 no
+    /// está en `cadenas_verificadas`, así que `emitir` exige `aceptar_riesgo_folio`.
+    #[allow(clippy::too_many_arguments)]
+    pub fn preparar_nd_anulacion(
+        &mut self,
+        dhdr: &str,
+        folio_ref: i64,
+        fecha_ref: &str,
+        receptor: &Receptor,
+        items: &[Item],
+        fecha: &str,
+        verificar_monto: bool,
+    ) -> Resultado<Payload> {
+        self.preparar_nota_anulacion(
+            TIPO_NOTA_DEBITO, dhdr, TIPO_NOTA_CREDITO, folio_ref, fecha_ref, receptor, items, fecha, verificar_monto,
+        )
+    }
+
+    /// Lo común a la NC (61) y la ND (56) de anulación:
+    /// mipeDisplayPreView?EHDR_CODIGO&TIPO_NOTA=<tipo_nota>.
+    #[allow(clippy::too_many_arguments)]
+    fn preparar_nota_anulacion(
+        &mut self,
+        tipo_nota: i32,
+        dhdr: &str,
+        tipo_ref: i32,
+        folio_ref: i64,
+        fecha_ref: &str,
+        receptor: &Receptor,
+        items: &[Item],
+        fecha: &str,
+        verificar_monto: bool,
+    ) -> Resultado<Payload> {
         self.requiere_empresa()?;
         receptor.validar()?;
+        let sigla = sigla_nota(tipo_nota);
         if verificar_monto {
             let total_ref = self.total_registrado(dhdr, tipo_ref, &receptor.rut)?;
             let total_nc = suma_items(items);
             if total_nc != total_ref {
                 return Err(Error::Validacion(format!(
-                    "la NC sumaría {total_nc} pero el documento {tipo_ref}/{folio_ref} está registrado por {total_ref}: el SII la aceptaría con reparo REF-2-780 y el abono quedaría mal; usa el total registrado"
+                    "la {sigla} sumaría {total_nc} pero el documento {tipo_ref}/{folio_ref} está registrado por {total_ref}: el SII la aceptaría con reparo REF-2-780 y el abono quedaría mal; usa el total registrado"
                 )));
             }
         }
+        let vista = self.vista_nota(tipo_nota, dhdr)?;
+        let refe = Referencia {
+            tipo: tipo_ref,
+            folio: folio_ref,
+            fecha: fecha_ref.into(),
+            codigo: CODIGO_REF_ANULA.into(),
+            razon: RAZON_REF_ANULA.into(),
+        };
+        let mut p = armar_payload(
+            &parsear_form_ordenado(&vista),
+            tipo_nota,
+            receptor,
+            items,
+            fecha,
+            "",
+            &[refe],
+            &["ES_BORR", "EFXP_FMA_PAGO", "INDICA_PRIMERA_EJECUCION"],
+        )?;
+        // El navegador firma desde la página de revisión: usarla como Referer en GenXMLFirma.
+        p.referer_emision =
+            format!("{BASE}/mipeDisplayPreView.cgi?EHDR_CODIGO={dhdr}&TIPO_NOTA={tipo_nota}");
+        Ok(p)
+    }
+
+    /// La página de la nota pre-construida por el portal (`mipeDisplayPreView?EHDR_CODIGO&TIPO_NOTA`).
+    fn vista_nota(&mut self, tipo_nota: i32, dhdr: &str) -> Resultado<String> {
+        let sigla = sigla_nota(tipo_nota);
         let params = [
             Par::new("EHDR_CODIGO", dhdr),
-            Par::new("TIPO_NOTA", TIPO_NOTA_CREDITO.to_string()),
+            Par::new("TIPO_NOTA", tipo_nota.to_string()),
         ];
         let r = self.req(
             "GET",
@@ -685,35 +754,14 @@ impl Cliente {
             },
         )?;
         let vista = r.texto();
-        self.traza("nc_anulacion.html", &vista);
+        self.traza(&format!("{}_anulacion.html", sigla.to_lowercase()), &vista);
         if r.rechazado() || r.cuerpo.len() < 1000 {
             return Err(Error::Rechazo(format!(
-                "el portal no pre-construyó la NC de anulación (http {}, dhdr {dhdr})",
+                "el portal no pre-construyó la {sigla} de anulación (http {}, dhdr {dhdr})",
                 r.status
             )));
         }
-        let refe = Referencia {
-            tipo: tipo_ref,
-            folio: folio_ref,
-            fecha: fecha_ref.into(),
-            codigo: CODIGO_REF_ANULA.into(),
-            razon: RAZON_REF_ANULA.into(),
-        };
-        let mut p = armar_payload(
-            &parsear_form_ordenado(&vista),
-            TIPO_NOTA_CREDITO,
-            receptor,
-            items,
-            fecha,
-            "",
-            &[refe],
-            &["ES_BORR", "EFXP_FMA_PAGO", "INDICA_PRIMERA_EJECUCION"],
-        )?;
-        // El navegador firma desde la página de revisión: usarla como Referer en GenXMLFirma.
-        p.referer_emision = format!(
-            "{BASE}/mipeDisplayPreView.cgi?EHDR_CODIGO={dhdr}&TIPO_NOTA={TIPO_NOTA_CREDITO}"
-        );
-        Ok(p)
+        Ok(vista)
     }
 
     /// `preparar_nc_correccion_montos`: NC (61) código 3 sobre el documento dhdr, calcada del
@@ -1102,29 +1150,40 @@ impl Cliente {
         fecha: &str,
         verificar_monto: bool,
     ) -> Resultado<(Payload, Receptor, Vec<Item>)> {
+        self.preparar_nota_anulacion_desde_portal(
+            TIPO_NOTA_CREDITO, dhdr, tipo_ref, folio_ref, fecha_ref, fecha, verificar_monto,
+        )
+    }
+
+    /// `preparar_nd_anulacion` tomando receptor e ítems del formulario que el portal
+    /// pre-construye para dejar sin efecto la NC dhdr (lo que usa la app).
+    pub fn preparar_nd_anulacion_desde_portal(
+        &mut self,
+        dhdr: &str,
+        folio_ref: i64,
+        fecha_ref: &str,
+        fecha: &str,
+        verificar_monto: bool,
+    ) -> Resultado<(Payload, Receptor, Vec<Item>)> {
+        self.preparar_nota_anulacion_desde_portal(
+            TIPO_NOTA_DEBITO, dhdr, TIPO_NOTA_CREDITO, folio_ref, fecha_ref, fecha, verificar_monto,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn preparar_nota_anulacion_desde_portal(
+        &mut self,
+        tipo_nota: i32,
+        dhdr: &str,
+        tipo_ref: i32,
+        folio_ref: i64,
+        fecha_ref: &str,
+        fecha: &str,
+        verificar_monto: bool,
+    ) -> Resultado<(Payload, Receptor, Vec<Item>)> {
         self.requiere_empresa()?;
-        let params = [
-            Par::new("EHDR_CODIGO", dhdr),
-            Par::new("TIPO_NOTA", TIPO_NOTA_CREDITO.to_string()),
-        ];
-        let r = self.req(
-            "GET",
-            &format!("{BASE}/mipeDisplayPreView.cgi"),
-            Opciones {
-                navegacion: true,
-                params: Some(&params),
-                referer: &format!("{BASE}/mipeGesDocEmi.cgi?CODIGO={dhdr}"),
-                ..Default::default()
-            },
-        )?;
-        let vista = r.texto();
-        self.traza("nc_anulacion.html", &vista);
-        if r.rechazado() || r.cuerpo.len() < 1000 {
-            return Err(Error::Rechazo(format!(
-                "el portal no pre-construyó la NC de anulación (http {}, dhdr {dhdr})",
-                r.status
-            )));
-        }
+        let sigla = sigla_nota(tipo_nota);
+        let vista = self.vista_nota(tipo_nota, dhdr)?;
         let form = parsear_form_ordenado(&vista);
         let (receptor, items) = receptor_e_items_desde_form(&form);
         if let Err(e) = receptor.validar() {
@@ -1134,9 +1193,9 @@ impl Cliente {
             )));
         }
         if items.is_empty() {
-            return Err(Error::Sii(
-                "el formulario de la NC no trae líneas del documento".into(),
-            ));
+            return Err(Error::Sii(format!(
+                "el formulario de la {sigla} no trae líneas del documento"
+            )));
         }
         if verificar_monto {
             let total_ref = self.total_registrado(dhdr, tipo_ref, &receptor.rut)?;
@@ -1154,7 +1213,7 @@ impl Cliente {
         };
         let mut p = armar_payload(
             &form,
-            TIPO_NOTA_CREDITO,
+            tipo_nota,
             &receptor,
             &items,
             fecha,
@@ -1162,10 +1221,18 @@ impl Cliente {
             &[refe],
             &["ES_BORR", "EFXP_FMA_PAGO", "INDICA_PRIMERA_EJECUCION"],
         )?;
-        p.referer_emision = format!(
-            "{BASE}/mipeDisplayPreView.cgi?EHDR_CODIGO={dhdr}&TIPO_NOTA={TIPO_NOTA_CREDITO}"
-        );
+        p.referer_emision =
+            format!("{BASE}/mipeDisplayPreView.cgi?EHDR_CODIGO={dhdr}&TIPO_NOTA={tipo_nota}");
         Ok((p, receptor, items))
+    }
+}
+
+/// "NC" o "ND", para mensajes y trazas.
+fn sigla_nota(tipo_nota: i32) -> &'static str {
+    if tipo_nota == TIPO_NOTA_DEBITO {
+        "ND"
+    } else {
+        "NC"
     }
 }
 

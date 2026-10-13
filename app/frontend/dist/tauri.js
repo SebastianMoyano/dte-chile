@@ -25,6 +25,8 @@
     PedirFolios: (negocioId, tipo, cantidad) => inv("pedir_folios", { negocioId: Number(negocioId), tipo: Number(tipo), cantidad: Number(cantidad) }),
     SIIEngineNotaCredito: (rutEmpresa, rutUsuario, trib, cert, recordar, dteId, emitir) =>
       inv("sii_engine_nota_credito", { rutEmpresa, rutUsuario: s(rutUsuario), claveTributaria: s(trib), claveCertificado: s(cert), recordar: !!recordar, dteId: Number(dteId), emitir: !!emitir }),
+    SIIEngineNotaDebito: (rutEmpresa, rutUsuario, trib, cert, recordar, dteId, emitir) =>
+      inv("sii_engine_nota_debito", { rutEmpresa, rutUsuario: s(rutUsuario), claveTributaria: s(trib), claveCertificado: s(cert), recordar: !!recordar, dteId: Number(dteId), emitir: !!emitir }),
   } } };
   window.runtime = { EventsOn: (nombre, cb) => { T.event.listen(nombre, (ev) => cb(ev.payload)); } };
   document.documentElement.classList.add("tauri");

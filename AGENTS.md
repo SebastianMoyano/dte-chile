@@ -85,8 +85,8 @@ Login: `POST /api/v1/auth/login` con `{"username": "...", "password": "..."}`
 
 ```env
 SII_AMBIENTE=certificacion  # o "produccion"
-EMPRESA_RUT=76543210-5
-EMPRESA_RAZON_SOCIAL=Mi Empresa SpA
+EMPRESA_RUT=76543210-5            # herencia: desde 2026-10-13 los datos del emisor van por negocio
+EMPRESA_RAZON_SOCIAL=Mi Empresa SpA   # (PUT /api/v1/keystore/negocios/{id}, pantalla "Mi empresa")
 JWT_SECRET_KEY=<generar con: openssl rand -hex 32>
 ```
 

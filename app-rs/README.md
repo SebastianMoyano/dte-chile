@@ -1,7 +1,7 @@
 # `app-rs/`: la app de escritorio en Tauri, con el motor Rust adentro (fase 8, bloque 5)
 
 La misma interfaz que la app Wails (`app/frontend/dist` es la interfaz **compartida**: HTML/CSS/JS sin framework), el mismo
-contrato con ella (los 15 bindings `window.go.main.App.*`, definidos aquí por
+contrato con ella (los 16 bindings `window.go.main.App.*`, definidos aquí por
 `app/frontend/dist/tauri.js` sobre los comandos de `src/app.rs`) y el motor `dtechile::servidor`
 (`nucleo-rs/`) corriendo **en el mismo proceso**: puerto libre en 127.0.0.1, clave efímera
 (`APP_SHELL_KEY`) que la interfaz nunca ve, datos en el repo (desarrollo) o en la carpeta del

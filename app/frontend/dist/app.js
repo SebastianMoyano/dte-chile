@@ -89,7 +89,8 @@ async function api(metodo, ruta, cuerpo) {
 }
 // Diálogo propio (en vez del confirm() del sistema): título, cuerpo en HTML y botones con su
 // valor. Resuelve con el valor del botón apretado; Esc o "Volver" resuelven false.
-function dialogo({ titulo, cuerpo, botones, ancho = 520 }) {
+// `leer`: si el cuerpo trae campos, devuelve lo escrito al confirmar (se llama antes de cerrar).
+function dialogo({ titulo, cuerpo, botones, ancho = 520, leer }) {
   if (window.Tour && !window.Tour.enDemo()) window.Tour.cerrar();   // un diálogo es un momento de atención: ninguna pista encima (salvo que lo abra la propia demo)
   return new Promise((resolve) => {
     const m = document.createElement("div");
@@ -100,8 +101,8 @@ function dialogo({ titulo, cuerpo, botones, ancho = 520 }) {
     const tecla = (ev) => { if (ev.key === "Escape") { ev.preventDefault(); fin(false); } };
     document.addEventListener("keydown", tecla);
     document.body.appendChild(m);
-    m.querySelectorAll("button[data-i]").forEach((b) => (b.onclick = () => fin(botones[Number(b.dataset.i)].valor)));
-    setTimeout(() => m.querySelector("button[data-i]:last-child")?.focus(), 30);
+    m.querySelectorAll("button[data-i]").forEach((b) => (b.onclick = () => { const v = botones[Number(b.dataset.i)].valor; fin(v && leer ? leer() : v); }));
+    setTimeout(() => (m.querySelector("input") || m.querySelector("button[data-i]:last-child"))?.focus(), 30);
   });
 }
 // La revisión antes de emitir: quién, a quién, qué, los tres números y en qué mundo. Es la
@@ -430,25 +431,31 @@ vistas.cobrar = async (el) => {
                            : { rut: "66666666-6", razon_social: "CONSUMIDOR FINAL" },
         items: [{ numero_linea: 1, nombre: que, cantidad: 1, precio_unitario: tipo === 39 ? total : neto, exento: ex }], forma_pago: 1 };
       const r = JSON.parse(await window.go.main.App.EmitirNucleo(e.id, JSON.stringify(doc)));
-      aviso(`Listo: ${TIPOS[r.tipo_dte]} folio ${r.folio}, ${clp(r.monto_total)} (núcleo Go).`, 6000);
+      aviso(`Listo: ${TIPOS[r.tipo_dte]} folio ${r.folio}, ${clp(r.monto_total)}.`, 6000);
       ir(`ver?id=${r.dte_id}`);
-    } catch (err) { $("c_aviso").innerHTML += `<div class="banner rojo">${esc(err.message)}</div>`; }
+    } catch (err) { $("c_aviso").innerHTML += `<div class="banner rojo">${esc(err.message)}${err.ir ? ` <span class="lnk" onclick="ir('${err.ir}')">Ir a Mi empresa</span>` : ""}</div>`; }
     finally { $("c_btn").disabled = false; }
   };
 };
 
-// Datos del emisor real: el motor guarda la empresa configurada en .env (EMPRESA_*). Hasta que
-// cada negocio tenga sus datos completos en BD, se usa esa y se exige que el RUT coincida.
+// Datos del emisor real (la carátula de cada documento): los guarda cada empresa en
+// "Mi empresa" (PUT keystore/negocios/{id}). Si todavía no los tiene, se heredan los que el
+// motor tenga en su configuración (EMPRESA_*), solo si son de esta misma empresa.
+const CAMPOS_EMISOR = { razon_social: "nombre o razón social", giro: "giro", codigo_actividad: "código de actividad", direccion: "dirección", comuna: "comuna", ciudad: "ciudad" };
+const datosEmisor = (n) => ({ razon_social: n.razon_social, giro: n.giro, codigo_actividad: n.codigo_actividad, direccion: n.direccion, comuna: n.comuna, ciudad: n.ciudad, email: n.email, telefono: n.telefono });
+const emisorCompleto = (n) => Object.keys(CAMPOS_EMISOR).every((k) => n && n[k]);
 async function emisorDe(rut) {
-  const neg = negocios.find((n) => n.rut === rut);
-  const e = await api("GET", "/api/v1/dte/emisor");
-  if (!e.configurada) throw new Error("A esta empresa le faltan sus datos (razón social, giro, dirección) para emitir con motor propio. En esta versión se completan en la configuración del motor: Ajustes → Detalles técnicos dice dónde está.");
-  const faltan = ["giro", "codigo_actividad", "direccion", "comuna", "ciudad"].filter((k) => !e[k]);
-  const nombres = { giro: "giro", codigo_actividad: "código de actividad", direccion: "dirección", comuna: "comuna", ciudad: "ciudad" };
-  if (faltan.length) throw new Error(`A esta empresa le falta: ${faltan.map((k) => nombres[k] || k).join(", ")}. Sin eso el SII rechaza el documento. En esta versión se completa en la configuración del motor (Ajustes → Detalles técnicos dice dónde está).`);
-  if (e.rut !== rut) throw new Error(`En esta versión solo puede emitir con motor propio la empresa configurada en el motor (${e.rut}), y elegiste ${rut}. Las demás pueden usar el camino del sistema gratuito del SII.`);
-  return { rut, razon_social: e.razon_social || neg?.razon_social || "", giro: e.giro, codigo_actividad: e.codigo_actividad,
-           direccion: e.direccion, comuna: e.comuna, ciudad: e.ciudad, email: e.email, telefono: e.telefono };
+  const neg = negocios.find((n) => n.rut === rut) || { rut };
+  let e = datosEmisor(neg);
+  if (!emisorCompleto(e)) {
+    try { const m = await api("GET", "/api/v1/dte/emisor"); if (m.configurada && m.rut === rut) e = { ...e, ...Object.fromEntries(Object.entries(datosEmisor(m)).filter(([, v]) => v)) }; } catch {}
+  }
+  const faltan = Object.keys(CAMPOS_EMISOR).filter((k) => !e[k]);
+  if (faltan.length) {
+    const err = new Error(`A ${neg.razon_social || rut} le falta: ${faltan.map((k) => CAMPOS_EMISOR[k]).join(", ")}. Van impresos en cada documento y sin ellos el SII lo rechaza. Se completan en Mi empresa, en un minuto.`);
+    err.ir = "empresa"; throw err;
+  }
+  return { rut, ...e };
 }
 
 // ---------- ver (visor de PDF embebido) ----------
@@ -474,17 +481,89 @@ vistas.ver = async (el) => {
     <div class="row" style="margin-top:12px">
       ${b64 ? `<button class="sec" onclick="bajar(${d.id},'pdf',${d.tipo_dte},${d.folio})">Guardar PDF</button>` : ""}
       ${d.tiene_xml ? `<button class="sec" onclick="bajar(${d.id},'xml',${d.tipo_dte},${d.folio})">Guardar XML</button>` : ""}
-      ${sim && ![56, 61].includes(d.tipo_dte) && d.estado !== "anulado_simulado" ? `<button class="peligro" onclick="anularDemo(${d.id})">Anular con nota de crédito</button>` : ""}
+      ${sim && ![56, 61].includes(d.tipo_dte) && d.estado !== "anulado_simulado" ? `<button class="sec" onclick="cobroDemo(${d.id}, ${d.tipo_dte}, ${d.folio})">Agregar un cobro que faltó</button><button class="peligro" onclick="anularDemo(${d.id})">Anular con nota de crédito</button>` : ""}
+      ${sim && d.tipo_dte === 61 && d.estado !== "anulado_simulado" ? `<button class="peligro" onclick="anularNCDemo(${d.id}, ${d.folio})">Dejar sin efecto esta nota de crédito</button>` : ""}
+      ${!sim && d.canal === "motor" && ![56, 61].includes(d.tipo_dte) ? `<button class="sec" onclick="cobroPropio(${d.id})">Agregar un cobro que faltó</button><button class="peligro" onclick="anularPropio(${d.id})">Anular con nota de crédito</button>` : ""}
+      ${!sim && d.canal === "motor" && d.tipo_dte === 61 ? `<button class="peligro" onclick="anularNCPropio(${d.id})">Dejar sin efecto esta nota de crédito</button>` : ""}
       <button class="sec" onclick="ir('documentos')">Mis documentos</button>
       <button onclick="ir('cobrar')">Emitir otro</button>
     </div>`;
 };
 window.anularDemo = async (id) => {
-  const ok = await dialogo({ titulo: "Anular con nota de crédito", cuerpo: `<p class="mut">Se emite una nota de crédito por el total de este documento. El original no se borra: queda anulado.</p>`,
-    botones: [{ texto: "Volver", clase: "sec", valor: false }, { texto: "Anular este documento", clase: "peligro", valor: true }] });
-  if (!ok) return;
+  const d = await docDe(id); if (!d) return;
+  if (!(await dialogoAnular(d.tipo_dte, d.folio, d.monto_total, false))) return;
   try { const nc = await api("POST", `/api/v1/simulacion/anular/${id}`, { motivo: "Anula documento" }); aviso(`Nota de crédito N° ${nc.folio} emitida.`); ir(`ver?id=${nc.dte_id}`); }
   catch (e) { aviso(e.message, 6000); }
+};
+// ---------- notas: la de crédito resta, la de débito suma ----------
+// Los mismos diálogos para la práctica y para el motor propio; cada uno explica antes de emitir.
+const dialogoCobro = (tipo, folio, real) => dialogo({ titulo: "Agregar un cobro que faltó", cuerpo: `<p class="mut">Si en ${esc(TIPOS[tipo] || "el documento")} N° ${folio} cobraste de menos, no se corrige el original: se emite una <b>nota de débito</b>, que suma la diferencia y queda enganchada a ese documento.</p>
+    <label>¿Cuánto faltó cobrar?${[34, 41].includes(tipo) ? "" : " (sin IVA, se agrega solo)"}</label><input id="nd_monto" inputmode="numeric" placeholder="Ej.: 5000">
+    <label>¿Qué es?</label><input id="nd_que" placeholder="Ej.: Entrega a domicilio">${real ? `<div class="banner rojo" style="margin-top:12px"><b>Es un documento real</b>: gasta un folio de nota de débito y queda registrado.</div>` : ""}`,
+  botones: [{ texto: "Volver", clase: "sec", valor: false }, { texto: "Emitir la nota de débito", valor: true }],
+  leer: () => ({ monto: Number($("nd_monto").value.replace(/\D/g, "")), nombre: $("nd_que").value.trim() }) });
+const dialogoSinEfecto = (folio, real) => dialogo({ titulo: "Dejar sin efecto una nota de crédito", cuerpo: `<p class="mut">Una nota de crédito tampoco se borra. Si la N° ${folio} salió mal, se emite una <b>nota de débito</b> por el mismo monto: las dos se anulan entre sí y el documento que esa nota había anulado <b>vuelve a valer</b>.</p>${real ? `<div class="banner rojo"><b>Es un documento real</b>: gasta un folio de nota de débito y queda registrado.</div>` : ""}`,
+  botones: [{ texto: "Volver", clase: "sec", valor: false }, { texto: "Emitir la nota de débito", clase: "peligro", valor: true }] });
+const dialogoAnular = (tipo, folio, total, real) => dialogo({ titulo: "Anular con nota de crédito", cuerpo: `<p class="mut">Se emite una nota de crédito por el total de ${esc(TIPOS[tipo] || "el documento")} N° ${folio} (${clp(total)}). El original no se borra: queda compensado en cero.</p>${real ? `<div class="banner rojo"><b>Es un documento real</b>: gasta un folio de nota de crédito y queda registrado.</div>` : ""}`,
+  botones: [{ texto: "Volver", clase: "sec", valor: false }, { texto: "Anular este documento", clase: "peligro", valor: true }] });
+
+// práctica
+window.cobroDemo = async (id, tipo, folio) => {
+  const ok = await dialogoCobro(tipo, folio, false);
+  if (!ok) return;
+  if (!ok.monto) return aviso("Escribe cuánto faltó cobrar.");
+  try { const nd = await api("POST", `/api/v1/simulacion/nota-debito/${id}`, { monto: ok.monto, nombre: ok.nombre || undefined, motivo: "Corrige montos" }); aviso(`Nota de débito N° ${nd.folio} emitida por ${clp(nd.monto_total)}.`, 6000); ir(`ver?id=${nd.dte_id}`); }
+  catch (e) { aviso(e.message, 6000); }
+};
+window.anularNCDemo = async (id, folio) => {
+  if (!(await dialogoSinEfecto(folio, false))) return;
+  try { const nd = await api("POST", `/api/v1/simulacion/nota-debito/${id}`, { motivo: "Anula nota de crédito" }); aviso(`Nota de débito N° ${nd.folio} emitida. La nota de crédito quedó sin efecto.`, 6000); ir(`ver?id=${nd.dte_id}`); }
+  catch (e) { aviso(e.message, 6000); }
+};
+
+// motor propio: el núcleo firma la nota con los folios (CAF) de la empresa y la guarda junto a
+// las demás. El original no cambia de estado: la nota queda enganchada a él por la referencia.
+const docDe = async (id) => (await api("GET", "/api/v1/dte/documentos?limite=200")).documentos.find((x) => String(x.id) === String(id));
+const lineasAnula = (d) => {
+  const n = (TIPOS[d.tipo_dte] || "documento").toLowerCase(), l = [];
+  if (d.monto_neto) l.push({ nombre: `Anula ${n} folio ${d.folio}`, precio_unitario: d.monto_neto });
+  if (d.monto_exento) l.push({ nombre: `Anula ${n} folio ${d.folio} (exento)`, precio_unitario: d.monto_exento, exento: true });
+  return l;
+};
+async function notaPropia(d, tipoNota, codigo, motivo, items) {
+  const e = empresa();
+  const doc = { tipo_dte: tipoNota, folio: 0, fecha_emision: new Date().toISOString().slice(0, 10), emisor: await emisorDe(e.rut),
+    receptor: { rut: d.rut_receptor, razon_social: d.razon_social_receptor || "CONSUMIDOR FINAL" },
+    items: items.map((it, i) => ({ numero_linea: i + 1, nombre: it.nombre.slice(0, 80), cantidad: 1, precio_unitario: it.precio_unitario, exento: !!it.exento })),
+    referencias: [{ numero_linea: 1, tipo_doc_ref: d.tipo_dte, folio_ref: d.folio, fecha_doc_ref: String(d.fecha_emision).slice(0, 10), codigo_ref: codigo, razon_ref: motivo.slice(0, 90) }], forma_pago: 1 };
+  try { return JSON.parse(await window.go.main.App.EmitirNucleo(e.id, JSON.stringify(doc))); }
+  catch (err) {
+    if (/CAF activo|No se encontró un CAF|sin folios/i.test(String(err.message || err))) { const e2 = new Error(`A ${e.razon_social || e.rut} le faltan folios de ${TIPOS[tipoNota].toLowerCase()}: sin ellos no hay número para la nota. Se piden en Mi empresa, paso 3, de a 5.`); e2.ir = "empresa"; throw e2; }
+    throw err;
+  }
+}
+async function errorNota(err) {
+  if (!err.ir) return aviso(err.message || String(err), 7000);
+  const ok = await dialogo({ titulo: "Falta algo", cuerpo: `<div class="banner rojo">${esc(err.message)}</div>`, botones: [{ texto: "Cerrar", clase: "sec", valor: false }, { texto: "Ir a Mi empresa", valor: true }] });
+  if (ok) ir(err.ir);
+}
+window.anularPropio = async (id) => {
+  const d = await docDe(id); if (!d) return;
+  if (!(await dialogoAnular(d.tipo_dte, d.folio, d.monto_total, true))) return;
+  try { const r = await notaPropia(d, 61, 1, "Anula documento", lineasAnula(d)); aviso(`Nota de crédito N° ${r.folio} emitida.`, 6000); ir(`ver?id=${r.dte_id}`); } catch (e) { errorNota(e); }
+};
+window.cobroPropio = async (id) => {
+  const d = await docDe(id); if (!d) return;
+  const ok = await dialogoCobro(d.tipo_dte, d.folio, true);
+  if (!ok) return;
+  if (!ok.monto) return aviso("Escribe cuánto faltó cobrar.");
+  const exento = [34, 41].includes(d.tipo_dte) || (!d.monto_neto && !!d.monto_exento);
+  try { const r = await notaPropia(d, 56, 3, "Corrige montos", [{ nombre: ok.nombre || `Cobro que faltó en ${(TIPOS[d.tipo_dte] || "documento").toLowerCase()} folio ${d.folio}`, precio_unitario: ok.monto, exento }]); aviso(`Nota de débito N° ${r.folio} emitida por ${clp(r.monto_total)}.`, 6000); ir(`ver?id=${r.dte_id}`); } catch (e) { errorNota(e); }
+};
+window.anularNCPropio = async (id) => {
+  const d = await docDe(id); if (!d) return;
+  if (!(await dialogoSinEfecto(d.folio, true))) return;
+  try { const r = await notaPropia(d, 56, 1, "Anula nota de crédito", lineasAnula(d)); aviso(`Nota de débito N° ${r.folio} emitida. La nota de crédito quedó sin efecto.`, 6000); ir(`ver?id=${r.dte_id}`); } catch (e) { errorNota(e); }
 };
 
 // ---------- mi mes ----------
@@ -508,7 +587,7 @@ function pintarMes(el, e) {
     const neto = sum("monto_neto") + sum("monto_exento"), iva = sum("iva"), total = sum("monto_total");
     $("m_res").innerHTML = `
       <div class="totales"><div><span>Vendido (sin IVA)</span><b>${clp(neto)}</b></div><div><span>IVA cobrado</span><b>${clp(iva)}</b></div><div><span>Total con IVA</span><b>${clp(total)}</b></div></div>
-      <p class="mut">${docs.length} documento(s) en ${mesLargo(p)}. Las notas de crédito restan. El IVA de tus <b>compras</b> con factura (crédito) se descuenta de este débito en el F29; eso lo trae el SII, no esta lista.</p>
+      <p class="mut">${docs.length} documento(s) en ${mesLargo(p)}. Las notas de crédito restan; las de débito suman. El IVA de tus <b>compras</b> con factura (crédito) se descuenta de este débito en el F29; eso lo trae el SII, no esta lista.</p>
       <div class="banner verde">Aunque no haya nada, el F29 se presenta igual: <b>sin movimiento</b>.</div>
       ${docs.length ? tabla(docs) : ""}`;
   };
@@ -548,6 +627,40 @@ window.anularSII = async (id) => {
   } catch (err) { $("cor_aviso").innerHTML = `<div class="banner rojo">${esc(err.message)}</div>`; }
 };
 
+// Dejar sin efecto una nota de crédito del sistema del SII: el portal pre-construye la nota de
+// débito (misma cadena que la NC, TIPO_NOTA=56), el SII la valida en seco, y solo se emite
+// cuando la cadena esté verificada desde el motor.
+window.anularNCSII = async (id) => {
+  const e = empresa();
+  const fn = window.go?.main?.App?.SIIEngineNotaDebito;
+  if (!fn) return aviso("Esta versión del cascarón no trae el SII engine.");
+  const k = await pedirClaves(e.rut, true);
+  if (!k) return;
+  if (!k.certificado && !k.rut_usuario) return;
+  aviso("Pidiendo al SII la nota de débito (sin gastar folio)…", 6000);
+  try {
+    const v = JSON.parse(await fn(e.rut, k.rut_usuario, k.tributaria || "", k.certificado || "", !!k.recordar, id, false));
+    const lineas = (v.items || []).map((i) => `${esc(i.Nombre || i.nombre)} × ${i.Cantidad || i.cantidad} = ${clp((i.Precio || i.precio) * (i.Cantidad || i.cantidad))}`).join("; ");
+    $("cor_aviso").innerHTML = `<div class="banner"><b>El SII validó la nota de débito:</b> deja sin efecto la nota de crédito N° ${v.anula.folio} del ${esc(v.anula.fecha)} a <b>${esc(v.receptor.razon_social)}</b> por <b>${clp(v.monto_total)}</b> (${lineas}). El documento que esa nota anulaba vuelve a valer.
+      ${v.cadena_verificada
+        ? `<button id="cor_ok">Emitir la nota de débito en el SII (gasta un folio)</button>`
+        : `<p class="mut"><b>Todavía no se emite desde aquí:</b> esta cadena espera su primera corrida real verificada. Hasta entonces, desde la línea de comandos: <code>nucleo-siiengine nd-anular</code> (docs/MIPYME.md).</p>`}</div>`;
+    const b = $("cor_ok");
+    if (b) b.onclick = async () => {
+      const ok = await dialogo({ titulo: "Emitir la nota de débito en el SII", cuerpo: `<div class="rev"><span>Deja sin efecto</span><b>Nota de crédito N° ${v.anula.folio}</b></div><div class="rev"><span>Para</span><b>${esc(v.receptor.razon_social)}</b></div><div class="rev"><span>Total</span><b>${clp(v.monto_total)}</b></div>
+          <div class="banner rojo"><b>Esto es real.</b> Un folio gastado no vuelve.</div>`,
+        botones: [{ texto: "Volver", clase: "sec", valor: false }, { texto: `Emitir en el SII por ${clp(v.monto_total)}`, clase: "peligro", valor: true }] });
+      if (!ok) return;
+      b.disabled = true;
+      try {
+        const r = JSON.parse(await fn(e.rut, k.rut_usuario, k.tributaria || "", k.certificado || "", false, id, true));
+        aviso(`Nota de débito folio ${r.folio} emitida en el SII.`, 8000);
+        ir(`ver?id=${r.dte_id}`);
+      } catch (err) { $("cor_aviso").innerHTML += `<div class="banner rojo">${esc(err.message)}</div>`; b.disabled = false; }
+    };
+  } catch (err) { $("cor_aviso").innerHTML = `<div class="banner rojo">${esc(err.message)}</div>`; }
+};
+
 // ---------- documentos ----------
 vistas.documentos = async (el) => {
   await cargarNegocios();
@@ -563,7 +676,7 @@ vistas.documentos = async (el) => {
   $("doc_cuerpo").innerHTML = `
     <div class="card">${tabla(r.documentos)}</div>
     <div id="cor_aviso"></div>
-    <p class="mut">Un documento emitido no se borra. Si salió mal, pulsa <b>anular</b> en su fila: una nota de crédito por el total lo deja en cero.${e.demo ? "" : " Los del sistema del SII se anulan con el propio SII; los del motor propio, por ahora, desde el panel del motor."}</p>`;
+    <p class="mut">Un documento emitido no se borra. Si salió mal, pulsa <b>anular</b> en su fila: una nota de crédito por el total lo deja en cero. Si cobraste de menos, <b>cobrar más</b> emite una nota de débito que suma la diferencia. Y una nota de crédito que salió mal se deja <b>sin efecto</b> con una nota de débito.${e.demo ? "" : " Los documentos del sistema gratuito del SII se anulan con el propio SII (la app te muestra la nota antes); los del motor propio, con tus folios."}</p>`;
 };
 
 function tabla(docs) {
@@ -574,7 +687,9 @@ function tabla(docs) {
     ${docs.map((d) => `<tr><td>${esc(fechaCorta(d.fecha_emision))}</td><td>${esc(TIPOS[d.tipo_dte] || d.tipo_dte)}</td><td>${d.folio}</td>
       <td>${esc(d.razon_social_receptor || d.rut_receptor || "")}</td><td class="num">${clp(d.monto_total)}</td><td>${est(d.estado)}</td>
       <td>${d.tiene_pdf ? `<span class="lnk" onclick="ir('ver?id=${d.id}')">ver</span> <span class="lnk" onclick="bajar(${d.id},'pdf',${d.tipo_dte},${d.folio})">PDF</span>` : ""} ${d.tiene_xml ? `<span class="lnk" onclick="bajar(${d.id},'xml',${d.tipo_dte},${d.folio})">XML</span>` : ""}
-        ${![56, 61].includes(d.tipo_dte) && d.estado !== "anulado_simulado" ? `<span class="lnk no" data-tour="anular" onclick="${d.ambiente === "simulacion" ? `anularDemo(${d.id})` : d.canal === "mipyme" ? `anularSII(${d.id})` : `aviso('Anular documentos del motor propio desde la app: próxima versión.')`}">anular</span>` : ""}</td></tr>`).join("")}
+        ${![56, 61].includes(d.tipo_dte) && d.estado !== "anulado_simulado" && d.canal !== "mipyme" ? `<span class="lnk" onclick="${d.ambiente === "simulacion" ? `cobroDemo(${d.id}, ${d.tipo_dte}, ${d.folio})` : `cobroPropio(${d.id})`}">cobrar más</span> ` : ""}
+        ${![56, 61].includes(d.tipo_dte) && d.estado !== "anulado_simulado" ? `<span class="lnk no" data-tour="anular" onclick="${d.ambiente === "simulacion" ? `anularDemo(${d.id})` : d.canal === "mipyme" ? `anularSII(${d.id})` : `anularPropio(${d.id})`}">anular</span>` : ""}
+        ${d.tipo_dte === 61 && d.estado !== "anulado_simulado" ? `<span class="lnk no" onclick="${d.ambiente === "simulacion" ? `anularNCDemo(${d.id}, ${d.folio})` : d.canal === "mipyme" ? `anularNCSII(${d.id})` : `anularNCPropio(${d.id})`}">dejar sin efecto</span>` : ""}</td></tr>`).join("")}
     </table></div>`;
 }
 window.bajar = async (id, que, tipo, folio) => {
@@ -689,8 +804,8 @@ vistas.empresa = async (el) => {
 
     <div class="card" id="paso2" style="${cert ? "" : "opacity:.55"}">
       <h3>2. Tu empresa ${negocios.length ? '<span class="pill p-ok">' + negocios.length + " agregada" + (negocios.length > 1 ? "s" : "") + '</span>' : '<span class="pill p-warn">falta</span>'}</h3>
-      <p class="mut">Una empresa es quien emite: puede ser una sociedad (SpA, EIRL, Ltda.) o tú mismo como persona con inicio de actividades. El SII sabe qué empresas puede representar tu certificado; se lo preguntamos y eliges.</p>
-      ${negocios.length ? `<ul class="lista-check">${negocios.map((n) => `<li><span style="flex:1"><b>${esc(n.razon_social || n.rut)}</b> · ${esc(n.rut)} · ${n.ambiente === "produccion" ? '<span class="pill p-no">real</span>' : '<span class="pill p-warn">pruebas del SII</span>'}</span><span class="lnk no" onclick="quitarNegocio(${n.id})">quitar</span></li>`).join("")}</ul>` : ""}
+      <p class="mut">Una empresa es quien emite: puede ser una sociedad (SpA, EIRL, Ltda.) o tú mismo como persona con inicio de actividades. El SII sabe qué empresas puede representar tu certificado; se lo preguntamos y eliges. Después, completa sus <b>datos</b>: el giro y la dirección van impresos en cada documento.</p>
+      ${negocios.length ? `<ul class="lista-check">${negocios.map((n) => `<li><span style="flex:1"><b>${esc(n.razon_social || n.rut)}</b> · ${esc(n.rut)} · ${n.ambiente === "produccion" ? '<span class="pill p-no">real</span>' : '<span class="pill p-warn">pruebas del SII</span>'} ${emisorCompleto(n) ? '<span class="pill p-ok">datos completos</span>' : '<span class="pill p-warn">faltan datos</span>'}</span><span class="lnk" onclick="datosEmpresa(${n.id})">${emisorCompleto(n) ? "ver datos" : "completar datos"}</span> <span class="lnk no" onclick="quitarNegocio(${n.id})">quitar</span></li>`).join("")}</ul><div id="e_datos"></div>` : ""}
       ${cert ? `<button class="sec" id="e_buscar">Buscar mis empresas en el SII</button><div id="e_empresas"></div>` : `<p class="mut">Primero guarda tu certificado.</p>`}
     </div>
 
@@ -774,6 +889,49 @@ vistas.empresa = async (el) => {
         <p class="mut">"Todavía no" significa que el SII aún no te autorizó ese tipo de documento: se consigue certificándose (etapa 5 de la guía). "Bloqueado" es el freno del SII por folios pedidos y no usados; se destraba usándolos o pidiendo al SII que anule los que no vas a usar.</p>`;
     } catch (e) { $("f_tabla").innerHTML = `<div class="banner rojo">${esc(explicarSII(e.message || e))}</div>`; }
     ver.disabled = false;
+  };
+};
+// Los datos del emisor de una empresa, explicados uno por uno. Si la empresa aún no tiene
+// datos y el motor trae los suyos (EMPRESA_* del .env) para este mismo RUT, se precargan.
+window.datosEmpresa = async (id) => {
+  const n = negocios.find((x) => x.id === id); if (!n) return;
+  let d = datosEmisor(n), heredado = false;
+  if (!emisorCompleto(d)) {
+    try { const m = await api("GET", "/api/v1/dte/emisor"); if (m.configurada && m.rut === n.rut) { d = { ...Object.fromEntries(Object.entries(datosEmisor(m)).filter(([, v]) => v)), ...Object.fromEntries(Object.entries(d).filter(([, v]) => v)) }; heredado = true; } } catch {}
+  }
+  const v = (k) => esc(d[k] == null ? "" : String(d[k]));
+  $("e_datos").innerHTML = `
+    <div class="card" style="margin-top:12px">
+      <h3>Los datos de ${esc(n.razon_social || n.rut)}</h3>
+      <p class="mut">Esto va impreso arriba de cada boleta o factura, tal como está inscrito en el SII. Se escribe una vez.</p>
+      ${heredado ? `<div class="banner">Traje los datos que el motor tenía guardados para este RUT. Revísalos y guarda.</div>` : ""}
+      <label>Nombre o razón social</label><input id="d_razon" value="${v("razon_social")}" placeholder="Ej.: Café Ejemplo SpA">
+      <p class="mut">El nombre con que la empresa está inscrita en el SII. Si eres persona natural, tu nombre completo.</p>
+      <label>Giro</label><input id="d_giro" value="${v("giro")}" placeholder="Ej.: Venta de café y pastelería">
+      <p class="mut">A qué se dedica, en pocas palabras, como lo declaraste al SII.</p>
+      <label>Código de actividad</label><input id="d_act" inputmode="numeric" value="${v("codigo_actividad")}" placeholder="Ej.: 561000">
+      <p class="mut">Un número de 6 cifras que el SII le pone a cada rubro. Está en tu <b>Carpeta Tributaria</b> o en sii.cl → Mi SII → Datos del contribuyente. Si tienes varios, el principal.</p>
+      <div class="row"><div><label>Dirección</label><input id="d_dir" value="${v("direccion")}" placeholder="Ej.: Calle Ejemplo 123"></div>
+      <div><label>Comuna</label><input id="d_com" value="${v("comuna")}" placeholder="Ej.: Santiago"></div>
+      <div><label>Ciudad</label><input id="d_ciu" value="${v("ciudad")}" placeholder="Ej.: Santiago"></div></div>
+      <p class="mut">La dirección de la casa matriz, la que el SII tiene registrada.</p>
+      <div class="row"><div><label>Correo (opcional)</label><input id="d_mail" value="${v("email")}" placeholder="Ej.: hola@ejemplo.cl"></div>
+      <div><label>Teléfono (opcional)</label><input id="d_tel" value="${v("telefono")}" placeholder="Ej.: +56 9 1234 5678"></div></div>
+      <p class="mut">Se imprimen en el documento para que tus clientes te ubiquen.</p>
+      <div class="row" style="margin-top:12px"><button id="d_guardar">Guardar datos</button><button class="sec" onclick="$('e_datos').innerHTML=''">Cerrar</button></div><div id="d_aviso"></div>
+    </div>`;
+  $("e_datos").scrollIntoView({ behavior: "smooth", block: "start" });
+  $("d_guardar").onclick = async () => {
+    const act = $("d_act").value.trim();
+    if (act && !/^\d{6}$/.test(act)) { $("d_aviso").innerHTML = `<div class="banner rojo">El código de actividad son 6 cifras, sin puntos ni letras.</div>`; return; }
+    const cuerpo = { razon_social: $("d_razon").value, giro: $("d_giro").value, direccion: $("d_dir").value, comuna: $("d_com").value, ciudad: $("d_ciu").value, email: $("d_mail").value, telefono: $("d_tel").value };
+    if (act) cuerpo.codigo_actividad = Number(act);
+    $("d_guardar").disabled = true;
+    try {
+      const r = await api("PUT", `/api/v1/keystore/negocios/${id}`, cuerpo);
+      aviso(emisorCompleto(r) ? "Datos guardados. Esta empresa ya puede emitir con motor propio." : "Datos guardados. Todavía faltan algunos para emitir con motor propio.", 6000);
+      render();
+    } catch (e) { $("d_aviso").innerHTML = `<div class="banner rojo">${esc(e.message || e)}</div>`; $("d_guardar").disabled = false; }
   };
 };
 window.quitarCertificado = async (id) => {

@@ -12,6 +12,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"path/filepath"
 	"regexp"
@@ -40,6 +41,7 @@ func (s *Servidor) rutasKeystore(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/keystore/certificados", s.protegido(s.listarCertificados))
 	mux.HandleFunc("DELETE /api/v1/keystore/certificados/{id}", s.protegido(s.eliminarCertificado))
 	mux.HandleFunc("GET /api/v1/keystore/negocios", s.protegido(s.listarNegocios))
+	mux.HandleFunc("PUT /api/v1/keystore/negocios/{id}", s.protegido(s.actualizarNegocio))
 	mux.HandleFunc("DELETE /api/v1/keystore/negocios/{id}", s.protegido(s.eliminarNegocio))
 	mux.HandleFunc("GET /api/v1/keystore/negocios/{id}/contexto-emision", s.protegido(s.contextoEmision))
 	mux.HandleFunc("PUT /api/v1/keystore/claves-sii", s.protegido(s.guardarClavesSII))
@@ -235,10 +237,14 @@ type filaNegocio struct {
 	Estado, EstadoEtiqueta nullString
 	UsaSwPropio            sql.NullInt64
 	EstadoTS               nullString
+	// Datos del emisor (carátula del DTE), por negocio: PUT /negocios/{id}.
+	Giro, Direccion, Comuna, Ciudad, Email, Telefono nullString
+	CodigoActividad                                  sql.NullInt64
 }
 
 func (s *Servidor) negociosDe(cuenta int64) ([]filaNegocio, error) {
-	rows, err := s.db.Query(`SELECT id, rut, razon_social, cert_id, ambiente, creado, estado, estado_etiqueta, usa_sw_propio, estado_ts FROM negocios WHERE cuenta_id=? ORDER BY id`, cuenta)
+	rows, err := s.db.Query(`SELECT id, rut, razon_social, cert_id, ambiente, creado, estado, estado_etiqueta, usa_sw_propio, estado_ts,
+		giro, codigo_actividad, direccion, comuna, ciudad, email, telefono FROM negocios WHERE cuenta_id=? ORDER BY id`, cuenta)
 	if err != nil {
 		return nil, err
 	}
@@ -246,7 +252,8 @@ func (s *Servidor) negociosDe(cuenta int64) ([]filaNegocio, error) {
 	var out []filaNegocio
 	for rows.Next() {
 		var n filaNegocio
-		if err := rows.Scan(&n.ID, &n.Rut, &n.RazonSocial, &n.CertID, &n.Ambiente, &n.Creado, &n.Estado, &n.EstadoEtiqueta, &n.UsaSwPropio, &n.EstadoTS); err != nil {
+		if err := rows.Scan(&n.ID, &n.Rut, &n.RazonSocial, &n.CertID, &n.Ambiente, &n.Creado, &n.Estado, &n.EstadoEtiqueta, &n.UsaSwPropio, &n.EstadoTS,
+			&n.Giro, &n.CodigoActividad, &n.Direccion, &n.Comuna, &n.Ciudad, &n.Email, &n.Telefono); err != nil {
 			return nil, err
 		}
 		out = append(out, n)
@@ -262,8 +269,103 @@ func (n filaNegocio) mapa() map[string]any {
 	if n.UsaSwPropio.Valid {
 		usa = n.UsaSwPropio.Int64
 	}
+	var act any
+	if n.CodigoActividad.Valid {
+		act = n.CodigoActividad.Int64
+	}
 	return map[string]any{"id": n.ID, "rut": n.Rut, "razon_social": n.RazonSocial.valor(), "cert_id": cert, "ambiente": n.Ambiente.valor(), "creado": n.Creado,
-		"estado": n.Estado.valor(), "estado_etiqueta": n.EstadoEtiqueta.valor(), "usa_sw_propio": usa, "estado_ts": n.EstadoTS.valor()}
+		"estado": n.Estado.valor(), "estado_etiqueta": n.EstadoEtiqueta.valor(), "usa_sw_propio": usa, "estado_ts": n.EstadoTS.valor(),
+		"giro": n.Giro.valor(), "codigo_actividad": act, "direccion": n.Direccion.valor(), "comuna": n.Comuna.valor(), "ciudad": n.Ciudad.valor(),
+		"email": n.Email.valor(), "telefono": n.Telefono.valor()}
+}
+
+// camposDatosNegocio es api/routes/keystore.py::DatosNegocioIn: nombre → largo máximo (los del
+// XSD del SII); codigo_actividad es entero. El orden es el de los errores de pydantic.
+var camposDatosNegocio = []struct {
+	nombre string
+	largo  int
+}{{"razon_social", 100}, {"giro", 80}, {"codigo_actividad", 0}, {"direccion", 70}, {"comuna", 20}, {"ciudad", 20}, {"email", 80}, {"telefono", 20}}
+
+// actualizarNegocio es PUT /api/v1/keystore/negocios/{id} (DatosNegocioIn): los datos fijos
+// del emisor (giro, código de actividad, dirección…) que antes vivían en EMPRESA_* del .env,
+// ahora por negocio. Solo cambia los campos que vienen en el cuerpo; "" deja la columna en NULL.
+func (s *Servidor) actualizarNegocio(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		errorPath(w, r, "negocio_id")
+		return
+	}
+	var in map[string]any
+	if !leerJSON(w, r, &in) {
+		return
+	}
+	var errs []map[string]any
+	sets, args := []string{}, []any{}
+	for _, c := range camposDatosNegocio {
+		v, ok := in[c.nombre]
+		if !ok || v == nil {
+			continue
+		}
+		if c.nombre == "codigo_actividad" {
+			f, esNum := v.(float64)
+			switch {
+			case !esNum:
+				if _, esTexto := v.(string); esTexto {
+					errs = append(errs, map[string]any{"loc": []any{"body", c.nombre}, "msg": "Input should be a valid integer, unable to parse string as an integer", "type": "int_parsing"})
+				} else {
+					errs = append(errs, map[string]any{"loc": []any{"body", c.nombre}, "msg": "Input should be a valid integer", "type": "int_type"})
+				}
+			case f != math.Trunc(f):
+				errs = append(errs, map[string]any{"loc": []any{"body", c.nombre}, "msg": "Input should be a valid integer, got a number with a fractional part", "type": "int_from_float"})
+			default:
+				sets, args = append(sets, "codigo_actividad=?"), append(args, int64(f))
+			}
+			continue
+		}
+		t, esTexto := v.(string)
+		if !esTexto {
+			errs = append(errs, map[string]any{"loc": []any{"body", c.nombre}, "msg": "Input should be a valid string", "type": "string_type"})
+			continue
+		}
+		if n := len([]rune(t)); n > c.largo {
+			errs = append(errs, map[string]any{"loc": []any{"body", c.nombre}, "msg": fmt.Sprintf("String should have at most %d characters", c.largo), "type": "string_too_long", "ctx": map[string]any{"max_length": c.largo}})
+			continue
+		}
+		sets = append(sets, c.nombre+"=?")
+		if t = strings.TrimSpace(t); t == "" {
+			args = append(args, nil)
+		} else {
+			args = append(args, t)
+		}
+	}
+	if len(errs) > 0 {
+		responderError(w, r, 422, "validacion", "Los datos enviados no son válidos.", map[string]any{"errores": errs})
+		return
+	}
+	cuenta, _ := s.cuentaID(w, r)
+	if len(sets) > 0 {
+		res, err := s.db.Exec(`UPDATE negocios SET `+strings.Join(sets, ", ")+` WHERE id=? AND cuenta_id=?`, append(args, id, cuenta)...)
+		if err != nil {
+			responderError(w, r, 500, "error_interno", "Ocurrió un error interno. Reporta el request_id al soporte.", nil)
+			return
+		}
+		if n, _ := res.RowsAffected(); n == 0 {
+			responderError(w, r, 404, "no_encontrado", "Negocio no encontrado", nil)
+			return
+		}
+	}
+	negs, err := s.negociosDe(cuenta)
+	if err != nil {
+		responderError(w, r, 500, "error_interno", "Ocurrió un error interno. Reporta el request_id al soporte.", nil)
+		return
+	}
+	for _, n := range negs {
+		if n.ID == id {
+			responderJSON(w, 200, n.mapa())
+			return
+		}
+	}
+	responderError(w, r, 404, "no_encontrado", "Negocio no encontrado", nil)
 }
 
 func (s *Servidor) listarNegocios(w http.ResponseWriter, r *http.Request) {
