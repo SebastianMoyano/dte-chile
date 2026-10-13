@@ -996,6 +996,7 @@ vistas.leccion = async (el) => {
     <p class="mut" style="margin:0 0 4px"><span class="lnk" onclick="ir('aprender')">Aprender</span> · ${esc(m.titulo || "")} · lección ${i + 1} de ${L.length}</p>
     <h1>${esc(l.titulo)}</h1>
     <p class="sub">${esc(l.resumen)}</p>
+    <div class="card acad-vis"><h3>Pruébalo</h3><div class="vis" id="acad_vis"></div></div>
     <div class="card acad-lec">${l.concepto}</div>
     <div class="card acad-ej"><h3>Un ejemplo</h3>${l.ejemplo}</div>
     ${l.accion ? `<div class="card acad-accion"><h3>Hazlo en la app</h3><p class="mut">${esc(l.accion.t)}.</p><button class="sec" onclick="ir('${l.accion.v}')">Ir ahora</button> <span class="mut" style="font-size:.85rem">Vuelves con el botón Aprender, abajo.</span></div>` : ""}
@@ -1006,6 +1007,10 @@ vistas.leccion = async (el) => {
       ${ant ? `<button class="sec" onclick="ir('leccion?id=${ant.id}')">← ${esc(ant.titulo)}</button>` : `<button class="sec" onclick="ir('aprender')">← Aprender</button>`}
       ${sig ? `<button onclick="ir('leccion?id=${sig.id}')">${esc(sig.titulo)} →</button>` : `<button onclick="ir('aprender')">Volver a Aprender</button>`}
     </div>`;
+  // el visual interactivo de la lección (academia-vis.js); si no hay, la tarjeta desaparece
+  const vc = $("acad_vis");
+  if (window.AcademiaVis && vc) window.AcademiaVis.montar(l.id, vc, { valores: () => api("GET", "/api/v1/valores") });
+  else vc?.parentElement?.remove();
 };
 window.acadResponder = (id, k) => {
   const l = acadLecciones().find((x) => x.id === id); if (!l) return;

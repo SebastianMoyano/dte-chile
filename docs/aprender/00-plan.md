@@ -108,6 +108,7 @@ lado a lado con el cálculo de la app. Cuando no coinciden, la app explica por q
   Ltda./S.A., regímenes Pro-PYME, inicio de actividades y giro, clave tributaria y certificado;
   las fechas: calendario, honorarios y retención, multas; los documentos: folio y CAF, notas,
   RCV, gratuito o motor propio). Cada lección: concepto, ejemplo con números, "Hazlo en la app" y
-  una pregunta. El texto completo está en [`LECCIONES.md`](LECCIONES.md), generado desde los
+  una pregunta, y un **visual interactivo** por lección (`academia-vis.js`: el alumno mueve un
+  deslizador, toca un mes, emite folios de mentira). El texto completo está en [`LECCIONES.md`](LECCIONES.md), generado desde los
   mismos datos (`tools/academia_datos.py` → `app/frontend/dist/academia.js`;
   `tools/revisar_academia.py --md`).

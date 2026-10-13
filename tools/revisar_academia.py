@@ -13,6 +13,7 @@ from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent
 JS = RAIZ / "app/frontend/dist/academia.js"
+VIS = RAIZ / "app/frontend/dist/academia-vis.js"
 MD = RAIZ / "docs/aprender/LECCIONES.md"
 VISTAS = {"inicio", "cobrar", "documentos", "documentos?tab=mes", "aprender", "ajustes", "empresa", "valores", "ia"}
 RUTS_PERMITIDOS = {"77777777-7", "76111111-6", "12345678-5", "66666666-6", "11111111-1"}
@@ -51,6 +52,11 @@ def revisar(d):
         if VETADAS.search(texto): errs.append(f"{donde}: regionalismo vetado ({VETADAS.search(texto).group(0)})")
     for m in d["modulos"]:
         if not any(l["modulo"] == m["id"] for l in d["lecciones"]): errs.append(f"módulo {m['id']} sin lecciones")
+    # cada lección tiene su visual interactivo (VIS.id = … o VIS["id"] = …)
+    vis = VIS.read_text(encoding="utf-8")
+    con_vis = set(re.findall(r'VIS\.([a-z0-9-]+)\s*=', vis)) | set(re.findall(r'VIS\["([a-z0-9-]+)"\]\s*=', vis))
+    for l in d["lecciones"]:
+        if l["id"] not in con_vis: errs.append(f"lección {l['id']}: sin visual en academia-vis.js")
     return errs
 
 
@@ -78,4 +84,4 @@ if __name__ == "__main__":
         print("\n".join("✗ " + e for e in errs)); print(f"{len(errs)} problema(s) en {n} lecciones"); sys.exit(1)
     if "--md" in sys.argv:
         MD.write_text(a_md(d), encoding="utf-8"); print(f"escrito {MD.relative_to(RAIZ)}")
-    print(f"academia ok: {n} lecciones en {len(d['modulos'])} módulos, {sum(1 for l in d['lecciones'] if l.get('accion'))} con acción en la app")
+    print(f"academia ok: {n} lecciones en {len(d['modulos'])} módulos, {sum(1 for l in d['lecciones'] if l.get('accion'))} con acción en la app, todas con visual")
