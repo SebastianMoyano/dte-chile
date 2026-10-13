@@ -1,7 +1,9 @@
 // Visuales de la mini academia: uno por lección, interactivo cuando se puede tocar un número.
 // Todo es HTML + SVG propio, con los colores de la app (sin librerías). Cada visual es una
 // función VIS[id](contenedor, ctx) que pinta y conecta sus controles. ctx.valores() entrega la
-// UF y la UTM del día (desde el motor) para que los ejemplos usen cifras reales.
+// UF y la UTM del día (desde el motor) para que los ejemplos usen cifras reales. ctx.cambio(valores) avisa a la
+// lección cada vez que el alumno mueve algo (la lección escribe esos números dentro del texto), y data-parte="x"
+// marca las partes que un paso puede enfocar (foco) para guiar la mirada.
 window.AcademiaVis = (() => {
   const clp = (n) => "$ " + Math.round(n).toLocaleString("es-CL");
   const num = (n, d = 0) => Number(n).toLocaleString("es-CL", { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -10,9 +12,9 @@ window.AcademiaVis = (() => {
   const IVA = 0.19;
 
   // ---- piezas reutilizables ----
-  const apilada = (segs) => `<div class="vis-apilada">${segs.filter((s) => s.v > 0).map((s) => `<div class="${s.c}" style="flex:${s.v}"><b>${s.t}</b><span>${s.s || ""}</span></div>`).join("")}</div>`;
+  const apilada = (segs) => `<div class="vis-apilada">${segs.filter((s) => s.v > 0).map((s) => `<div class="${s.c}" style="flex:${s.v}" ${s.k ? `data-parte="${s.k}"` : ""}><b>${s.t}</b><span>${s.s || ""}</span></div>`).join("")}</div>`;
   const slider = (id, et, min, max, val, step = 1) => `<label class="vis-sl"><span>${et} <output id="${id}_o"></output></span><input type="range" id="${id}" min="${min}" max="${max}" step="${step}" value="${val}"></label>`;
-  const cifras = (items) => `<div class="vis-cifras">${items.map((i) => `<div class="${i.c || ""}"><span>${i.t}</span><b id="${i.id || ""}">${i.v}</b></div>`).join("")}</div>`;
+  const cifras = (items) => `<div class="vis-cifras">${items.map((i) => `<div class="${i.c || ""}" ${i.k ? `data-parte="${i.k}"` : ""}><span>${i.t}</span><b id="${i.id || ""}">${i.v}</b></div>`).join("")}</div>`;
   const toggle = (id, ops, sel = 0) => `<div class="segmento vis-tog" id="${id}">${ops.map((o, i) => `<button class="${i === sel ? "on" : ""}" data-i="${i}">${o}</button>`).join("")}</div>`;
   const onToggle = (c, id, f) => c.querySelectorAll(`#${id} button`).forEach((b) => (b.onclick = () => { c.querySelectorAll(`#${id} button`).forEach((x) => x.classList.toggle("on", x === b)); f(Number(b.dataset.i)); }));
   const onSlider = (c, id, f) => { const i = c.querySelector("#" + id); const go = () => { c.querySelector("#" + id + "_o").textContent = f(Number(i.value)); }; i.oninput = go; go(); };
@@ -26,10 +28,10 @@ window.AcademiaVis = (() => {
   const VIS = {};
 
   // 1. ¿Qué es un impuesto? — a dónde va cada peso
-  VIS.impuesto = (c) => {
-    c.innerHTML = `${slider("p", "Precio del producto, sin IVA:", 500, 50000, 1000, 500)}<div id="b"></div>${flecha("el IVA no se queda en el negocio")}
-      <div class="vis-fila"><div class="vis-caja neg"><b>El negocio</b><div>se queda con <span id="n"></span></div></div><div class="vis-caja est"><b>El Estado</b><div>recibe <span id="i"></span> para colegios · hospitales · calles · pensiones</div></div></div>`;
-    onSlider(c, "p", (p) => { const i = p * IVA; c.querySelector("#b").innerHTML = apilada([{ v: p, c: "neto", t: "neto " + clp(p), s: "del negocio" }, { v: i, c: "iva", t: "IVA " + clp(i), s: "del Estado" }]); c.querySelector("#n").textContent = clp(p); c.querySelector("#i").textContent = clp(i); return clp(p); });
+  VIS.impuesto = (c, ctx) => {
+    c.innerHTML = `${slider("p", "Precio del jugo, sin IVA:", 500, 50000, 1000, 500)}<div id="b"></div>${flecha("el IVA no se queda en el negocio")}
+      <div class="vis-fila"><div class="vis-caja neg" data-parte="neg"><b>El negocio (Sofía)</b><div>se queda con <span id="n"></span></div></div><div class="vis-caja est" data-parte="iva"><b>El Estado</b><div>recibe <span id="i"></span> para colegios · hospitales · calles · pensiones</div></div></div>`;
+    onSlider(c, "p", (p) => { const i = Math.round(p * IVA); c.querySelector("#b").innerHTML = apilada([{ v: p, c: "neto", k: "neg", t: "neto " + clp(p), s: "del negocio" }, { v: i, c: "iva", k: "iva", t: "IVA " + clp(i), s: "del Estado" }]); c.querySelector("#n").textContent = clp(p); c.querySelector("#i").textContent = clp(i); ctx?.cambio?.({ neto: p, iva: i, total: p + i }); return clp(p); });
   };
 
   // 2. El SII y el RUT — el dígito verificador paso a paso
@@ -50,26 +52,29 @@ window.AcademiaVis = (() => {
   };
 
   // 3 y 6. La calculadora del IVA (desde el neto o desde el total)
-  const calculadora = (c, modo) => {
+  const calculadora = (c, modo, ctx) => {
     c.innerHTML = `${toggle("m", ["Sé el precio sin IVA (neto)", "Sé el precio con IVA (total)"], modo)}<div id="s"></div><div id="b"></div><div id="k"></div>`;
     const pinta = (m) => {
       c.querySelector("#s").innerHTML = m === 0 ? slider("v", "Neto:", 1000, 100000, 10000, 500) : slider("v", "Total que paga el cliente:", 1190, 119000, 11900, 100);
       onSlider(c, "v", (v) => { const neto = m === 0 ? v : Math.round(v / (1 + IVA)); const iva = m === 0 ? Math.round(neto * IVA) : v - neto; const total = neto + iva;
-        c.querySelector("#b").innerHTML = apilada([{ v: neto, c: "neto", t: "neto", s: clp(neto) }, { v: iva, c: "iva", t: "IVA 19 %", s: clp(iva) }]);
-        c.querySelector("#k").innerHTML = cifras([{ t: "Neto", v: clp(neto) }, { t: "IVA", v: clp(iva), c: "iva" }, { t: "Total", v: clp(total), c: "tot" }]) + `<p class="mut">${m === 0 ? `IVA = ${num(neto)} × 0,19 = ${num(iva)}. Total = ${num(neto)} + ${num(iva)} = ${num(total)}.` : `Neto = ${num(v)} ÷ 1,19 = ${num(neto)}. IVA = ${num(v)} − ${num(neto)} = ${num(iva)}.`}</p>`;
+        c.querySelector("#b").innerHTML = apilada([{ v: neto, c: "neto", k: "neto", t: "neto", s: clp(neto) }, { v: iva, c: "iva", k: "iva", t: "IVA 19 %", s: clp(iva) }]);
+        c.querySelector("#k").innerHTML = cifras([{ t: "Neto", v: clp(neto), k: "neto" }, { t: "IVA", v: clp(iva), c: "iva", k: "iva" }, { t: "Total", v: clp(total), c: "tot", k: "total" }]);
+        ctx?.cambio?.({ neto, iva, total });
+        c.querySelector("#k").innerHTML += `<p class="mut">${m === 0 ? `IVA = ${num(neto)} × 0,19 = ${num(iva)}. Total = ${num(neto)} + ${num(iva)} = ${num(total)}.` : `Neto = ${num(v)} ÷ 1,19 = ${num(neto)}. IVA = ${num(v)} − ${num(neto)} = ${num(iva)}.`}</p>`;
         return clp(v); });
     };
     onToggle(c, "m", pinta); pinta(modo);
   };
-  VIS.iva = (c) => calculadora(c, 0);
-  VIS["neto-total"] = (c) => calculadora(c, 1);
+  VIS.iva = (c, ctx) => calculadora(c, 0, ctx);
+  VIS["neto-total"] = (c, ctx) => calculadora(c, 1, ctx);
 
   // 4. Boleta o factura — el mismo café, dos documentos
   VIS["boleta-factura"] = (c) => {
     c.innerHTML = `${toggle("q", ["Compra una persona", "Compra una empresa"])}<div id="d"></div>`;
-    const pinta = (i) => { c.querySelector("#d").innerHTML = i === 0
-      ? doc({ tipo: "BOLETA ELECTRÓNICA", folio: 12, cliente: "", lineas: [["10 cafés", clp(11900)]], totales: [["Total", clp(11900), "tot"]], nota: "La boleta no lleva el nombre de quien compra y muestra solo el total (el IVA va incluido)." })
-      : doc({ tipo: "FACTURA ELECTRÓNICA", folio: 12, cliente: "CLIENTE DEMO SPA · 76.111.111-6", lineas: [["10 cafés", clp(10000)]], totales: [["Neto", clp(10000)], ["IVA 19 %", clp(1900), "iva"], ["Total", clp(11900), "tot"]], nota: "<b>La empresa que compra podrá descontar los $ 1.900 de IVA</b> de lo que ella cobró a sus clientes. Por eso la factura lleva su RUT y el IVA aparte." }); };
+    c.querySelectorAll("#q button").forEach((b, i) => b.setAttribute("data-parte", i === 0 ? "boleta" : "factura"));
+    const pinta = (i) => { c.querySelector("#d").setAttribute("data-parte", i === 0 ? "boleta" : "factura"); c.querySelector("#d").innerHTML = i === 0
+      ? doc({ tipo: "BOLETA ELECTRÓNICA", folio: 12, cliente: "", lineas: [["10 jugos", clp(11900)]], totales: [["Total", clp(11900), "tot"]], nota: "La boleta no lleva el nombre de quien compra y muestra solo el total (el IVA va incluido)." })
+      : doc({ tipo: "FACTURA ELECTRÓNICA", folio: 12, cliente: "CLIENTE DEMO SPA · 76.111.111-6", lineas: [["10 jugos", clp(10000)]], totales: [["Neto", clp(10000)], ["IVA 19 %", clp(1900), "iva"], ["Total", clp(11900), "tot"]], nota: "<b>La empresa que compra podrá descontar los $ 1.900 de IVA</b> de lo que ella cobró a sus clientes. Por eso la factura lleva su RUT y el IVA aparte." }); };
     onToggle(c, "q", pinta); pinta(0);
   };
 
@@ -85,7 +90,7 @@ window.AcademiaVis = (() => {
 
   // 7. UF y UTM — convertidor con los valores de hoy
   VIS["uf-utm"] = async (c, ctx) => {
-    let v = { uf: 41000, utm: 70000, hoy: false }; try { const r = await ctx.valores(); if (r && r.uf) v = { uf: Number(r.uf), utm: Number(r.utm), hoy: true }; } catch {}
+    let v = { uf: 41000, utm: 70000, hoy: false }; try { const r = await ctx.valores(); const n = (x) => Number(x && typeof x === "object" ? x.valor : x); if (r && n(r.uf) > 0 && n(r.utm) > 0) v = { uf: n(r.uf), utm: n(r.utm), hoy: true }; } catch {}
     c.innerHTML = `<div class="vis-cifras"><div><span>UF ${v.hoy ? "hoy" : "(aprox.)"}</span><b>${clp(v.uf)}</b><small>cambia todos los días</small></div><div><span>UTM ${v.hoy ? "este mes" : "(aprox.)"}</span><b>${clp(v.utm)}</b><small>cambia una vez al mes</small></div></div>
       ${slider("u", "Un arriendo de", 1, 100, 10)}<p class="mut" id="ut"></p>${slider("t", "Una multa de", 1, 20, 1, 0.5)}<p class="mut" id="tt"></p>
       <svg viewBox="0 0 320 110" class="vis-svg"><path d="M10 95 C 60 90, 90 80, 130 70 S 220 45, 310 20" fill="none" stroke="var(--acc)" stroke-width="3" stroke-linecap="round"/><path d="M10 95 L310 95" stroke="var(--bd-2)"/><text x="12" y="108" fill="currentColor" font-size="10">hace 10 años</text><text x="262" y="108" fill="currentColor" font-size="10">hoy</text><text x="150" y="40" fill="currentColor" font-size="11">la UF sube con la inflación (esquema)</text></svg>`;

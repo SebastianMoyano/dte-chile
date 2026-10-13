@@ -972,7 +972,7 @@ function academiaHTML() {
     <div class="card acad-cab">
       <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
         <div style="flex:1;min-width:220px"><h2 style="margin:0 0 4px">Mini academia</h2>
-          <p class="mut" style="margin:0">${L.length} lecciones cortas en ${M.length} módulos. Cada una: la idea, un ejemplo con números, algo para hacer en la app y una pregunta.</p></div>
+          <p class="mut" style="margin:0">${L.length} lecciones cortas en ${M.length} módulos, paso a paso: primero adivinas, después lo ves y lo mueves, al final una pregunta. Puedes saltarte lo que quieras y volver cuando quieras: la app acompaña, no obliga.</p></div>
         <div style="min-width:200px"><div class="barra"><div style="width:${pct}%"></div></div>
           <p class="mut" style="margin:6px 0 0;font-size:.85rem">${bien} de ${L.length} preguntas bien · ${leidas} leídas</p></div>
       </div>
@@ -984,46 +984,115 @@ function academiaHTML() {
         <p class="mut" style="margin:8px 0 10px">${esc(m.resumen)}</p>
         <ul class="acad-lista">${ls.map((l) => `<li onclick="ir('leccion?id=${l.id}')"><span class="acad-ok ${st.correctas[l.id] ? "si" : st.leidas[l.id] ? "leida" : ""}">${st.correctas[l.id] ? "✓" : ""}</span><span>${esc(l.titulo)}</span></li>`).join("")}</ul></div>`; }).join("")}</div>`;
 }
+// La lección se recorre de a una tarjeta (paso): adivina → ideas con el visual → ejemplo → pregunta → misión → cierre.
+// El visual se monta una sola vez y queda arriba; cada paso decide si se ve, en qué parte se enfoca (foco) y
+// recibe los números vivos del visual (data-v) para que el texto hable de lo que el alumno está moviendo.
+let acadPaso = { id: null, n: 0, max: 0, adivinado: null, valores: null };
+const acadFoco = (k) => {
+  // si el foco es una opción de un selector del visual que no está elegida, se elige sola (el visual muestra lo que el texto cuenta)
+  const op = k && document.querySelector(`#acad_vis .vis-tog button[data-parte="${k}"]:not(.on)`); if (op) op.click();
+  document.querySelectorAll("#acad_vis [data-parte]").forEach((e) => { e.classList.toggle("foco", !!k && e.dataset.parte === k); e.classList.toggle("apagado", !!k && e.dataset.parte !== k); });
+};
+const acadVivos = (v) => { if (!v) return; document.querySelectorAll("#acad_paso [data-v]").forEach((e) => { if (v[e.dataset.v] != null) e.textContent = clp(v[e.dataset.v]); }); };
 vistas.leccion = async (el) => {
   const L = acadLecciones(), id = param("id");
   const i = Math.max(0, L.findIndex((l) => l.id === id)), l = L[i];
   if (!l) { ir("aprender"); return; }
-  const m = acadModulos().find((x) => x.id === l.modulo) || {}, st = acadEstado();
-  st.leidas[l.id] = true; acadGuardar(st);
-  const ant = L[i - 1], sig = L[i + 1];
-  const resp = st.correctas[l.id] ? l.pregunta.c : null;
+  const m = acadModulos().find((x) => x.id === l.modulo) || {};
+  if (acadPaso.id !== l.id) acadPaso = { id: l.id, n: 0, max: 0, adivinado: null, valores: null };
   el.innerHTML = `
     <p class="mut" style="margin:0 0 4px"><span class="lnk" onclick="ir('aprender')">Aprender</span> · ${esc(m.titulo || "")} · lección ${i + 1} de ${L.length}</p>
     <h1>${esc(l.titulo)}</h1>
     <p class="sub">${esc(l.resumen)}</p>
-    <div class="card acad-vis"><h3>Pruébalo</h3><div class="vis" id="acad_vis"></div></div>
-    <div class="card acad-lec">${l.concepto}</div>
-    <div class="card acad-ej"><h3>Un ejemplo</h3>${l.ejemplo}</div>
-    ${l.accion ? `<div class="card acad-accion"><h3>Hazlo en la app</h3><p class="mut">${esc(l.accion.t)}.</p><button class="sec" onclick="ir('${l.accion.v}')">Ir ahora</button> <span class="mut" style="font-size:.85rem">Vuelves con el botón Aprender, abajo.</span></div>` : ""}
-    <div class="card acad-quiz" id="acad_quiz"><h3>Una pregunta</h3><p><b>${esc(l.pregunta.t)}</b></p>
-      <div class="acad-ops">${l.pregunta.o.map((o, k) => `<button class="op ${resp === null ? "" : k === l.pregunta.c ? "bien" : ""}" ${resp === null ? "" : "disabled"} onclick="acadResponder('${l.id}', ${k})">${esc(o)}</button>`).join("")}</div>
-      <div id="acad_res">${resp === null ? "" : `<div class="banner verde"><b>Correcto.</b> ${esc(l.pregunta.x)}</div>`}</div></div>
-    <div class="row" style="justify-content:space-between;margin-top:14px">
-      ${ant ? `<button class="sec" onclick="ir('leccion?id=${ant.id}')">← ${esc(ant.titulo)}</button>` : `<button class="sec" onclick="ir('aprender')">← Aprender</button>`}
-      ${sig ? `<button onclick="ir('leccion?id=${sig.id}')">${esc(sig.titulo)} →</button>` : `<button onclick="ir('aprender')">Volver a Aprender</button>`}
-    </div>`;
-  // el visual interactivo de la lección (academia-vis.js); si no hay, la tarjeta desaparece
+    <div class="acad-dots" id="acad_dots"></div>
+    <div class="card acad-vis oculto" id="acad_visc"><div class="vis" id="acad_vis"></div></div>
+    <div class="card acad-paso" id="acad_paso"></div>
+    <div class="row acad-nav" id="acad_nav"></div>`;
   const vc = $("acad_vis");
-  if (window.AcademiaVis && vc) window.AcademiaVis.montar(l.id, vc, { valores: () => api("GET", "/api/v1/valores") });
-  else vc?.parentElement?.remove();
+  const ctx = { valores: () => api("GET", "/api/v1/valores"), cambio: (v) => { acadPaso.valores = v; acadVivos(v); acadFoco((l.pasos[acadPaso.n] || {}).foco); } };
+  if (window.AcademiaVis && vc) window.AcademiaVis.montar(l.id, vc, ctx); else $("acad_visc")?.remove();
+  acadPintar();
 };
+// pinta el paso actual de la lección abierta
+function acadPintar() {
+  const L = acadLecciones(), i = L.findIndex((l) => l.id === acadPaso.id), l = L[i];
+  const caja = $("acad_paso"); if (!l || !caja) return;
+  const P = l.pasos || [], n = Math.min(acadPaso.n, P.length - 1), p = P[n], st = acadEstado();
+  acadPaso.n = n; acadPaso.max = Math.max(acadPaso.max, n);
+  const ant = L[i - 1], sig = L[i + 1];
+  // puntos de progreso (se puede volver a cualquier paso ya visto)
+  $("acad_dots").innerHTML = P.map((x, k) => `<i class="${k === n ? "on" : k <= acadPaso.max ? "visto" : ""}" title="${x.tipo}" ${k <= acadPaso.max ? `onclick="acadSaltar(${k})"` : ""}></i>`).join("") + `<span class="mut">${n + 1} de ${P.length}</span>`;
+  // el visual: se ve o no según el paso; en "adivina" se revela al responder
+  const visc = $("acad_visc");
+  const verVis = p.tipo === "idea" ? p.vis !== false : p.tipo === "pregunta" ? true : p.tipo === "adivina" ? acadPaso.adivinado !== null : false;
+  if (visc) { const estaba = !visc.classList.contains("oculto"); visc.classList.toggle("oculto", !verVis); visc.classList.toggle("revelar", verVis && !estaba); if (verVis && !estaba && p.tipo === "adivina") visc.scrollIntoView({ behavior: "smooth", block: "start" }); }
+  acadFoco(p.tipo === "idea" ? p.foco : null);
+  let puedeSeguir = true, h = "";
+  if (p.tipo === "adivina") {
+    const r = acadPaso.adivinado; puedeSeguir = r !== null;
+    h = `<p class="acad-tag">Antes de leer, adivina</p><p class="acad-preg">${esc(p.t)}</p>
+      <div class="acad-ops">${p.o.map((o, k) => `<button class="op ${r === null ? "" : k === p.c ? "bien" : k === r ? "mal" : ""}" ${r === null ? "" : "disabled"} onclick="acadAdivinar(${k})">${esc(o)}</button>`).join("")}</div>
+      <div id="acad_res">${r === null ? `<p class="mut" style="margin:0"><span class="lnk" onclick="acadAdivinar(-1)">Prefiero verlo primero</span></p>` : `<div class="banner ${r === p.c ? "verde" : ""}"><b>${r === p.c ? "Bien pensado." : r === -1 ? "Mira:" : "Muchos piensan eso."}</b> ${esc(p.x)}</div>`}</div>`;
+  } else if (p.tipo === "idea") {
+    h = `${p.titulo ? `<h3>${esc(p.titulo)}</h3>` : ""}${p.h}`;
+  } else if (p.tipo === "pregunta") {
+    const hecha = st.correctas[l.id] ? p.c : null;
+    h = `<p class="acad-tag">Una pregunta</p><p class="acad-preg">${esc(p.t)}</p>
+      <div class="acad-ops">${p.o.map((o, k) => `<button class="op ${hecha === null ? "" : k === p.c ? "bien" : ""}" ${hecha === null ? "" : "disabled"} onclick="acadResponder('${l.id}', ${k})">${esc(o)}</button>`).join("")}</div>
+      <div id="acad_res">${hecha === null ? "" : `<div class="banner verde"><b>Correcto.</b> ${esc(p.x)}</div>`}</div>`;
+  } else if (p.tipo === "mision") {
+    h = `<p class="acad-tag">Si quieres, pruébalo en la app</p><p class="acad-preg">${esc(p.t)}.</p>
+      <div id="acad_mision"></div>
+      <div class="row"><button class="sec" onclick="ir('${p.v}')">Ir ahora</button><span class="mut" style="font-size:.85rem">No es obligatorio: la lección te espera aquí y vuelves con el botón Aprender.</span></div>`;
+    if (p.check) acadMisionHecha(p.check).then((d) => { const c = $("acad_mision"); if (c && d) c.innerHTML = `<div class="banner verde"><b>Ya lo hiciste.</b> Hay ${d}. Si quieres, hazlo de nuevo con otros números.</div>`; });
+  } else if (p.tipo === "cierre") {
+    if (!st.leidas[l.id]) { st.leidas[l.id] = true; acadGuardar(st); }
+    const delMod = L.filter((x) => x.modulo === l.modulo), modListo = delMod.every((x) => st.leidas[x.id]) && (!sig || sig.modulo !== l.modulo);
+    const mod = acadModulos().find((x) => x.id === l.modulo) || {};
+    h = `<p class="acad-tag">Lo que te llevas</p><ul class="acad-claves">${(p.claves || []).map((c) => `<li>${esc(c)}</li>`).join("")}</ul>
+      ${modListo ? `<div class="banner verde"><b>Terminaste «${esc(mod.titulo || "")}».</b> ${sig ? `Lo que sigue es «${esc(acadModulos().find((x) => x.id === sig.modulo)?.titulo || "")}», cuando quieras.` : "Era el último módulo. Ahora toca practicar: el camino, en Aprender."}</div>`
+        : sig ? `<p class="mut">La siguiente es «${esc(sig.titulo)}». Sigue cuando quieras; también puedes volver a Aprender.</p>` : ""}`;
+  }
+  caja.innerHTML = h;
+  acadVivos(acadPaso.valores);
+  const ultimo = n === P.length - 1;
+  $("acad_nav").innerHTML = `
+    ${n > 0 ? `<button class="sec" onclick="acadSaltar(${n - 1})">← Atrás</button>` : `<button class="sec" onclick="ir('aprender')">← Aprender</button>`}
+    ${ultimo ? (sig ? `<button onclick="ir('leccion?id=${sig.id}')">${esc(sig.titulo)} →</button>` : `<button onclick="ir('aprender')">Volver a Aprender</button>`)
+             : `<button onclick="acadSaltar(${n + 1})" ${puedeSeguir ? "" : "disabled"}>Seguir →</button>`}
+    ${!puedeSeguir ? `<span class="mut" style="font-size:.85rem">Elige una para seguir.</span>` : ""}`;
+  caja.classList.remove("entra"); void caja.offsetWidth; caja.classList.add("entra");
+}
+window.acadSaltar = (k) => { acadPaso.n = k; acadPintar(); window.scrollTo({ top: 0, behavior: "smooth" }); };
+window.acadAdivinar = (k) => { acadPaso.adivinado = k; acadPintar(); };
 window.acadResponder = (id, k) => {
   const l = acadLecciones().find((x) => x.id === id); if (!l) return;
+  const p = (l.pasos || []).find((x) => x.tipo === "pregunta") || l.pregunta;
   const st = acadEstado(); st.intentos[id] = (st.intentos[id] || 0) + 1;
-  const bien = k === l.pregunta.c;
+  const bien = k === p.c;
   if (bien) st.correctas[id] = true;
   acadGuardar(st);
-  const ops = document.querySelectorAll("#acad_quiz .op");
-  ops.forEach((b, j) => { b.classList.toggle("bien", bien && j === l.pregunta.c); b.classList.toggle("mal", !bien && j === k); if (bien) b.disabled = true; });
+  const ops = document.querySelectorAll("#acad_paso .op");
+  ops.forEach((b, j) => { b.classList.toggle("bien", bien && j === p.c); b.classList.toggle("mal", !bien && j === k); if (bien) b.disabled = true; });
+  const pista = p.xo?.[k];
   $("acad_res").innerHTML = bien
-    ? `<div class="banner verde"><b>Correcto.</b> ${esc(l.pregunta.x)}</div>`
-    : `<div class="banner rojo"><b>No es esa.</b> Vuelve a leer el ejemplo y prueba otra vez: no hay límite de intentos.</div>`;
+    ? `<div class="banner verde"><b>Correcto.</b> ${esc(p.x)}</div>`
+    : `<div class="banner rojo"><b>No es esa.</b> ${pista ? esc(pista) + " " : ""}Prueba otra vez; no hay límite de intentos.</div>`;
 };
+// ¿la misión ya está hecha? Se mira en los documentos de la app (solo lectura); si no se puede, no pasa nada.
+async function acadMisionHecha(check) {
+  try {
+    const docs = (await api("GET", "/api/v1/dte/documentos?limite=200")).documentos || [];
+    const d = docs.find((x) => (check.tipo ? Number(x.tipo_dte) === check.tipo : true) && (check.total ? Number(x.monto_total) === check.total : true));
+    return d ? `${(TIPOS[d.tipo_dte] || "un documento").toLowerCase()} N° ${d.folio} por ${clp(d.monto_total)}` : null;
+  } catch { return null; }
+}
+// flechas del teclado para avanzar o volver dentro de una lección
+document.addEventListener("keydown", (e) => {
+  if (!location.hash.startsWith("#leccion") || !$("acad_nav") || /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName || "")) return;
+  if (e.key === "ArrowRight") { const b = $("acad_nav").querySelector("button:not(.sec)"); if (b && !b.disabled && b.textContent.startsWith("Seguir")) b.click(); }
+  if (e.key === "ArrowLeft" && acadPaso.n > 0) window.acadSaltar(acadPaso.n - 1);
+});
 
 // ---------- Mi empresa: certificado → empresa → folios, explicado como a un alumno ----------
 const TIPOS_FOLIO = { 33: "Factura", 34: "Factura exenta", 39: "Boleta", 41: "Boleta exenta", 56: "Nota de débito", 61: "Nota de crédito" };

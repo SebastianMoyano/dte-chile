@@ -1,10 +1,34 @@
 # Genera app/frontend/dist/academia.js (window.ACADEMIA = JSON). Fuente única de las lecciones.
+#
+# Cada lección se ve en la app como una secuencia de tarjetas ("pasos"), una idea por pantalla:
+#   adivina  → una pregunta antes de explicar (el alumno apuesta, el visual revela)
+#   idea     → dos o tres líneas; puede mostrar el visual, enfocarlo en una parte (foco) y traer
+#              números vivos: <b data-v="iva">$ 190</b> se actualiza cuando el alumno mueve el visual
+#   ejemplo  → un caso con números
+#   pregunta → la de control, con explicación por opción equivocada (xo) cuando se escribió
+#   mision   → opcional: algo para hacer en la app; nunca bloquea (la app acompaña, no obliga)
+#   cierre   → "lo que te llevas", tres frases
+# Las lecciones escritas con lec2() traen sus pasos a mano; las escritas con lec() se convierten
+# solas (cada párrafo del concepto es una tarjeta).
 import json
 L = []
-def lec(mod, id, titulo, resumen, concepto, ejemplo, pregunta, accion=None):
+def lec(mod, id, titulo, resumen, concepto, ejemplo, pregunta, accion=None, claves=None):
     L.append({"modulo": mod, "id": id, "titulo": titulo, "resumen": resumen, "concepto": concepto,
-              "ejemplo": ejemplo, "accion": accion, "pregunta": pregunta})
-def q(t, o, c, x): return {"t": t, "o": o, "c": c, "x": x}
+              "ejemplo": ejemplo, "accion": accion, "pregunta": pregunta, "claves": claves})
+def lec2(mod, id, titulo, resumen, *, adivina, ideas, ejemplo, pregunta, claves, mision=None):
+    """ideas: lista de (html, opciones) con opciones = dict(vis=True/False, foco=str|None, titulo=str|None)."""
+    pasos = [dict(tipo="adivina", **adivina)]
+    for h, o in ideas:
+        pasos.append({"tipo": "idea", "h": h, "vis": o.get("vis", True), "foco": o.get("foco"), "titulo": o.get("titulo")})
+    pasos.append({"tipo": "idea", "h": ejemplo, "vis": True, "foco": None, "titulo": "Un ejemplo"})
+    pasos.append({"tipo": "pregunta", **pregunta})
+    if mision: pasos.append({"tipo": "mision", **mision})
+    pasos.append({"tipo": "cierre", "claves": claves})
+    L.append({"modulo": mod, "id": id, "titulo": titulo, "resumen": resumen, "concepto": "".join(h for h, _ in ideas),
+              "ejemplo": ejemplo, "accion": ({"t": mision["t"], "v": mision["v"]} if mision else None), "pregunta": pregunta,
+              "claves": claves, "pasos": pasos})
+def q(t, o, c, x, xo=None): return {"t": t, "o": o, "c": c, "x": x, "xo": xo}
+V = lambda **k: k  # opciones de una idea
 
 MODULOS = [
  {"id": "basico", "titulo": "Lo básico", "resumen": "Qué es un impuesto, quién es el SII y por qué una boleta dice 1.190 y no 1.000."},
@@ -14,58 +38,103 @@ MODULOS = [
  {"id": "documentos", "titulo": "Los documentos", "resumen": "Folio, timbre, notas de crédito y débito, el registro del SII y las dos formas de emitir."},
 ]
 
-# ---------------- 1. Lo básico ----------------
-lec("basico", "impuesto", "¿Qué es un impuesto?", "Plata que todos aportan para pagar lo que es de todos.",
- "<p>Un <b>impuesto</b> es una parte de lo que ganas o gastas que va al Estado. Con esa plata se pagan colegios, hospitales, calles, carabineros, pensiones. No es un castigo ni una multa: es la cuota de cada uno para lo que usamos en común.</p>"
- "<p>Hay impuestos de muchos tipos. En este curso importan dos: el <b>IVA</b>, que se paga cada vez que se compra algo, y el <b>impuesto a la renta</b>, que se paga una vez al año sobre lo que se ganó.</p>"
- "<p>Quien tiene un negocio no solo paga impuestos: también <b>recauda</b>, es decir, cobra el IVA a sus clientes y se lo entrega al Estado. Por eso existen las boletas y las facturas: son la prueba de cuánto se cobró.</p>",
- "<p>Compras un cuaderno a $1.190. De esos pesos, $1.000 son del negocio y <b>$190 son IVA</b>: la librería los cobra, pero no son suyos; a fin de mes se los pasa al Estado.</p>",
- q("¿Para qué sirven los impuestos?", ["Para castigar a quien gana mucho", "Para pagar lo que usamos todos: colegios, hospitales, calles", "Para que el SII tenga trabajo", "Para que los negocios ganen más"], 1,
-   "Con los impuestos se financia lo que es de todos. Quien vende los cobra y los entrega; no se los queda."))
+# ---------------- 1. Lo básico (una sola historia: Sofía y su puesto de jugos) ----------------
+lec2("basico", "impuesto", "¿Qué es un impuesto?", "Plata que todos aportan para pagar lo que es de todos.",
+ adivina=q("Sofía vende un jugo a $1.190 en la feria del colegio. ¿Cuánto de esa plata es impuesto?",
+   ["Nada: todo es de Sofía", "$19", "$190", "$1.190"], 2,
+   "De cada jugo, $190 no son de Sofía: son IVA y van al Estado. Ella los cobra y los entrega. Mira cómo se reparte."),
+ ideas=[
+  ("<p>Un <b>impuesto</b> es una parte de lo que ganas o gastas que va al Estado. Con esa plata se pagan colegios, hospitales, calles, pensiones. No es un castigo ni una multa: es la cuota de cada uno para lo que usamos en común.</p>", V()),
+  ("<p>Mueve el precio del jugo. Si cuesta <b data-v=\"neto\">$ 1.000</b> sin IVA, el Estado recibe <b data-v=\"iva\">$ 190</b> y Sofía se queda con <b data-v=\"neto\">$ 1.000</b>. La parte amarilla nunca es de ella.</p>", V(foco="iva")),
+  ("<p>Quien tiene un negocio no solo paga impuestos: también <b>recauda</b>. Cobra el IVA a sus clientes y se lo entrega al Estado a fin de mes. Por eso existen las boletas y las facturas: son la prueba de cuánto se cobró.</p>", V(foco="neg")),
+  ("<p>En este curso importan dos impuestos: el <b>IVA</b>, que se paga cada vez que se compra algo, y el <b>impuesto a la renta</b>, que se paga una vez al año sobre lo que se ganó. Los dos aparecen más adelante.</p>", V(vis=False, titulo="Dos impuestos para recordar")),
+ ],
+ ejemplo="<p>Compras un cuaderno a $1.190. De esos pesos, $1.000 son de la librería y <b>$190 son IVA</b>: la librería los cobra, pero no son suyos; a fin de mes se los pasa al Estado.</p>",
+ pregunta=q("¿Para qué sirven los impuestos?", ["Para castigar a quien gana mucho", "Para pagar lo que usamos todos: colegios, hospitales, calles", "Para que el SII tenga trabajo", "Para que los negocios ganen más"], 1,
+   "Con los impuestos se financia lo que es de todos. Quien vende los cobra y los entrega; no se los queda.",
+   ["No es un castigo: lo paga todo el que compra, gane poco o mucho.", None, "El SII solo lleva la cuenta; la plata va a lo que es de todos.", "El negocio no se queda con el impuesto: lo cobra y lo entrega."]),
+ claves=["Un impuesto es la cuota de cada uno para lo que es de todos.", "El negocio cobra el IVA, pero no es suyo: lo entrega al Estado.", "La boleta es la prueba de cuánto se cobró."])
 
-lec("basico", "sii", "El SII y el RUT", "El SII es la oficina de los impuestos; el RUT es tu número.",
- "<p>El <b>SII</b> (Servicio de Impuestos Internos) es la oficina del Estado que lleva la cuenta de los impuestos: sabe qué vendiste, qué compraste y cuánto debes. Todo lo que emites se lo informa a él.</p>"
- "<p>El <b>RUT</b> (Rol Único Tributario) es el número con que el SII te reconoce. Las personas tienen uno (es el mismo del carnet) y las empresas tienen otro, propio, que empieza con 76 o 77. En cada boleta y factura va el RUT de quien vende, y en la factura también el de quien compra.</p>"
- "<p>Para entrar al SII por internet se usa la <b>clave tributaria</b>, una contraseña que te da el propio SII. Con ella se declara, se piden folios y se ven los documentos.</p>",
- "<p>Un RUT se escribe con puntos y un guion: <b>12.345.678-5</b>. El último carácter es el <b>dígito verificador</b>, que puede ser un número o una K; sirve para detectar errores de tipeo. La app lo revisa sola.</p>",
- q("¿Qué es el RUT de una empresa?", ["El RUT del dueño", "Un número propio de la empresa, distinto al de las personas", "El número de la boleta", "La clave para entrar al SII"], 1,
-   "La empresa es otra persona ante la ley y tiene su propio RUT. El dueño sigue teniendo el suyo."),
- {"t": "Escribe un RUT en la app y mira cómo lo valida", "v": "cobrar"})
+lec2("basico", "sii", "El SII y el RUT", "El SII es la oficina de los impuestos; el RUT es tu número.",
+ adivina=q("El RUT 12.345.678-5 termina en 5. ¿Para qué sirve ese último número?",
+   ["Dice en qué año nació la persona", "Detecta errores al escribir el RUT", "Dice de qué región es", "No sirve para nada"], 1,
+   "Es el dígito verificador: se calcula con los otros números. Si escribes uno mal, deja de calzar y la app te avisa. Pruébalo."),
+ ideas=[
+  ("<p>El <b>SII</b> (Servicio de Impuestos Internos) es la oficina del Estado que lleva la cuenta de los impuestos: sabe qué vendiste, qué compraste y cuánto debes. Todo lo que emites se lo informa a él.</p>", V(vis=False)),
+  ("<p>El <b>RUT</b> (Rol Único Tributario) es el número con que el SII te reconoce. Las personas tienen uno (el del carnet) y las empresas tienen otro propio, que empieza con 76 o 77. Si el puesto de Sofía se vuelve empresa, tendrá un RUT nuevo, distinto al de ella.</p>", V(vis=False)),
+  ("<p>Cambia un número del RUT de arriba y mira qué pasa con el dígito del final. Así la app sabe si te equivocaste al escribir, antes de mandar nada al SII.</p>", V()),
+  ("<p>Para entrar al SII por internet se usa la <b>clave tributaria</b>, una contraseña que te da el propio SII. Con ella se declara, se piden folios y se ven los documentos.</p>", V(vis=False)),
+ ],
+ ejemplo="<p>Un RUT se escribe con puntos y un guion: <b>12.345.678-5</b>. El último carácter puede ser un número o una K. Si alguien cambia el 5 del final por un 6, el dígito deja de calzar y la app lo dice de inmediato.</p>",
+ pregunta=q("¿Qué es el RUT de una empresa?", ["El RUT del dueño", "Un número propio de la empresa, distinto al de las personas", "El número de la boleta", "La clave para entrar al SII"], 1,
+   "La empresa es otra persona ante la ley y tiene su propio RUT. El dueño sigue teniendo el suyo.",
+   ["El dueño tiene su propio RUT; la empresa, otro.", None, "El número de la boleta es el folio, otra cosa.", "La clave es una contraseña secreta; el RUT es un número público."]),
+ claves=["El SII lleva la cuenta de los impuestos de todos.", "Tu RUT es tu número; una empresa tiene el suyo propio.", "El último dígito del RUT detecta errores de tipeo."],
+ mision={"t": "Escribe un RUT en Emitir y mira cómo la app lo revisa mientras escribes", "v": "cobrar"})
 
-lec("basico", "iva", "El IVA", "El 19 % que va al Estado cada vez que se vende algo.",
- "<p>El <b>IVA</b> es el Impuesto al Valor Agregado. En Chile es el <b>19 %</b> y se suma al precio de casi todo lo que se compra: comida, ropa, servicios, entradas.</p>"
- "<p>Lo paga quien compra. El negocio solo lo <b>recauda</b>: lo cobra en la boleta y a fin de mes se lo entrega al SII. Por eso un negocio nunca debe pensar que el IVA es ganancia suya.</p>"
- "<p>Para calcularlo: el precio sin IVA se llama <b>neto</b>; el IVA es el 19 % del neto; la suma es el <b>total</b>. Si solo conoces el total, el neto se obtiene dividiendo por 1,19.</p>",
- "<p>Un café cuesta $1.000 neto. IVA: 1.000 × 0,19 = <b>$190</b>. Total: <b>$1.190</b>. Al revés: si la boleta dice $2.380, el neto es 2.380 ÷ 1,19 = $2.000 y el IVA $380.</p>",
- q("Un producto vale $5.000 neto. ¿Cuánto dice el total de la boleta?", ["$5.000", "$5.190", "$5.950", "$6.900"], 2,
-   "IVA: 5.000 × 0,19 = 950. Total: 5.000 + 950 = 5.950. El error común es sumar 19 pesos en vez del 19 %."),
- {"t": "Emite una boleta de práctica y mira cómo la app separa neto e IVA", "v": "cobrar"})
+lec2("basico", "iva", "El IVA", "El 19 % que va al Estado cada vez que se vende algo.",
+ adivina=q("Sofía quiere ganar $1.000 por cada jugo. ¿A cuánto lo tiene que vender?",
+   ["$1.000", "$1.019", "$1.190", "$1.900"], 2,
+   "Al neto se le suma el 19 %: 1.000 + 190 = $1.190. Los $190 no son ganancia: son el IVA que después entrega. Mueve el deslizador y mira cómo cambia."),
+ ideas=[
+  ("<p>El <b>IVA</b> es el Impuesto al Valor Agregado. En Chile es el <b>19 %</b> y se suma al precio de casi todo: comida, ropa, servicios, entradas. Lo paga quien compra; el negocio solo lo <b>recauda</b>.</p>", V(foco="iva")),
+  ("<p>Tres palabras: el precio sin IVA es el <b>neto</b>; el IVA es el 19 % del neto; la suma es el <b>total</b>. Ahora mismo arriba: neto <b data-v=\"neto\">$ 10.000</b>, IVA <b data-v=\"iva\">$ 1.900</b>, total <b data-v=\"total\">$ 11.900</b>.</p>", V()),
+  ("<p>Cambia arriba a «Sé el precio con IVA». Si solo conoces el total, el neto sale dividiendo por 1,19. La app hace esa cuenta sola cada vez que escribes un precio.</p>", V()),
+  ("<p>Lo importante: el IVA nunca es ganancia del negocio. Sofía lo cobra en cada jugo, lo junta, y a fin de mes se lo entrega al SII. Más adelante verás cómo (se llama F29).</p>", V(vis=False)),
+ ],
+ ejemplo="<p>Un jugo cuesta $1.000 neto. IVA: 1.000 × 0,19 = <b>$190</b>. Total: <b>$1.190</b>. Al revés: si la boleta dice $2.380, el neto es 2.380 ÷ 1,19 = $2.000 y el IVA $380.</p>",
+ pregunta=q("Un producto vale $5.000 neto. ¿Cuánto dice el total de la boleta?", ["$5.000", "$5.190", "$5.950", "$6.900"], 2,
+   "IVA: 5.000 × 0,19 = 950. Total: 5.000 + 950 = 5.950. El error común es sumar 19 pesos en vez del 19 %.",
+   ["Ese es el neto; falta sumarle el IVA.", "Sumaste 19 pesos; el IVA es el 19 por ciento: 950.", None, "Eso sería un 38 %. El IVA es 19 %."]),
+ claves=["IVA = 19 % del neto. Total = neto + IVA.", "Del total al neto: dividir por 1,19.", "El IVA se cobra, se junta y se entrega; no es ganancia."],
+ mision={"t": "Si quieres verlo con tus números, emite una boleta de práctica por $1.000 y mira cómo la app separa neto e IVA", "v": "cobrar", "check": {"tipo": 39}})
 
-lec("basico", "boleta-factura", "Boleta o factura", "La boleta es para personas; la factura, para empresas.",
- "<p>Una <b>boleta</b> se le da a una persona que compra para sí misma. No lleva su nombre ni su RUT. Es el documento del almacén, el café, la peluquería.</p>"
- "<p>Una <b>factura</b> se le da a otra empresa (o a alguien que compra para su negocio). Lleva el RUT y el nombre del cliente y detalla el IVA, porque <b>a él le sirve para descontarlo</b> de lo que debe pagar.</p>"
- "<p>Los dos documentos informan la venta al SII. La diferencia es para quién son y qué puede hacer el cliente con ellos.</p>",
- "<p>Un restaurante le compra café a una tostaduría por $100.000 + IVA. Pide <b>factura</b>: así los $19.000 de IVA que pagó se descuentan de los que él cobró a sus clientes ese mes. Si fuera una persona comprando café para su casa, sería <b>boleta</b>.</p>",
- q("¿Quién puede descontar el IVA de una compra?", ["Cualquiera que guarde la boleta", "Solo quien recibió una factura a su RUT de empresa", "Nadie: el IVA no se descuenta", "Solo el SII"], 1,
-   "La factura va a nombre de la empresa que compra, y ese IVA se resta del IVA que ella cobró. Con boleta no se puede."),
- {"t": "Emite una factura de práctica a CLIENTE DEMO SPA", "v": "cobrar"})
+lec2("basico", "boleta-factura", "Boleta o factura", "La boleta es para personas; la factura, para empresas.",
+ adivina=q("El casino del colegio le compra 50 jugos a Sofía para una fiesta. ¿Qué documento le da?",
+   ["Una boleta, como a cualquiera", "Una factura, con el RUT del casino", "Ninguno: entre conocidos no hace falta", "Un recibo escrito a mano"], 1,
+   "El casino es una empresa y va a querer descontar el IVA de esa compra: necesita factura a su RUT. Cambia arriba a «Compra una empresa» y mira qué aparece."),
+ ideas=[
+  ("<p>Una <b>boleta</b> se le da a una persona que compra para sí misma. No lleva su nombre ni su RUT. Es el documento del almacén, el café, el puesto de jugos.</p>", V(foco="boleta")),
+  ("<p>Una <b>factura</b> se le da a otra empresa. Lleva el RUT y el nombre del cliente y detalla el IVA, porque <b>a él le sirve para descontarlo</b> de lo que debe pagar.</p>", V(foco="factura")),
+  ("<p>Los dos documentos informan la venta al SII y el IVA es el mismo. La diferencia es para quién son y qué puede hacer el cliente con ellos. Si no sabes cuál dar, pregunta: ¿compra para su casa o para su negocio?</p>", V()),
+ ],
+ ejemplo="<p>Un restaurante le compra café a una tostaduría por $100.000 + IVA. Pide <b>factura</b>: así los $19.000 de IVA que pagó se descuentan de los que él cobró a sus clientes ese mes. Si fuera una persona comprando café para su casa, sería <b>boleta</b>.</p>",
+ pregunta=q("¿Quién puede descontar el IVA de una compra?", ["Cualquiera que guarde la boleta", "Solo quien recibió una factura a su RUT de empresa", "Nadie: el IVA no se descuenta", "Solo el SII"], 1,
+   "La factura va a nombre de la empresa que compra, y ese IVA se resta del IVA que ella cobró. Con boleta no se puede.",
+   ["Con boleta no: no lleva el RUT del comprador.", None, "Sí se descuenta, pero solo con factura.", "El SII recibe el IVA; quien lo descuenta es la empresa que compró."]),
+ claves=["Boleta: para personas, sin nombre.", "Factura: para empresas, con RUT, y ese IVA se descuenta.", "Los dos informan la venta al SII."],
+ mision={"t": "Si quieres, emite una factura de práctica a CLIENTE DEMO SPA y fíjate en que pide el RUT del cliente", "v": "cobrar", "check": {"tipo": 33}})
 
-lec("basico", "exento", "Con IVA o sin IVA", "Algunas cosas no llevan IVA: son exentas.",
- "<p>No todo lleva IVA. Son <b>exentos</b>, entre otros, la educación, la salud, los arriendos de casas sin muebles, el transporte de pasajeros y algunos servicios profesionales. Para eso existen la <b>factura exenta</b> y la <b>boleta exenta</b>.</p>"
- "<p>Lo que sí lleva IVA se llama <b>afecto</b>. Si vendes algo afecto y lo emites como exento, estás cobrando de menos al Estado; si vendes algo exento con IVA, estás cobrando de más a tu cliente. Las dos cosas traen problemas.</p>"
- "<p>Qué es afecto y qué es exento depende de la actividad que declaraste al SII (el <b>giro</b>). Si tienes dudas, el SII lo responde por escrito.</p>",
- "<p>Un profesor particular cobra $20.000 por una clase. Como la educación es exenta, la boleta dice <b>$20.000, IVA $0, total $20.000</b>. Un vendedor de cuadernos, en cambio, cobra $20.000 + $3.800 de IVA.</p>",
- q("Una clase de guitarra cuesta $15.000. ¿Cuánto IVA lleva la boleta?", ["$2.850", "$1.500", "$0, porque la educación es exenta", "Depende del profesor"], 2,
-   "La educación es exenta de IVA: la boleta va por $15.000 sin impuesto. No es una decisión del vendedor, es la ley."))
+lec2("basico", "exento", "Con IVA o sin IVA", "Algunas cosas no llevan IVA: son exentas.",
+ adivina=q("La prima de Sofía da clases de guitarra a $15.000. ¿Cuánto IVA lleva su boleta?",
+   ["$2.850", "$1.500", "$0", "Depende de lo que ella decida"], 2,
+   "La educación es exenta de IVA: la boleta va por $15.000, sin impuesto. No lo decide ella: lo dice la ley. Toca cada cosa de arriba y mira cuáles llevan IVA."),
+ ideas=[
+  ("<p>No todo lleva IVA. Son <b>exentos</b>, entre otros, la educación, la salud, los arriendos de casas sin muebles y el transporte de pasajeros. Para eso existen la <b>factura exenta</b> y la <b>boleta exenta</b>.</p>", V()),
+  ("<p>Lo que sí lleva IVA se llama <b>afecto</b>. Si vendes algo afecto como exento, le cobras de menos al Estado; si vendes algo exento con IVA, le cobras de más a tu cliente. Las dos cosas traen problemas.</p>", V()),
+  ("<p>Qué es afecto y qué es exento depende de la actividad que declaraste al SII (el <b>giro</b>). Si tienes dudas, el SII lo responde por escrito, y la app te deja elegir el tipo de documento.</p>", V(vis=False)),
+ ],
+ ejemplo="<p>Un profesor particular cobra $20.000 por una clase. Como la educación es exenta, la boleta dice <b>$20.000, IVA $0, total $20.000</b>. Un vendedor de cuadernos, en cambio, cobra $20.000 + $3.800 de IVA.</p>",
+ pregunta=q("¿Cuál de estas cosas lleva IVA?", ["Una consulta médica", "Un cuaderno", "Un pasaje en bus", "El arriendo de una casa sin muebles"], 1,
+   "El cuaderno es un producto afecto: lleva el 19 %. Salud, transporte de pasajeros y arriendo de casa sin muebles son exentos.",
+   ["La salud es exenta de IVA.", None, "El transporte de pasajeros es exento.", "El arriendo de una casa sin muebles es exento."]),
+ claves=["Afecto = lleva IVA. Exento = no lleva.", "Educación, salud, transporte de pasajeros y arriendo de casa: exentos.", "Lo define la ley y tu giro, no el vendedor."])
 
-lec("basico", "neto-total", "Neto, IVA y total", "Los tres números que aparecen en todo documento.",
- "<p>Cualquier boleta o factura tiene tres números al final: el <b>neto</b> (lo que vale lo vendido), el <b>IVA</b> (el 19 % del neto) y el <b>total</b> (lo que paga el cliente). Si el documento es exento, el IVA es cero y el neto se llama <b>exento</b>.</p>"
- "<p>Cuando pones un precio al público, normalmente lo piensas <b>con IVA incluido</b>: el cliente ve $1.190. La app te deja escribir ese precio y calcula sola el neto y el IVA hacia atrás.</p>"
- "<p>Para una factura entre empresas, lo normal es hablar en neto (\"$100.000 más IVA\"), porque a la otra empresa el IVA le da lo mismo: lo descuenta.</p>",
- "<p>Vendes tres poleras a $9.990 cada una, IVA incluido. Total: $29.970. Neto: 29.970 ÷ 1,19 = <b>$25.185</b>. IVA: <b>$4.785</b>. Los centavos se redondean, y la app lo hace igual que el SII.</p>",
- q("Una boleta dice total $11.900. ¿Cuál es el neto?", ["$9.639", "$10.000", "$11.900", "$14.161"], 1,
-   "Neto = total ÷ 1,19 = 11.900 ÷ 1,19 = 10.000. El IVA es la diferencia: 1.900."),
- {"t": "Escribe 11900 con IVA incluido en Emitir y mira los tres números", "v": "cobrar"})
+lec2("basico", "neto-total", "Neto, IVA y total", "Los tres números que aparecen en todo documento.",
+ adivina=q("Sofía vendió 10 jugos a $1.190 cada uno. ¿Cuánto IVA juntó para entregar?",
+   ["$119", "$1.190", "$1.900", "$2.261"], 2,
+   "Total $11.900. Neto = 11.900 ÷ 1,19 = $10.000. IVA = $1.900. Arriba puedes partir del total y ver cómo se desarma."),
+ ideas=[
+  ("<p>Cualquier boleta o factura termina con tres números: el <b>neto</b> (lo que vale lo vendido), el <b>IVA</b> (el 19 % del neto) y el <b>total</b> (lo que paga el cliente). Si el documento es exento, el IVA es cero y el neto se llama <b>exento</b>.</p>", V()),
+  ("<p>Al público le pones el precio <b>con IVA incluido</b>: el cliente ve $1.190. Mueve el total arriba: con <b data-v=\"total\">$ 11.900</b>, el neto es <b data-v=\"neto\">$ 10.000</b> y el IVA <b data-v=\"iva\">$ 1.900</b>. La app hace esa cuenta hacia atrás por ti.</p>", V()),
+  ("<p>Entre empresas se habla en neto («$100.000 más IVA»), porque a la otra empresa el IVA le da lo mismo: lo descuenta. Los centavos se redondean, y la app lo hace igual que el SII.</p>", V(vis=False)),
+ ],
+ ejemplo="<p>Vendes tres poleras a $9.990 cada una, IVA incluido. Total: $29.970. Neto: 29.970 ÷ 1,19 = <b>$25.185</b>. IVA: <b>$4.785</b>.</p>",
+ pregunta=q("Una boleta dice total $11.900. ¿Cuál es el neto?", ["$9.639", "$10.000", "$11.900", "$14.161"], 1,
+   "Neto = total ÷ 1,19 = 11.900 ÷ 1,19 = 10.000. El IVA es la diferencia: 1.900.",
+   ["Restaste el 19 % del total; hay que dividir por 1,19.", None, "Ese es el total; el neto es sin IVA.", "Le sumaste IVA a algo que ya lo tenía."]),
+ claves=["Neto, IVA y total: los tres números de todo documento.", "Precio al público = con IVA incluido; la app calcula el neto hacia atrás.", "Entre empresas se habla en neto."],
+ mision={"t": "Si quieres, escribe 11900 con IVA incluido en Emitir y mira aparecer los tres números", "v": "cobrar", "check": {"total": 11900}})
 
 # ---------------- 2. Los números del mes ----------------
 lec("numeros", "uf-utm", "UF y UTM", "Dos \"monedas\" que suben con la inflación, para que los montos no pierdan valor.",
@@ -220,7 +289,21 @@ lec("documentos", "gratuito-propio", "Sistema gratuito o motor propio", "Dos for
    "El SII exige certificar el software antes de usarlo en producción. Por eso la app tiene un ambiente de pruebas (amarillo) separado del real (rojo)."),
  {"t": "Recorre las etapas 4 y 5 del camino, más abajo en Aprender", "v": "aprender"})
 
-datos = {"version": 1, "modulos": MODULOS, "lecciones": L}
-js = "// Mini academia: las lecciones como datos. Generado por tools/academia_datos.py (desde la raíz del repo); se valida con\n// tools/revisar_academia.py. Para alumnos de colegio: concepto, ejemplo con números, acción en la app y una pregunta.\nwindow.ACADEMIA = " + json.dumps(datos, ensure_ascii=False, indent=1) + ";\n"
+# Conversión automática para las lecciones escritas con lec(): cada párrafo del concepto es una tarjeta;
+# el visual acompaña desde la primera; la acción pasa a misión opcional; el cierre usa las claves o el resumen.
+def armar_pasos(l):
+    if l.get("pasos"): return l["pasos"]
+    import re as _re
+    parrafos = _re.findall(r"<p>.*?</p>", l["concepto"], _re.S)
+    pasos = [{"tipo": "idea", "h": p, "vis": True, "foco": None, "titulo": None} for p in parrafos]
+    pasos.append({"tipo": "idea", "h": l["ejemplo"], "vis": True, "foco": None, "titulo": "Un ejemplo"})
+    pasos.append({"tipo": "pregunta", **l["pregunta"]})
+    if l.get("accion"): pasos.append({"tipo": "mision", "t": l["accion"]["t"], "v": l["accion"]["v"]})
+    pasos.append({"tipo": "cierre", "claves": l.get("claves") or [l["resumen"]]})
+    return pasos
+for l in L: l["pasos"] = armar_pasos(l)
+
+datos = {"version": 2, "modulos": MODULOS, "lecciones": L}
+js = "// Mini academia: las lecciones como datos. Generado por tools/academia_datos.py (desde la raíz del repo); se valida con\n// tools/revisar_academia.py. Para alumnos de colegio: cada lección es una secuencia de pasos (adivina, idea, ejemplo,\n// pregunta, misión opcional, cierre) que la app muestra de a una tarjeta.\nwindow.ACADEMIA = " + json.dumps(datos, ensure_ascii=False, indent=1) + ";\n"
 open("app/frontend/dist/academia.js", "w", encoding="utf-8").write(js)
-print(len(L), "lecciones,", len(MODULOS), "módulos,", len(js)//1024, "KB")
+print(len(L), "lecciones,", len(MODULOS), "módulos,", sum(1 for l in L if any(p["tipo"] == "adivina" for p in l["pasos"])), "con adivina,", len(js)//1024, "KB")

@@ -112,3 +112,15 @@ lado a lado con el cálculo de la app. Cuando no coinciden, la app explica por q
   deslizador, toca un mes, emite folios de mentira). El texto completo está en [`LECCIONES.md`](LECCIONES.md), generado desde los
   mismos datos (`tools/academia_datos.py` → `app/frontend/dist/academia.js`;
   `tools/revisar_academia.py --md`).
+- **Hecho (2026-10-13): la lección por pasos, para mantener la atención y guiar.** Basado en
+  segmentación (Mayer), "pretesting" / predecir-observar-explicar y los patrones de las
+  explorable explanations (Victor, Case): cada lección es una secuencia de tarjetas, una idea por
+  pantalla, con puntos de progreso y flechas del teclado. Abre con **adivina** (una pregunta antes
+  de explicar; al responder se revela el visual), siguen las **ideas** (dos o tres líneas; el visual
+  se enfoca en la parte de la que habla el texto y los números del texto cambian cuando el alumno
+  mueve el visual), el ejemplo, la pregunta de control (con pista por opción equivocada), una
+  **misión opcional** en la app (la app revisa sola si ya la hiciste; nunca bloquea: "la app
+  acompaña, no obliga") y el cierre "lo que te llevas" (tres frases). "Lo básico" está escrito a
+  mano con una sola historia (Sofía y su puesto de jugos, $1.000 + $190); los otros cuatro
+  módulos se convierten solos (cada párrafo, una tarjeta) y faltan sus adivinanzas y claves.
+  Pendiente: probar con dos o tres alumnos reales mirando dónde se detienen.

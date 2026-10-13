@@ -11,13 +11,24 @@ Qué es un impuesto, quién es el SII y por qué una boleta dice 1.190 y no 1.00
 
 *Plata que todos aportan para pagar lo que es de todos.*
 
-Un impuesto es una parte de lo que ganas o gastas que va al Estado. Con esa plata se pagan colegios, hospitales, calles, carabineros, pensiones. No es un castigo ni una multa: es la cuota de cada uno para lo que usamos en común.
+**Antes de leer, adivina.** Sofía vende un jugo a $1.190 en la feria del colegio. ¿Cuánto de esa plata es impuesto?
 
-Hay impuestos de muchos tipos. En este curso importan dos: el IVA, que se paga cada vez que se compra algo, y el impuesto a la renta, que se paga una vez al año sobre lo que se ganó.
+- Nada: todo es de Sofía
+- $19
+- **$190**
+- $1.190
 
-Quien tiene un negocio no solo paga impuestos: también recauda, es decir, cobra el IVA a sus clientes y se lo entrega al Estado. Por eso existen las boletas y las facturas: son la prueba de cuánto se cobró.
+*De cada jugo, $190 no son de Sofía: son IVA y van al Estado. Ella los cobra y los entrega. Mira cómo se reparte.*
 
-**Un ejemplo.** Compras un cuaderno a $1.190. De esos pesos, $1.000 son del negocio y $190 son IVA: la librería los cobra, pero no son suyos; a fin de mes se los pasa al Estado.
+Un impuesto es una parte de lo que ganas o gastas que va al Estado. Con esa plata se pagan colegios, hospitales, calles, pensiones. No es un castigo ni una multa: es la cuota de cada uno para lo que usamos en común.
+
+Mueve el precio del jugo. Si cuesta $ 1.000 sin IVA, el Estado recibe $ 190 y Sofía se queda con $ 1.000. La parte amarilla nunca es de ella.
+
+Quien tiene un negocio no solo paga impuestos: también recauda. Cobra el IVA a sus clientes y se lo entrega al Estado a fin de mes. Por eso existen las boletas y las facturas: son la prueba de cuánto se cobró.
+
+En este curso importan dos impuestos: el IVA, que se paga cada vez que se compra algo, y el impuesto a la renta, que se paga una vez al año sobre lo que se ganó. Los dos aparecen más adelante.
+
+**Un ejemplo.** Compras un cuaderno a $1.190. De esos pesos, $1.000 son de la librería y $190 son IVA: la librería los cobra, pero no son suyos; a fin de mes se los pasa al Estado.
 
 **Pregunta.** ¿Para qué sirven los impuestos?
 
@@ -28,19 +39,36 @@ Quien tiene un negocio no solo paga impuestos: también recauda, es decir, cobra
 
 *Con los impuestos se financia lo que es de todos. Quien vende los cobra y los entrega; no se los queda.*
 
+**Lo que te llevas.**
+
+- Un impuesto es la cuota de cada uno para lo que es de todos.
+- El negocio cobra el IVA, pero no es suyo: lo entrega al Estado.
+- La boleta es la prueba de cuánto se cobró.
+
 ### El SII y el RUT
 
 *El SII es la oficina de los impuestos; el RUT es tu número.*
 
+**Antes de leer, adivina.** El RUT 12.345.678-5 termina en 5. ¿Para qué sirve ese último número?
+
+- Dice en qué año nació la persona
+- **Detecta errores al escribir el RUT**
+- Dice de qué región es
+- No sirve para nada
+
+*Es el dígito verificador: se calcula con los otros números. Si escribes uno mal, deja de calzar y la app te avisa. Pruébalo.*
+
 El SII (Servicio de Impuestos Internos) es la oficina del Estado que lleva la cuenta de los impuestos: sabe qué vendiste, qué compraste y cuánto debes. Todo lo que emites se lo informa a él.
 
-El RUT (Rol Único Tributario) es el número con que el SII te reconoce. Las personas tienen uno (es el mismo del carnet) y las empresas tienen otro, propio, que empieza con 76 o 77. En cada boleta y factura va el RUT de quien vende, y en la factura también el de quien compra.
+El RUT (Rol Único Tributario) es el número con que el SII te reconoce. Las personas tienen uno (el del carnet) y las empresas tienen otro propio, que empieza con 76 o 77. Si el puesto de Sofía se vuelve empresa, tendrá un RUT nuevo, distinto al de ella.
+
+Cambia un número del RUT de arriba y mira qué pasa con el dígito del final. Así la app sabe si te equivocaste al escribir, antes de mandar nada al SII.
 
 Para entrar al SII por internet se usa la clave tributaria, una contraseña que te da el propio SII. Con ella se declara, se piden folios y se ven los documentos.
 
-**Un ejemplo.** Un RUT se escribe con puntos y un guion: 12.345.678-5. El último carácter es el dígito verificador, que puede ser un número o una K; sirve para detectar errores de tipeo. La app lo revisa sola.
+**Un ejemplo.** Un RUT se escribe con puntos y un guion: 12.345.678-5. El último carácter puede ser un número o una K. Si alguien cambia el 5 del final por un 6, el dígito deja de calzar y la app lo dice de inmediato.
 
-**Hazlo en la app:** Escribe un RUT en la app y mira cómo lo valida (`#cobrar`).
+**Hazlo en la app:** Escribe un RUT en Emitir y mira cómo la app lo revisa mientras escribes (`#cobrar`).
 
 **Pregunta.** ¿Qué es el RUT de una empresa?
 
@@ -51,19 +79,36 @@ Para entrar al SII por internet se usa la clave tributaria, una contraseña que 
 
 *La empresa es otra persona ante la ley y tiene su propio RUT. El dueño sigue teniendo el suyo.*
 
+**Lo que te llevas.**
+
+- El SII lleva la cuenta de los impuestos de todos.
+- Tu RUT es tu número; una empresa tiene el suyo propio.
+- El último dígito del RUT detecta errores de tipeo.
+
 ### El IVA
 
 *El 19 % que va al Estado cada vez que se vende algo.*
 
-El IVA es el Impuesto al Valor Agregado. En Chile es el 19 % y se suma al precio de casi todo lo que se compra: comida, ropa, servicios, entradas.
+**Antes de leer, adivina.** Sofía quiere ganar $1.000 por cada jugo. ¿A cuánto lo tiene que vender?
 
-Lo paga quien compra. El negocio solo lo recauda: lo cobra en la boleta y a fin de mes se lo entrega al SII. Por eso un negocio nunca debe pensar que el IVA es ganancia suya.
+- $1.000
+- $1.019
+- **$1.190**
+- $1.900
 
-Para calcularlo: el precio sin IVA se llama neto; el IVA es el 19 % del neto; la suma es el total. Si solo conoces el total, el neto se obtiene dividiendo por 1,19.
+*Al neto se le suma el 19 %: 1.000 + 190 = $1.190. Los $190 no son ganancia: son el IVA que después entrega. Mueve el deslizador y mira cómo cambia.*
 
-**Un ejemplo.** Un café cuesta $1.000 neto. IVA: 1.000 × 0,19 = $190. Total: $1.190. Al revés: si la boleta dice $2.380, el neto es 2.380 ÷ 1,19 = $2.000 y el IVA $380.
+El IVA es el Impuesto al Valor Agregado. En Chile es el 19 % y se suma al precio de casi todo: comida, ropa, servicios, entradas. Lo paga quien compra; el negocio solo lo recauda.
 
-**Hazlo en la app:** Emite una boleta de práctica y mira cómo la app separa neto e IVA (`#cobrar`).
+Tres palabras: el precio sin IVA es el neto; el IVA es el 19 % del neto; la suma es el total. Ahora mismo arriba: neto $ 10.000, IVA $ 1.900, total $ 11.900.
+
+Cambia arriba a «Sé el precio con IVA». Si solo conoces el total, el neto sale dividiendo por 1,19. La app hace esa cuenta sola cada vez que escribes un precio.
+
+Lo importante: el IVA nunca es ganancia del negocio. Sofía lo cobra en cada jugo, lo junta, y a fin de mes se lo entrega al SII. Más adelante verás cómo (se llama F29).
+
+**Un ejemplo.** Un jugo cuesta $1.000 neto. IVA: 1.000 × 0,19 = $190. Total: $1.190. Al revés: si la boleta dice $2.380, el neto es 2.380 ÷ 1,19 = $2.000 y el IVA $380.
+
+**Hazlo en la app:** Si quieres verlo con tus números, emite una boleta de práctica por $1.000 y mira cómo la app separa neto e IVA (`#cobrar`).
 
 **Pregunta.** Un producto vale $5.000 neto. ¿Cuánto dice el total de la boleta?
 
@@ -74,19 +119,34 @@ Para calcularlo: el precio sin IVA se llama neto; el IVA es el 19 % del neto; la
 
 *IVA: 5.000 × 0,19 = 950. Total: 5.000 + 950 = 5.950. El error común es sumar 19 pesos en vez del 19 %.*
 
+**Lo que te llevas.**
+
+- IVA = 19 % del neto. Total = neto + IVA.
+- Del total al neto: dividir por 1,19.
+- El IVA se cobra, se junta y se entrega; no es ganancia.
+
 ### Boleta o factura
 
 *La boleta es para personas; la factura, para empresas.*
 
-Una boleta se le da a una persona que compra para sí misma. No lleva su nombre ni su RUT. Es el documento del almacén, el café, la peluquería.
+**Antes de leer, adivina.** El casino del colegio le compra 50 jugos a Sofía para una fiesta. ¿Qué documento le da?
 
-Una factura se le da a otra empresa (o a alguien que compra para su negocio). Lleva el RUT y el nombre del cliente y detalla el IVA, porque a él le sirve para descontarlo de lo que debe pagar.
+- Una boleta, como a cualquiera
+- **Una factura, con el RUT del casino**
+- Ninguno: entre conocidos no hace falta
+- Un recibo escrito a mano
 
-Los dos documentos informan la venta al SII. La diferencia es para quién son y qué puede hacer el cliente con ellos.
+*El casino es una empresa y va a querer descontar el IVA de esa compra: necesita factura a su RUT. Cambia arriba a «Compra una empresa» y mira qué aparece.*
+
+Una boleta se le da a una persona que compra para sí misma. No lleva su nombre ni su RUT. Es el documento del almacén, el café, el puesto de jugos.
+
+Una factura se le da a otra empresa. Lleva el RUT y el nombre del cliente y detalla el IVA, porque a él le sirve para descontarlo de lo que debe pagar.
+
+Los dos documentos informan la venta al SII y el IVA es el mismo. La diferencia es para quién son y qué puede hacer el cliente con ellos. Si no sabes cuál dar, pregunta: ¿compra para su casa o para su negocio?
 
 **Un ejemplo.** Un restaurante le compra café a una tostaduría por $100.000 + IVA. Pide factura: así los $19.000 de IVA que pagó se descuentan de los que él cobró a sus clientes ese mes. Si fuera una persona comprando café para su casa, sería boleta.
 
-**Hazlo en la app:** Emite una factura de práctica a CLIENTE DEMO SPA (`#cobrar`).
+**Hazlo en la app:** Si quieres, emite una factura de práctica a CLIENTE DEMO SPA y fíjate en que pide el RUT del cliente (`#cobrar`).
 
 **Pregunta.** ¿Quién puede descontar el IVA de una compra?
 
@@ -97,40 +157,70 @@ Los dos documentos informan la venta al SII. La diferencia es para quién son y 
 
 *La factura va a nombre de la empresa que compra, y ese IVA se resta del IVA que ella cobró. Con boleta no se puede.*
 
+**Lo que te llevas.**
+
+- Boleta: para personas, sin nombre.
+- Factura: para empresas, con RUT, y ese IVA se descuenta.
+- Los dos informan la venta al SII.
+
 ### Con IVA o sin IVA
 
 *Algunas cosas no llevan IVA: son exentas.*
 
-No todo lleva IVA. Son exentos, entre otros, la educación, la salud, los arriendos de casas sin muebles, el transporte de pasajeros y algunos servicios profesionales. Para eso existen la factura exenta y la boleta exenta.
-
-Lo que sí lleva IVA se llama afecto. Si vendes algo afecto y lo emites como exento, estás cobrando de menos al Estado; si vendes algo exento con IVA, estás cobrando de más a tu cliente. Las dos cosas traen problemas.
-
-Qué es afecto y qué es exento depende de la actividad que declaraste al SII (el giro). Si tienes dudas, el SII lo responde por escrito.
-
-**Un ejemplo.** Un profesor particular cobra $20.000 por una clase. Como la educación es exenta, la boleta dice $20.000, IVA $0, total $20.000. Un vendedor de cuadernos, en cambio, cobra $20.000 + $3.800 de IVA.
-
-**Pregunta.** Una clase de guitarra cuesta $15.000. ¿Cuánto IVA lleva la boleta?
+**Antes de leer, adivina.** La prima de Sofía da clases de guitarra a $15.000. ¿Cuánto IVA lleva su boleta?
 
 - $2.850
 - $1.500
-- **$0, porque la educación es exenta**
-- Depende del profesor
+- **$0**
+- Depende de lo que ella decida
 
-*La educación es exenta de IVA: la boleta va por $15.000 sin impuesto. No es una decisión del vendedor, es la ley.*
+*La educación es exenta de IVA: la boleta va por $15.000, sin impuesto. No lo decide ella: lo dice la ley. Toca cada cosa de arriba y mira cuáles llevan IVA.*
+
+No todo lleva IVA. Son exentos, entre otros, la educación, la salud, los arriendos de casas sin muebles y el transporte de pasajeros. Para eso existen la factura exenta y la boleta exenta.
+
+Lo que sí lleva IVA se llama afecto. Si vendes algo afecto como exento, le cobras de menos al Estado; si vendes algo exento con IVA, le cobras de más a tu cliente. Las dos cosas traen problemas.
+
+Qué es afecto y qué es exento depende de la actividad que declaraste al SII (el giro). Si tienes dudas, el SII lo responde por escrito, y la app te deja elegir el tipo de documento.
+
+**Un ejemplo.** Un profesor particular cobra $20.000 por una clase. Como la educación es exenta, la boleta dice $20.000, IVA $0, total $20.000. Un vendedor de cuadernos, en cambio, cobra $20.000 + $3.800 de IVA.
+
+**Pregunta.** ¿Cuál de estas cosas lleva IVA?
+
+- Una consulta médica
+- **Un cuaderno**
+- Un pasaje en bus
+- El arriendo de una casa sin muebles
+
+*El cuaderno es un producto afecto: lleva el 19 %. Salud, transporte de pasajeros y arriendo de casa sin muebles son exentos.*
+
+**Lo que te llevas.**
+
+- Afecto = lleva IVA. Exento = no lleva.
+- Educación, salud, transporte de pasajeros y arriendo de casa: exentos.
+- Lo define la ley y tu giro, no el vendedor.
 
 ### Neto, IVA y total
 
 *Los tres números que aparecen en todo documento.*
 
-Cualquier boleta o factura tiene tres números al final: el neto (lo que vale lo vendido), el IVA (el 19 % del neto) y el total (lo que paga el cliente). Si el documento es exento, el IVA es cero y el neto se llama exento.
+**Antes de leer, adivina.** Sofía vendió 10 jugos a $1.190 cada uno. ¿Cuánto IVA juntó para entregar?
 
-Cuando pones un precio al público, normalmente lo piensas con IVA incluido: el cliente ve $1.190. La app te deja escribir ese precio y calcula sola el neto y el IVA hacia atrás.
+- $119
+- $1.190
+- **$1.900**
+- $2.261
 
-Para una factura entre empresas, lo normal es hablar en neto ("$100.000 más IVA"), porque a la otra empresa el IVA le da lo mismo: lo descuenta.
+*Total $11.900. Neto = 11.900 ÷ 1,19 = $10.000. IVA = $1.900. Arriba puedes partir del total y ver cómo se desarma.*
 
-**Un ejemplo.** Vendes tres poleras a $9.990 cada una, IVA incluido. Total: $29.970. Neto: 29.970 ÷ 1,19 = $25.185. IVA: $4.785. Los centavos se redondean, y la app lo hace igual que el SII.
+Cualquier boleta o factura termina con tres números: el neto (lo que vale lo vendido), el IVA (el 19 % del neto) y el total (lo que paga el cliente). Si el documento es exento, el IVA es cero y el neto se llama exento.
 
-**Hazlo en la app:** Escribe 11900 con IVA incluido en Emitir y mira los tres números (`#cobrar`).
+Al público le pones el precio con IVA incluido: el cliente ve $1.190. Mueve el total arriba: con $ 11.900, el neto es $ 10.000 y el IVA $ 1.900. La app hace esa cuenta hacia atrás por ti.
+
+Entre empresas se habla en neto («$100.000 más IVA»), porque a la otra empresa el IVA le da lo mismo: lo descuenta. Los centavos se redondean, y la app lo hace igual que el SII.
+
+**Un ejemplo.** Vendes tres poleras a $9.990 cada una, IVA incluido. Total: $29.970. Neto: 29.970 ÷ 1,19 = $25.185. IVA: $4.785.
+
+**Hazlo en la app:** Si quieres, escribe 11900 con IVA incluido en Emitir y mira aparecer los tres números (`#cobrar`).
 
 **Pregunta.** Una boleta dice total $11.900. ¿Cuál es el neto?
 
@@ -140,6 +230,12 @@ Para una factura entre empresas, lo normal es hablar en neto ("$100.000 más IVA
 - $14.161
 
 *Neto = total ÷ 1,19 = 11.900 ÷ 1,19 = 10.000. El IVA es la diferencia: 1.900.*
+
+**Lo que te llevas.**
+
+- Neto, IVA y total: los tres números de todo documento.
+- Precio al público = con IVA incluido; la app calcula el neto hacia atrás.
+- Entre empresas se habla en neto.
 
 ## 2. Los números del mes
 
@@ -168,6 +264,10 @@ La UTM (Unidad Tributaria Mensual) cambia una vez al mes. La usa el SII para mul
 
 *La UF se reajusta a diario; la UTM, una vez al mes. Las dos siguen la inflación.*
 
+**Lo que te llevas.**
+
+- Dos "monedas" que suben con la inflación, para que los montos no pierdan valor.
+
 ### Lo que cobras y lo que pagas
 
 *El IVA de tus ventas menos el IVA de tus compras.*
@@ -190,6 +290,10 @@ A fin de mes se restan: débito − crédito = lo que pagas. Si el crédito es m
 - $10.000
 
 *Débito 19.000 menos crédito 10.000 = 9.000. Solo se paga la diferencia.*
+
+**Lo que te llevas.**
+
+- El IVA de tus ventas menos el IVA de tus compras.
 
 ### El F29, la declaración del mes
 
@@ -214,6 +318,10 @@ El plazo es el día 12 del mes siguiente. Quien emite documentos electrónicos y
 
 *El F29 se presenta todos los meses, aunque sea en cero. Si no lo haces, hay multa.*
 
+**Lo que te llevas.**
+
+- Una vez al mes le cuentas al SII cuánto vendiste y pagas el IVA.
+
 ### El PPM, un adelanto
 
 *Cada mes pagas un poquito a cuenta del impuesto del año.*
@@ -235,6 +343,10 @@ En abril, al calcular el impuesto real del año, los PPM que ya pagaste se descu
 
 *El PPM no es un impuesto extra: es el mismo impuesto a la renta, pagado de a poco durante el año.*
 
+**Lo que te llevas.**
+
+- Cada mes pagas un poquito a cuenta del impuesto del año.
+
 ### El impuesto a la renta y el F22
 
 *Una vez al año, sobre lo que ganaste de verdad.*
@@ -255,6 +367,10 @@ Las empresas pagan el impuesto de primera categoría; las personas, el global co
 - Sobre la UF
 
 *La renta es la ganancia. Una empresa que vende mucho pero gasta casi lo mismo paga poco impuesto a la renta.*
+
+**Lo que te llevas.**
+
+- Una vez al año, sobre lo que ganaste de verdad.
 
 ## 3. Tu empresa
 
@@ -283,6 +399,10 @@ Crearla toma un día y es gratis en Empresa en un Día (registroempresasysocieda
 
 *La empresa es otra persona ante la ley: sus deudas y ganancias son suyas. Para emitir boletas basta ser persona natural con inicio de actividades.*
 
+**Lo que te llevas.**
+
+- Puedes emitir con tu propio RUT o crear uno nuevo.
+
 ### SpA, EIRL, Ltda. y S.A.
 
 *Las siglas que van después del nombre de una empresa.*
@@ -306,6 +426,10 @@ S.A. (Sociedad Anónima): para empresas grandes, con directorio y muchas reglas.
 
 *La SpA puede tener un solo accionista y sumar más después. La EIRL no admite socios, y la S.A. es para empresas grandes.*
 
+**Lo que te llevas.**
+
+- Las siglas que van después del nombre de una empresa.
+
 ### Pro-PYME y los regímenes
 
 *El "plan" de impuestos que tiene tu empresa.*
@@ -326,6 +450,10 @@ Las empresas grandes están en el régimen general, con contabilidad completa. Q
 - Una multa del SII
 
 *El régimen define cómo se calcula el impuesto a la renta. Pro-PYME es el de las empresas chicas; el IVA es igual para todos.*
+
+**Lo que te llevas.**
+
+- El "plan" de impuestos que tiene tu empresa.
 
 ### Inicio de actividades y giro
 
@@ -350,6 +478,10 @@ Al hacerlo eliges tu giro: a qué te dedicas. Cada giro tiene un código de acti
 
 *El plazo es de dos meses desde que empiezas. Vale para personas naturales y para empresas.*
 
+**Lo que te llevas.**
+
+- Avisarle al SII que empiezas, y a qué te vas a dedicar.
+
 ### Clave tributaria y certificado digital
 
 *Dos llaves distintas, para dos cosas distintas.*
@@ -372,6 +504,10 @@ En Faro, el certificado se guarda cifrado y se abre con tu PIN. La clave tributa
 - Para crear la empresa
 
 *El certificado firma. Para entrar a sii.cl se usa la clave tributaria. Son llaves distintas con contraseñas distintas.*
+
+**Lo que te llevas.**
+
+- Dos llaves distintas, para dos cosas distintas.
 
 ## 4. Las fechas
 
@@ -400,6 +536,10 @@ Una vez: el inicio de actividades al empezar, y el término de giro si cierras.
 
 *La renta se declara una vez al año, en abril, por el año anterior completo. Lo mensual es el F29.*
 
+**Lo que te llevas.**
+
+- Qué se hace cada mes y qué se hace cada año.
+
 ### Boletas de honorarios y la retención
 
 *Para quien trabaja por su cuenta sin vender productos.*
@@ -421,6 +561,10 @@ En abril, en el F22, se calcula tu impuesto real del año y se descuenta lo rete
 
 *Los honorarios no llevan IVA, pero sí retención: un adelanto del impuesto anual que después se ajusta en abril.*
 
+**Lo que te llevas.**
+
+- Para quien trabaja por su cuenta sin vender productos.
+
 ### Si te atrasas
 
 *Qué pasa cuando una declaración llega tarde.*
@@ -441,6 +585,10 @@ También hay multas por emitir mal: vender sin boleta, o usar folios que no te p
 - Cerrar la empresa
 
 *Un atraso corto cuesta poco; un F29 que nunca se presenta cuesta mucho más. Se presenta igual, cuanto antes.*
+
+**Lo que te llevas.**
+
+- Qué pasa cuando una declaración llega tarde.
 
 ## 5. Los documentos
 
@@ -469,6 +617,10 @@ Un folio usado no vuelve: si te equivocas, no se borra, se corrige con otro docu
 
 *Los folios no se borran ni se reutilizan. El error se corrige con una nota de crédito, que es otro documento con su propio folio.*
 
+**Lo que te llevas.**
+
+- Cada documento tiene un número único que el SII autorizó antes.
+
 ### Nota de crédito y nota de débito
 
 *Cómo se corrige un documento sin borrarlo.*
@@ -494,6 +646,10 @@ Cada nota dice a qué documento se refiere (tipo, folio y fecha). Así el SII en
 
 *La nota de débito suma lo que faltó y refiere a la boleta original. La nota de crédito es para restar.*
 
+**Lo que te llevas.**
+
+- Cómo se corrige un documento sin borrarlo.
+
 ### El Registro de Compras y Ventas
 
 *La libreta del SII donde queda todo lo que emitiste y recibiste.*
@@ -517,6 +673,10 @@ Si recibiste una factura que no corresponde (alguien te facturó por error), tie
 
 *El SII ya tiene tus documentos electrónicos. Con ellos arma el registro y la propuesta; tú la revisas.*
 
+**Lo que te llevas.**
+
+- La libreta del SII donde queda todo lo que emitiste y recibiste.
+
 ### Sistema gratuito o motor propio
 
 *Dos formas de emitir; cuál conviene a cada uno.*
@@ -539,3 +699,7 @@ Las dos formas son válidas y una empresa puede partir con el gratuito y pasar a
 - Tener más de 10 empleados
 
 *El SII exige certificar el software antes de usarlo en producción. Por eso la app tiene un ambiente de pruebas (amarillo) separado del real (rojo).*
+
+**Lo que te llevas.**
+
+- Dos formas de emitir; cuál conviene a cada uno.
