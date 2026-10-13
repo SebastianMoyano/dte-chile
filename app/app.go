@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -18,6 +19,8 @@ import (
 	"dtechile/nucleo/almacen"
 	"dtechile/nucleo/emision"
 	"dtechile/nucleo/pdf"
+	"dtechile/nucleo/portal"
+	"dtechile/nucleo/ted"
 	"dtechile/nucleo/valores"
 	"dtechile/nucleo/xsd"
 )
@@ -187,6 +190,145 @@ func (a *App) Guardar(ruta, nombreSugerido string) (string, error) {
 		return "", err
 	}
 	return destino, os.WriteFile(destino, datos, 0o644)
+}
+
+// ElegirArchivo abre el diálogo del sistema para elegir un archivo (p. ej. el certificado .p12).
+// Devuelve la ruta, o "" si canceló. `extensiones` va separado por comas ("p12,pfx").
+func (a *App) ElegirArchivo(titulo, extensiones string) (string, error) {
+	var filtros []wruntime.FileFilter
+	if extensiones != "" {
+		var pats []string
+		for _, e := range strings.Split(extensiones, ",") {
+			if e = strings.TrimSpace(e); e != "" {
+				pats = append(pats, "*."+e)
+			}
+		}
+		filtros = []wruntime.FileFilter{{DisplayName: "Archivo", Pattern: strings.Join(pats, ";")}}
+	}
+	return wruntime.OpenFileDialog(a.ctx, wruntime.OpenDialogOptions{Title: titulo, Filters: filtros})
+}
+
+// Formulario hace un POST multipart al motor: campos (JSON objeto de strings) y un archivo
+// opcional del disco bajo el campo `archivo`. Lo usa "Mi empresa" para subir el certificado
+// y agregar la empresa; el archivo se lee aquí y nunca pasa por la interfaz.
+func (a *App) Formulario(ruta, camposJSON, rutaArchivo string) (Respuesta, error) {
+	if a.motor.URL == "" {
+		return Respuesta{}, fmt.Errorf("el motor todavía no está listo")
+	}
+	campos := map[string]any{}
+	if strings.TrimSpace(camposJSON) != "" {
+		if err := json.Unmarshal([]byte(camposJSON), &campos); err != nil {
+			return Respuesta{}, err
+		}
+	}
+	var buf strings.Builder
+	w := multipart.NewWriter(&buf)
+	for k, v := range campos {
+		s, ok := v.(string)
+		if !ok {
+			b, _ := json.Marshal(v)
+			s = string(b)
+		}
+		if err := w.WriteField(k, s); err != nil {
+			return Respuesta{}, err
+		}
+	}
+	if rutaArchivo != "" {
+		datos, err := os.ReadFile(rutaArchivo)
+		if err != nil {
+			return Respuesta{}, fmt.Errorf("no pude leer el archivo: %w", err)
+		}
+		fw, err := w.CreateFormFile("archivo", filepath.Base(rutaArchivo))
+		if err != nil {
+			return Respuesta{}, err
+		}
+		if _, err := fw.Write(datos); err != nil {
+			return Respuesta{}, err
+		}
+	}
+	if err := w.Close(); err != nil {
+		return Respuesta{}, err
+	}
+	req, err := http.NewRequest("POST", a.motor.URL+ruta, strings.NewReader(buf.String()))
+	if err != nil {
+		return Respuesta{}, err
+	}
+	if a.motor.Clave != "" {
+		req.Header.Set("Authorization", "Bearer "+a.motor.Clave)
+	}
+	req.Header.Set("Content-Type", w.FormDataContentType())
+	req.Header.Set("Accept", "application/json")
+	r, err := a.http.Do(req)
+	if err != nil {
+		return Respuesta{}, err
+	}
+	defer r.Body.Close()
+	b, err := io.ReadAll(r.Body)
+	if err != nil {
+		return Respuesta{}, err
+	}
+	return Respuesta{Status: r.StatusCode, Cuerpo: string(b)}, nil
+}
+
+// PedirFolios pide al SII un rango de folios (CAF) para la empresa, con su certificado y en su
+// ambiente, lo guarda en storage/cafs y lo registra en la base: lo mismo que
+// `nucleo-portal solicitar … --db`. Respeta los guardarraíles anti-acaparamiento del portal.
+func (a *App) PedirFolios(negocioID, tipo, cantidad int) (string, error) {
+	r, err := a.API("GET", fmt.Sprintf("/api/v1/keystore/negocios/%d/contexto-emision", negocioID), "")
+	if err != nil {
+		return "", err
+	}
+	if r.Status != 200 {
+		return "", fmt.Errorf("no pude leer el certificado de la empresa: %s", r.Cuerpo)
+	}
+	var ctx struct {
+		Rut, Ambiente, CertPEM, KeyPEM, DatabasePath, StoragePath string `json:"-"`
+	}
+	var m map[string]any
+	if err := json.Unmarshal([]byte(r.Cuerpo), &m); err != nil {
+		return "", err
+	}
+	g := func(k string) string { s, _ := m[k].(string); return s }
+	ctx.Rut, ctx.Ambiente, ctx.CertPEM, ctx.KeyPEM, ctx.DatabasePath, ctx.StoragePath = g("rut"), g("ambiente"), g("cert_pem"), g("key_pem"), g("database_path"), g("storage_path")
+	cli, err := portal.Nuevo([]byte(ctx.CertPEM), []byte(ctx.KeyPEM), portal.BaseDe(ctx.Ambiente))
+	if err != nil {
+		return "", err
+	}
+	if _, err := cli.Autenticar(""); err != nil {
+		return "", err
+	}
+	caf, info, err := cli.SolicitarFolios(ctx.Rut, tipo, cantidad, true, false)
+	if err != nil {
+		return "", err
+	}
+	out := map[string]any{}
+	bi, _ := json.Marshal(info)
+	_ = json.Unmarshal(bi, &out)
+	if caf != nil {
+		dir := filepath.Join(ctx.StoragePath, "cafs")
+		_ = os.MkdirAll(dir, 0o755)
+		nombre := filepath.Join(dir, fmt.Sprintf("CAF_%s_T%d_%d-%d_%s.xml", strings.ReplaceAll(ctx.Rut, "-", ""), tipo, info.FolioDesde, info.FolioHasta, time.Now().Format("20060102")))
+		if err := os.WriteFile(nombre, caf, 0o644); err != nil {
+			return "", err
+		}
+		c, err := ted.ParsearCAF(string(caf))
+		if err != nil {
+			return "", err
+		}
+		alm, err := almacen.AbrirYMigrar(ctx.DatabasePath)
+		if err != nil {
+			return "", err
+		}
+		defer alm.Cerrar()
+		id, err := alm.RegistrarCAF(c.TipoDTE, c.RutEmisor, c.FolioDesde, c.FolioHasta, c.FechaAutorizacion, string(caf))
+		if err != nil {
+			return "", err
+		}
+		out["caf_id"] = id
+		out["archivo"] = nombre
+	}
+	b, _ := json.Marshal(out)
+	return string(b), nil
 }
 
 // Bytes baja un recurso del motor (p. ej. un PDF) y lo devuelve en base64 para mostrarlo

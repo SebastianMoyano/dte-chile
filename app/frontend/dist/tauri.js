@@ -20,6 +20,9 @@
       inv("sii_engine_sincronizar", { rutEmpresa, rutUsuario: s(rutUsuario), claveTributaria: s(trib), claveCertificado: s(cert), recordar: !!recordar }),
     SIIEngineFactura: (rutEmpresa, rutUsuario, trib, cert, recordar, docJson, emitir) =>
       inv("sii_engine_factura", { rutEmpresa, rutUsuario: s(rutUsuario), claveTributaria: s(trib), claveCertificado: s(cert), recordar: !!recordar, docJson, emitir: !!emitir }),
+    ElegirArchivo: (titulo, extensiones) => inv("elegir_archivo", { titulo: s(titulo), extensiones: s(extensiones) }),
+    Formulario: (ruta, camposJson, rutaArchivo) => inv("formulario", { ruta, camposJson: s(camposJson), rutaArchivo: s(rutaArchivo) }),
+    PedirFolios: (negocioId, tipo, cantidad) => inv("pedir_folios", { negocioId: Number(negocioId), tipo: Number(tipo), cantidad: Number(cantidad) }),
     SIIEngineNotaCredito: (rutEmpresa, rutUsuario, trib, cert, recordar, dteId, emitir) =>
       inv("sii_engine_nota_credito", { rutEmpresa, rutUsuario: s(rutUsuario), claveTributaria: s(trib), claveCertificado: s(cert), recordar: !!recordar, dteId: Number(dteId), emitir: !!emitir }),
   } } };

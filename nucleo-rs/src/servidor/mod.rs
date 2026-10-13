@@ -350,6 +350,19 @@ impl Servidor {
 
     /// `Llamar`: ejecuta una ruta en el mismo proceso, sin red, como la cuenta dueña (clave de
     /// la app). Devuelve status y cuerpo.
+    /// Como `llamar`, pero con el Content-Type que diga quien llama (formularios multipart o
+    /// urlencoded desde la app, por ejemplo subir un certificado).
+    pub fn llamar_con(&self, metodo: &str, ruta: &str, content_type: &str, cuerpo: &[u8]) -> (u16, Vec<u8>) {
+        let mut p = Peticion::nueva(metodo, ruta, cuerpo.to_vec());
+        p.cabeceras.push(("Content-Type".into(), content_type.into()));
+        if !self.cfg.app_shell_key.is_empty() {
+            p.cabeceras.push(("Authorization".into(), format!("Bearer {}", self.cfg.app_shell_key)));
+        }
+        p.host = "127.0.0.1".into();
+        let r = self.atender(p);
+        (r.status, r.cuerpo)
+    }
+
     pub fn llamar(&self, metodo: &str, ruta: &str, cuerpo: Option<&[u8]>) -> (u16, Vec<u8>) {
         let mut p = Peticion::nueva(metodo, ruta, cuerpo.map(|c| c.to_vec()).unwrap_or_default());
         if cuerpo.is_some() {

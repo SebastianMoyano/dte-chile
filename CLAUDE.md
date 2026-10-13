@@ -88,7 +88,7 @@ Ver [`docs/LECCIONES-SII.md`](docs/LECCIONES-SII.md).
 `nucleo-rs/README.md`. **Rust es el destino final del port.** La app de escritorio se llama **Faro** desde 2026-10-12 (antes "DTE Chile";
 carpeta de datos `Faro`, la antigua se renombra sola; nombres internos sin cambio: paquete `dtechile`, binarios `nucleo-*`, conector MCP `dte-chile`).
 Hay dos apps con **la misma interfaz** (`app/frontend/dist`): **Faro en Tauri (`app-rs/`, motor Rust adentro) es la que se publica**;
-la Wails (`app/`, motor Go adentro; define los mismos 12 bindings desde Go, mientras que en Tauri los define `tauri.js`) es la construcción alternativa mientras dura la transición.
+la Wails (`app/`, motor Go adentro; define los mismos 15 bindings desde Go, mientras que en Tauri los define `tauri.js`) es la construcción alternativa mientras dura la transición.
 Dirección: de servidor + panel web a app fácil de usar; la versión web (`/app`, servida por cualquiera de los motores) queda para la sala de clases.
 
 **El motor también existe en Go** (`nucleo/`, fase 7 de `docs/PLAN-PORT.md`, cerrada 2026-10-11): `nucleo/servidor` atiende

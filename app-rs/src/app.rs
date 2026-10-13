@@ -103,6 +103,41 @@ impl Compartido {
         })
     }
 
+    /// `Formulario`: POST multipart al motor (campos de texto y, opcionalmente, un archivo del
+    /// disco bajo el campo `archivo`). Es lo que usa "Mi empresa" para subir el certificado y
+    /// para agregar la empresa; el archivo se lee aquí y nunca pasa por la interfaz.
+    pub fn formulario(&self, ruta: &str, campos: &[(String, String)], archivo: Option<&Path>) -> Result<Respuesta, String> {
+        let limite = format!("----faro{}", dtechile::almacen::ahora_iso().replace([':', '-', 'T'], ""));
+        let mut cuerpo: Vec<u8> = Vec::new();
+        for (k, v) in campos {
+            cuerpo.extend_from_slice(format!("--{limite}\r\nContent-Disposition: form-data; name=\"{k}\"\r\n\r\n{v}\r\n").as_bytes());
+        }
+        if let Some(p) = archivo {
+            let datos = std::fs::read(p).map_err(|e| format!("no pude leer el archivo: {e}"))?;
+            let nombre = p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| "archivo".into());
+            cuerpo.extend_from_slice(format!("--{limite}\r\nContent-Disposition: form-data; name=\"archivo\"; filename=\"{nombre}\"\r\nContent-Type: application/octet-stream\r\n\r\n").as_bytes());
+            cuerpo.extend_from_slice(&datos);
+            cuerpo.extend_from_slice(b"\r\n");
+        }
+        cuerpo.extend_from_slice(format!("--{limite}--\r\n").as_bytes());
+        let ct = format!("multipart/form-data; boundary={limite}");
+        let m = self.motor.lock().unwrap_or_else(|e| e.into_inner());
+        if m.url.is_empty() {
+            return Err("el motor todavía no está listo".into());
+        }
+        if let Some(s) = &m.srv {
+            let (st, b) = s.llamar_con("POST", ruta, &ct, &cuerpo);
+            return Ok(Respuesta { status: st, cuerpo: String::from_utf8_lossy(&b).into_owned() });
+        }
+        let ag = dtechile::sii::http::agente(Duration::from_secs(180), false);
+        let mut req = ag.post(&format!("{}{ruta}", m.url)).header("Accept", "application/json").header("Content-Type", &ct);
+        if !m.clave.is_empty() {
+            req = req.header("Authorization", &format!("Bearer {}", m.clave));
+        }
+        let r = dtechile::sii::http::ejecutar(req, &cuerpo)?;
+        Ok(Respuesta { status: r.status, cuerpo: String::from_utf8_lossy(&r.cuerpo).into_owned() })
+    }
+
     /// Baja un recurso del motor (bytes crudos).
     fn bajar(&self, ruta: &str) -> Result<Vec<u8>, String> {
         let m = self.motor.lock().unwrap_or_else(|e| e.into_inner());
@@ -237,6 +272,63 @@ async fn guardar(
     let p = destino.into_path().map_err(|e| e.to_string())?;
     std::fs::write(&p, datos).map_err(|e| e.to_string())?;
     Ok(p.to_string_lossy().into_owned())
+}
+
+/// `ElegirArchivo`: diálogo del sistema para elegir un archivo (p. ej. el certificado .p12).
+/// Devuelve la ruta, o "" si canceló. `extensiones` va separado por comas ("p12,pfx").
+#[tauri::command]
+async fn elegir_archivo(app: AppHandle, titulo: String, extensiones: String) -> Result<String, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let exts: Vec<&str> = extensiones.split(',').map(|e| e.trim()).filter(|e| !e.is_empty()).collect();
+    let mut d = app.dialog().file().set_title(&titulo);
+    if !exts.is_empty() {
+        d = d.add_filter("Archivo", &exts);
+    }
+    let Some(f) = d.blocking_pick_file() else {
+        return Ok(String::new());
+    };
+    Ok(f.into_path().map_err(|e| e.to_string())?.to_string_lossy().into_owned())
+}
+
+/// `Formulario`: POST multipart al motor con campos (JSON objeto de strings) y un archivo opcional.
+#[tauri::command]
+async fn formulario(c: State<'_, Estado_>, ruta: String, campos_json: String, ruta_archivo: String) -> Result<Respuesta, String> {
+    let v: serde_json::Value = if campos_json.trim().is_empty() { serde_json::json!({}) } else { serde_json::from_str(&campos_json).map_err(|e| e.to_string())? };
+    let campos: Vec<(String, String)> = v.as_object().map(|o| o.iter().map(|(k, x)| (k.clone(), x.as_str().map(|s| s.to_string()).unwrap_or_else(|| x.to_string()))).collect()).unwrap_or_default();
+    let archivo = (!ruta_archivo.is_empty()).then(|| Path::new(&ruta_archivo));
+    c.formulario(&ruta, &campos, archivo)
+}
+
+/// `PedirFolios`: pide al SII un rango de folios (CAF) para la empresa, con su certificado y
+/// en su ambiente, lo guarda en storage/cafs y lo registra en la base: lo mismo que
+/// `nucleo-portal solicitar … --db`. Respeta los guardarraíles anti-acaparamiento del portal.
+#[tauri::command]
+async fn pedir_folios(c: State<'_, Estado_>, negocio_id: i64, tipo: i32, cantidad: i64) -> Result<String, String> {
+    let r = c.api("GET", &format!("/api/v1/keystore/negocios/{negocio_id}/contexto-emision"), "")?;
+    if r.status != 200 {
+        return Err(format!("no pude leer el certificado de la empresa: {}", r.cuerpo));
+    }
+    let v: serde_json::Value = serde_json::from_str(&r.cuerpo).map_err(|e| e.to_string())?;
+    let g = |k: &str| v[k].as_str().unwrap_or("").to_string();
+    let (rut, ambiente, cert_pem, key_pem, db, storage) = (g("rut"), g("ambiente"), g("cert_pem"), g("key_pem"), g("database_path"), g("storage_path"));
+    let mut cli = dtechile::portal::Cliente::nuevo(cert_pem.as_bytes(), key_pem.as_bytes(), dtechile::portal::base_de(&ambiente))?;
+    cli.autenticar("")?;
+    let (caf, info) = cli.solicitar_folios(&rut, tipo, cantidad, true, false)?;
+    let mut out = serde_json::to_value(&info).map_err(|e| e.to_string())?;
+    if let Some(caf) = caf {
+        let dir = Path::new(&storage).join("cafs");
+        let _ = std::fs::create_dir_all(&dir);
+        let hoy = dtechile::almacen::ahora_iso()[..10].replace('-', "");
+        let nombre = dir.join(format!("CAF_{}_T{tipo}_{}-{}_{hoy}.xml", rut.replace('-', ""), info.folio_desde, info.folio_hasta));
+        std::fs::write(&nombre, &caf).map_err(|e| e.to_string())?;
+        let txt = String::from_utf8_lossy(&caf).into_owned();
+        let cf = dtechile::ted::parsear_caf(&txt)?;
+        let alm = Almacen::abrir_y_migrar(&db).map_err(|e| e.to_string())?;
+        let id = alm.registrar_caf(cf.tipo_dte, &cf.rut_emisor, cf.folio_desde, cf.folio_hasta, &cf.fecha_autorizacion, &txt).map_err(|e| e.to_string())?;
+        out["caf_id"] = serde_json::json!(id);
+        out["archivo"] = serde_json::json!(nombre.to_string_lossy());
+    }
+    Ok(out.to_string())
 }
 
 /// `Bytes`: un recurso del motor (p. ej. un PDF) en base64 para mostrarlo dentro de la app.
@@ -503,7 +595,10 @@ pub fn correr() {
             conectar_ia,
             sii_engine_sincronizar,
             sii_engine_factura,
-            sii_engine_nota_credito
+            sii_engine_nota_credito,
+            elegir_archivo,
+            formulario,
+            pedir_folios
         ])
         .run(tauri::generate_context!())
         .expect("la app no pudo arrancar");

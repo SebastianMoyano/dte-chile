@@ -43,7 +43,7 @@
     if (r.status === 401) { token = ""; try { sessionStorage.removeItem("dte.jwt"); } catch {} await pedirLogin(); return llamar(metodo, ruta, cuerpo); }
     return r;
   }
-  const soloApp = (que) => { throw new Error(`${que} solo está disponible en la app instalada (DTE Chile.app). En el navegador puedes practicar, ver documentos, Mi mes, Valores y Aprender.`); };
+  const soloApp = (que) => { throw new Error(`${que} solo está disponible en la app instalada (Faro.app). En el navegador puedes practicar, ver documentos, Mi mes, Valores y Aprender.`); };
 
   window.go = { main: { App: {
     async Estado() {
@@ -80,7 +80,26 @@
       if (!r.ok) { let m = t; try { const d = JSON.parse(t); m = d.error?.mensaje || d.detail || t; } catch {} throw new Error(typeof m === "string" ? m : JSON.stringify(m)); }
       return t;
     },
-    async SIIEngineFactura() { soloApp("Cobrar por el SII engine"); },
+    // En el navegador el archivo se elige con <input type=file> y se sube como FormData.
+    async ElegirArchivo(titulo, extensiones) {
+      return new Promise((resolve) => {
+        const i = Object.assign(document.createElement("input"), { type: "file", accept: (extensiones || "").split(",").filter(Boolean).map((e) => "." + e.trim()).join(",") });
+        i.onchange = () => { window.__archivoElegido = i.files[0] || null; resolve(i.files[0] ? i.files[0].name : ""); };
+        i.oncancel = () => resolve("");
+        i.click();
+      });
+    },
+    async Formulario(ruta, camposJson, rutaArchivo) {
+      const fd = new FormData();
+      const campos = camposJson ? JSON.parse(camposJson) : {};
+      for (const k of Object.keys(campos)) fd.append(k, campos[k]);
+      if (rutaArchivo && window.__archivoElegido) fd.append("archivo", window.__archivoElegido, window.__archivoElegido.name);
+      if (!token) await pedirLogin();
+      const r = await fetch(origen + ruta, { method: "POST", headers: { Authorization: "Bearer " + token, Accept: "application/json" }, body: fd });
+      return { status: r.status, cuerpo: await r.text() };
+    },
+    async PedirFolios() { soloApp("Pedir folios al SII"); },
+    async SIIEngineFactura() { soloApp("Emitir por el SII engine"); },
     async SIIEngineNotaCredito() { soloApp("Anular por el SII engine"); },
   } } };
   window.runtime = window.runtime || { EventsOn() {} };

@@ -34,7 +34,7 @@
     { id: "iniciar", n: 3, titulo: "Iniciar actividades", mundo: "sim", resumen: "Giro, clave tributaria, certificado digital e inscripción como emisor. Solo lectura contra el SII.",
       pasos: [
         { vista: "aprender", sel: "[data-tour='etapa-3']", t: "Antes de emitir, el SII tiene que saber quién eres", p: "Inicio de actividades y giro en sii.cl, clave tributaria de la persona y de la empresa, y un certificado digital para firmar." },
-        { vista: "inicio", sel: "[data-tour='panel']", t: "El certificado va al panel", p: "Cuando tengas el certificado digital (.p12), cárgalo en el panel del motor. La empresa aparecerá en el selector de arriba." },
+        { vista: "inicio", sel: "[data-tour='empresa']", t: "El certificado va en Mi empresa", p: "Cuando tengas el certificado digital (.p12), entra a Mi empresa: guardas el certificado, eliges tu empresa y, si vas por motor propio, pides folios. Todo explicado paso a paso." },
       ] },
     { id: "sii", n: 4, titulo: "Emitir con el SII", mundo: "real", resumen: "El SII tiene un emisor propio. La app lo opera por ti y le agrega lo que falta. Real desde el primer clic.",
       pasos: [

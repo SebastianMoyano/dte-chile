@@ -4,7 +4,7 @@
 adentro, en el mismo proceso. Existe también la construcción en **Go + Wails v2** (`app/`) con
 el motor Go (`nucleo/servidor`) adentro, igual de completa, que se mantiene como alternativa
 mientras dura la transición. Las dos usan **la misma interfaz** (`app/frontend/dist`, HTML/CSS/JS
-sin framework) y los mismos 12 bindings. El proyecto va de servidor + panel web a app fácil de
+sin framework) y los mismos 15 bindings. El proyecto va de servidor + panel web a app fácil de
 usar; la versión web (`/app`, servida por cualquier motor) queda para la sala de clases.
 
 La idea de producto está en [`aprender/00-plan.md`](aprender/00-plan.md): una app para quien no
@@ -139,7 +139,7 @@ sin PyInstaller, sin procesos hijos.
 
 `app-rs/` es la misma app con otro cascarón: **Tauri 2** en vez de Wails, y adentro el motor
 **Rust** (`nucleo-rs/`, el que pasa el contrato dorado 203/203 contra Python) en vez del Go.
-La interfaz es exactamente la misma carpeta (`app/frontend/dist`): `tauri.js` define los 12
+La interfaz es exactamente la misma carpeta (`app/frontend/dist`): `tauri.js` define los 15
 bindings `window.go.main.App.*` sobre los comandos de `app-rs/src/app.rs`, así que `app.js`
 no sabe en qué cascarón corre (en Wails los define Go; en el navegador, `puente.js`). Mismos
 modos (repo en desarrollo, carpeta de datos empaquetada, `DTE_API_URL` externo), misma clave
@@ -192,7 +192,7 @@ conexión local, en memoria, y no las escribe en ningún lado.
 
 La interfaz (`app/frontend/dist`, HTML y JS planos) corre igual en la **app instalada** (Tauri o Wails:
 binario + vista web del sistema, sin Chromium adentro) y en el **navegador**, servida por el
-propio motor en `/app`. Lo que la ata al cascarón son los 12 bindings `window.go.main.App.*` (`Estado`, `API`, `Bytes`,
+propio motor en `/app`. Lo que la ata al cascarón son los 15 bindings `window.go.main.App.*` (`Estado`, `API`, `Bytes`, `ElegirArchivo`, `Formulario`, `PedirFolios`,
 `Guardar`, `EmitirNucleo`, `AbrirURL`, `AbrirPanel`, `Conectores`, `ConectarIA`, `SIIEngine*`); `puente.js`, cargado antes que `app.js`, los define
 sobre HTTP cuando no hay cascarón: inicio de sesión con usuario y clave del motor (JWT en
 `sessionStorage`), descargas por el navegador, panel en otra pestaña, y "Traer lo emitido"
@@ -282,7 +282,8 @@ tarjetas que el tour señala llevan `data-tour="…"`.
 | Documentos · anular (en cada fila) | en práctica anula con NC; en el gratuito del SII, por el SII engine; motor propio, próxima versión | `dte/documentos`, `simulacion/anular` |
 | Ver | visor de PDF embebido con las partes explicadas, guardar PDF/XML, anular (práctica) | `dte/documentos/{id}/pdf` |
 | Documentos · Todos | la empresa activa, ver/guardar PDF y XML con diálogo del sistema, anular | `dte/documentos`, `/pdf`, `/xml` |
-| Ajustes (engranaje) | Tu IA, Valores, Panel del motor (muestra y copia la clave), Detalles técnicos | — |
+| Ajustes | Mi empresa, Tu IA, Valores, Apariencia, "Dónde quedan tus claves", Detalles técnicos (con el panel web para integradores) | — |
+| Mi empresa (2026-10-12) | tres pasos explicados como a un alumno: (1) certificado digital: diálogo del sistema + clave, se guarda cifrado (bindings `ElegirArchivo` + `Formulario` → `POST keystore/certificados`); (2) empresa: el SII lista las del certificado o se escribe el RUT, ambiente pruebas/real explicado (`GET certificados/{id}/empresas`, `Formulario` → `POST keystore/negocios`); (3) folios: qué es un folio y un CAF, qué tipos autorizó el SII (`GET negocios/{id}/timbraje`) y "pedir 5 folios" (`PedirFolios`: el portal con el certificado, CAF a `storage/cafs` y a la base, guardarraíles anti-acaparamiento). Reemplaza al "Abrir el panel" de Inicio | ver fila |
 | Valores | UF, UTM y dólar a cualquier fecha desde 2015 (se recalcula al cambiar la fecha) y tabla mensual por año (inicio y fin de mes); fechas en castellano; el histórico se carga una vez al arrancar, el año en curso cada día | `valores`, `valores/historico` |
 | Aprender | los cinco tramos del curso (solo índice) | — |
 

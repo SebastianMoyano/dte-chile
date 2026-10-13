@@ -150,7 +150,7 @@ function ir(v) { location.hash = "#" + v; }
 function param(k) { const q = (location.hash.split("?")[1] || ""); return new URLSearchParams(q).get(k); }
 async function render() {
   const v = (location.hash || "#inicio").slice(1).split("?")[0];
-  const grupo = { ver: "documentos", mes: "documentos", corregir: "documentos", ia: "ajustes", valores: "ajustes" }[v] || v;
+  const grupo = { ver: "documentos", mes: "documentos", corregir: "documentos", ia: "ajustes", valores: "ajustes", empresa: "ajustes" }[v] || v;
   document.querySelectorAll("[data-v]").forEach((a) => a.classList.toggle("on", a.dataset.v === grupo));
   const f = vistas[v] || vistas.inicio;
   window.scrollTo(0, 0);
@@ -192,8 +192,8 @@ vistas.inicio = async (el) => {
       <div class="card accion" onclick="ir('documentos')">${icono("documentos")}<h3>Mis documentos</h3><p>Todo lo emitido. Para corregir, se anula con una nota de crédito: nada se borra.</p></div>
       <div class="card accion" onclick="ir('documentos?tab=mes')">${icono("mes")}<h3>Mi mes</h3><p>Cuánto vendiste, cuánto IVA cobraste y qué va a pedir el F29.</p></div>
     </div>
-    ${negocios.length ? "" : `<div class="card"><b>Todavía no hay ninguna empresa real.</b><p class="mut">Practica con la demo todo lo que quieras. Cuando tengas tu certificado digital, agrégalo en el panel del motor y tu empresa aparecerá arriba.</p>
-      <button class="sec" data-tour="panel" onclick="abrirPanel('certificados')">Abrir el panel</button></div>`}`;
+    ${negocios.length ? "" : `<div class="card"><b>Todavía no hay ninguna empresa real.</b><p class="mut">Practica con la de mentira todo lo que quieras. Cuando tengas tu certificado digital, agrega tu empresa y aparecerá arriba para elegirla.</p>
+      <button class="sec" data-tour="empresa" onclick="ir('empresa')">Agregar mi empresa</button></div>`}`;
   pintarValores();
 };
 // Ajustes: lo que no es trabajo diario (conectar la IA, los valores del día, el panel del motor,
@@ -205,7 +205,7 @@ vistas.ajustes = async (el) => {
     <div class="grid">
       <div class="card accion" onclick="ir('ia')">${icono("ia")}<h3>Tu IA</h3><p>Conecta el asistente de IA de este computador para que trabaje con tu facturación.</p></div>
       <div class="card accion" onclick="ir('valores')">${icono("valores")}<h3>Valores</h3><p>UF, UTM y dólar de cualquier día, y el histórico mensual.</p></div>
-      <div class="card accion" onclick="abrirPanel('certificados')">${icono("panel")}<h3>Panel del motor</h3><p>Certificados, folios, usuarios y claves de API, en el navegador.</p></div>
+      <div class="card accion" onclick="ir('empresa')">${icono("panel")}<h3>Mi empresa</h3><p>Tu certificado digital, tu empresa y tus folios, paso a paso.</p></div>
     </div>
     <div class="card"><h3>Dónde quedan tus claves</h3>
       <ul class="lista-check">
@@ -218,7 +218,8 @@ vistas.ajustes = async (el) => {
       <div class="segmento" id="tema_sel">${Object.entries(TEMAS).map(([k, v]) => `<button class="${(localStorage.getItem("tema") || "") === k ? "on" : ""}" onclick="aplicarTema('${k}'); render()">${v}</button>`).join("")}</div></div>
     <details class="tecnico"><summary>Detalles técnicos</summary>
       <p class="mut">Motor v${esc(estado.version)} en <code>${esc(estado.url)}</code>${estado.externo ? " (externo)" : estado.empaquetado ? " (dentro de la app)" : " (datos del repo)"}.
-      ${estado.empaquetado ? `Tus datos (base, documentos y configuración) están en <code>${esc(estado.raiz)}</code>.` : ""} La clave del panel web se muestra al pulsar "Panel del motor".</p></details>`;
+      ${estado.empaquetado ? `Tus datos (base, documentos y configuración) están en <code>${esc(estado.raiz)}</code>.` : ""}
+      Para integradores existe además un <span class="lnk" onclick="abrirPanel('certificados')">panel web del motor</span> (usuarios, claves de API); al abrirlo se muestra su clave.</p></details>`;
 };
 // El panel web pide usuario y clave; se muestran recién cuando hacen falta, no en Inicio.
 window.abrirPanel = async (pagina) => {
@@ -652,6 +653,149 @@ vistas.aprender = async (el) => {
     <p class="mut">Las lecciones largas, el quiz y los videos del tramo 1 están en el repo (<code>docs/aprender/</code>).</p>`;
   const n = param("etapa");
   if (n) document.getElementById("etapa-" + n)?.scrollIntoView({ block: "start", behavior: "smooth" });
+};
+
+// ---------- Mi empresa: certificado → empresa → folios, explicado como a un alumno ----------
+const TIPOS_FOLIO = { 33: "Factura", 34: "Factura exenta", 39: "Boleta", 41: "Boleta exenta", 56: "Nota de débito", 61: "Nota de crédito" };
+const errorDe = (r) => { try { const d = JSON.parse(r.cuerpo); return d.error?.mensaje || d.detail?.[0]?.msg || d.detail || r.cuerpo; } catch { return r.cuerpo || `Error ${r.status}`; } };
+// Los errores del SII en palabras de persona: lo que la app sabe interpretar, lo explica.
+const explicarSII = (m) => {
+  m = String(m || "");
+  if (/UnknownCA|unknown ca|certificate unknown|handshake/i.test(m)) return "El SII no reconoce este certificado: no es de una empresa certificadora autorizada por el SII, o es el de práctica. Con un certificado comprado a E-Sign, Acepta, CertiNet u otra autorizada sí funciona.";
+  if (/timed out|timeout|dns|connection refused|no route/i.test(m)) return "No pude llegar al SII. Revisa tu conexión a internet y vuelve a intentar.";
+  if (/expired|vencid/i.test(m)) return "El certificado está vencido. Hay que renovarlo con la empresa que lo emitió.";
+  return m;
+};
+vistas.empresa = async (el) => {
+  await cargarNegocios();
+  let certs = [];
+  try { certs = await api("GET", "/api/v1/keystore/certificados"); } catch {}
+  const cert = certs[0];
+  el.innerHTML = `
+    <h1>Mi empresa</h1>
+    <p class="sub">Tres pasos, en orden: tu certificado digital, tu empresa y tus folios. Cada uno explica qué es antes de pedirte nada.</p>
+
+    <div class="card" id="paso1">
+      <h3>1. Tu certificado digital ${cert ? '<span class="pill p-ok">listo</span>' : '<span class="pill p-warn">falta</span>'}</h3>
+      <p class="mut">Es un archivo (termina en <b>.p12</b> o <b>.pfx</b>) que se compra una vez a una empresa autorizada (E-Sign, Acepta, CertiNet…) a nombre de <b>una persona</b>, no de la empresa. Es tu firma: con él cada documento queda firmado por ti y el SII sabe que fuiste tú. Viene con una clave que te dieron al comprarlo.</p>
+      ${cert ? `<div class="rev"><span>De la persona con RUT</span><b>${esc(cert.rut)}</b></div><div class="rev"><span>Vence el</span><b>${esc(fechaLarga(cert.vencimiento))}</b></div>
+        <p class="mut">Se guardó cifrado en este computador. Nunca sale de aquí.</p>
+        <button class="sec" onclick="quitarCertificado(${cert.id})">Quitar este certificado</button>`
+      : `<p class="mut">Elige el archivo y escribe la clave que te dieron con él. La clave se usa una sola vez para abrirlo; el certificado queda guardado cifrado aquí.</p>
+        <div class="row"><div><label>Archivo del certificado</label><button class="sec" style="margin:0" id="e_elegir">Elegir archivo…</button> <span class="mut" id="e_nombre"></span></div>
+        <div><label>Clave del certificado</label><input id="e_clave" type="password" autocomplete="off" placeholder="La que te dieron al comprarlo"></div></div>
+        <button id="e_subir" disabled>Guardar certificado</button><div id="e_aviso"></div>`}
+    </div>
+
+    <div class="card" id="paso2" style="${cert ? "" : "opacity:.55"}">
+      <h3>2. Tu empresa ${negocios.length ? '<span class="pill p-ok">' + negocios.length + " agregada" + (negocios.length > 1 ? "s" : "") + '</span>' : '<span class="pill p-warn">falta</span>'}</h3>
+      <p class="mut">Una empresa es quien emite: puede ser una sociedad (SpA, EIRL, Ltda.) o tú mismo como persona con inicio de actividades. El SII sabe qué empresas puede representar tu certificado; se lo preguntamos y eliges.</p>
+      ${negocios.length ? `<ul class="lista-check">${negocios.map((n) => `<li><span style="flex:1"><b>${esc(n.razon_social || n.rut)}</b> · ${esc(n.rut)} · ${n.ambiente === "produccion" ? '<span class="pill p-no">real</span>' : '<span class="pill p-warn">pruebas del SII</span>'}</span><span class="lnk no" onclick="quitarNegocio(${n.id})">quitar</span></li>`).join("")}</ul>` : ""}
+      ${cert ? `<button class="sec" id="e_buscar">Buscar mis empresas en el SII</button><div id="e_empresas"></div>` : `<p class="mut">Primero guarda tu certificado.</p>`}
+    </div>
+
+    <div class="card" id="paso3" style="${negocios.length ? "" : "opacity:.55"}">
+      <h3>3. Tus folios</h3>
+      <p class="mut"><b>Un folio es el número de cada documento</b>: boleta N° 1, N° 2, N° 3… No los inventa la app: <b>los entrega el SII</b>, de a rangos, en un archivo llamado CAF, y cada documento gasta uno. Por eso un folio gastado no vuelve, y por eso pedimos de a pocos: el SII bloquea a quien acumula folios sin usarlos.</p>
+      <p class="mut">Solo hace falta pedir folios si vas a emitir con <b>tu propio motor</b> (etapa 5 de la guía, después de certificarte ante el SII). Si tu empresa emite por el sistema gratuito del SII, los folios los pone el SII y aquí no tienes que hacer nada.</p>
+      ${negocios.length ? `<div class="row"><div><label>Empresa</label><select id="f_neg">${negocios.map((n) => `<option value="${n.id}">${esc(n.razon_social || n.rut)}</option>`).join("")}</select></div></div>
+        <button class="sec" id="f_ver">Ver qué documentos puede emitir esta empresa</button><div id="f_tabla"></div><div id="f_aviso"></div>` : `<p class="mut">Primero agrega tu empresa.</p>`}
+    </div>`;
+
+  // paso 1
+  let rutaCert = "";
+  const elegir = $("e_elegir");
+  if (elegir) {
+    elegir.onclick = async () => {
+      const r = await window.go.main.App.ElegirArchivo("Elige tu certificado digital", "p12,pfx");
+      if (!r) return;
+      rutaCert = r; $("e_nombre").textContent = r.split(/[\\/]/).pop(); $("e_subir").disabled = false;
+    };
+    $("e_subir").onclick = async () => {
+      const clave = $("e_clave").value;
+      if (!clave) return aviso("Falta la clave del certificado.");
+      $("e_subir").disabled = true; $("e_aviso").innerHTML = `<p class="mut">Abriendo el certificado…</p>`;
+      try {
+        const r = await window.go.main.App.Formulario("/api/v1/keystore/certificados", JSON.stringify({ password: clave }), rutaCert);
+        if (r.status >= 400) throw new Error(errorDe(r));
+        aviso("Certificado guardado. Ahora, tu empresa.", 5000); render();
+      } catch (e) { $("e_aviso").innerHTML = `<div class="banner rojo">${esc(e.message || e)}<br><span class="mut">Lo más común: la clave no es la del certificado, o el archivo no es un .p12/.pfx.</span></div>`; $("e_subir").disabled = false; }
+    };
+  }
+  // paso 2
+  const buscar = $("e_buscar");
+  if (buscar) buscar.onclick = async () => {
+    buscar.disabled = true; $("e_empresas").innerHTML = `<p class="mut">Preguntando al SII… puede tardar unos segundos.</p>`;
+    try {
+      const emps = await api("GET", `/api/v1/keystore/certificados/${cert.id}/empresas`);
+      if (!emps.length) { $("e_empresas").innerHTML = `<div class="banner">El SII no asocia ninguna empresa a este certificado. Si eres persona natural con inicio de actividades, escribe tu RUT abajo.</div>`; }
+      $("e_empresas").innerHTML += `
+        <ul class="lista-check">${emps.map((x) => `<li><label style="margin:0;display:flex;gap:10px;align-items:center;flex:1"><input type="radio" name="e_rut" value="${esc(x.rut)}"> <span><b>${esc(x.razon_social || "")}</b> · ${esc(x.rut)}</span></label></li>`).join("")}</ul>
+        <label>O escribe el RUT de la empresa</label><input id="e_rut_manual" placeholder="76111111-6">
+        <label>¿Dónde la agregamos?</label>
+        <div class="radio"><label><input type="radio" name="e_amb" value="certificacion" checked> Pruebas del SII (amarillo): el SII responde, pero nada cuenta</label><label><input type="radio" name="e_amb" value="produccion"> Real (rojo): cada documento cuenta</label></div>
+        <p class="mut">Empieza en pruebas. Pasar a real es un paso aparte, cuando ya certificaste o cuando emites por el sistema gratuito del SII.</p>
+        <button id="e_agregar">Agregar empresa</button>`;
+      $("e_agregar").onclick = async () => {
+        const sel = document.querySelector('input[name="e_rut"]:checked');
+        const rut = (sel ? sel.value : $("e_rut_manual").value).trim();
+        if (!rut) return aviso("Elige una empresa o escribe su RUT.");
+        const amb = document.querySelector('input[name="e_amb"]:checked').value;
+        if (amb === "produccion" && !(await dialogo({ titulo: "Agregar en real", cuerpo: `<div class="banner rojo"><b>Esto es real.</b> Lo que emitas por ${esc(rut)} contará ante el SII.</div>`, botones: [{ texto: "Volver", clase: "sec", valor: false }, { texto: "Sí, en real", clase: "peligro", valor: true }] }))) return;
+        $("e_agregar").disabled = true;
+        try {
+          const r = await window.go.main.App.Formulario("/api/v1/keystore/negocios", JSON.stringify({ rut, cert_id: String(cert.id), ambiente: amb }), "");
+          if (r.status >= 400) throw new Error(errorDe(r));
+          aviso("Empresa agregada. Ya aparece arriba para elegirla.", 5000); render();
+        } catch (e) { $("e_empresas").innerHTML += `<div class="banner rojo">${esc(e.message || e)}</div>`; $("e_agregar").disabled = false; }
+      };
+    } catch (e) { $("e_empresas").innerHTML = `<div class="banner rojo">${esc(explicarSII(e.message || e))}</div><p class="mut">Si eres persona natural con inicio de actividades o ya sabes el RUT de tu empresa, puedes escribirlo igual:</p>
+        <label>RUT de la empresa</label><input id="e_rut_manual" placeholder="76111111-6">
+        <div class="radio"><label><input type="radio" name="e_amb" value="certificacion" checked> Pruebas del SII (amarillo)</label><label><input type="radio" name="e_amb" value="produccion"> Real (rojo)</label></div>
+        <button id="e_agregar">Agregar empresa</button>`; buscar.disabled = false;
+      $("e_agregar").onclick = async () => {
+        const rut = $("e_rut_manual").value.trim(); if (!rut) return aviso("Escribe el RUT de la empresa.");
+        const amb = document.querySelector('input[name="e_amb"]:checked').value;
+        $("e_agregar").disabled = true;
+        try { const r = await window.go.main.App.Formulario("/api/v1/keystore/negocios", JSON.stringify({ rut, cert_id: String(cert.id), ambiente: amb }), ""); if (r.status >= 400) throw new Error(errorDe(r)); aviso("Empresa agregada.", 5000); render(); }
+        catch (e2) { $("e_empresas").innerHTML += `<div class="banner rojo">${esc(explicarSII(e2.message || e2))}</div>`; $("e_agregar").disabled = false; }
+      };
+    }
+  };
+  // paso 3
+  const ver = $("f_ver");
+  if (ver) ver.onclick = async () => {
+    const id = $("f_neg").value; ver.disabled = true; $("f_tabla").innerHTML = `<p class="mut">Preguntando al SII qué documentos tiene autorizados esta empresa…</p>`;
+    try {
+      const t = await api("GET", `/api/v1/keystore/negocios/${id}/timbraje`);
+      $("f_tabla").innerHTML = `<div class="tablewrap"><table><tr><th>Documento</th><th>¿Autorizado por el SII?</th><th></th></tr>
+        ${t.documentos.map((d) => `<tr><td>${esc(TIPOS_FOLIO[d.tipo] || d.nombre)}</td><td>${d.autorizado ? '<span class="pill p-ok">sí</span>' : '<span class="pill p-mut">todavía no</span>'}${d.bloqueado ? ' <span class="pill p-no">bloqueado por el SII</span>' : ""}</td>
+          <td>${d.autorizado && !d.bloqueado ? `<span class="lnk" onclick="pedirFolios(${id}, ${d.tipo}, '${esc(TIPOS_FOLIO[d.tipo] || d.nombre)}')">pedir 5 folios</span>` : ""}</td></tr>`).join("")}</table></div>
+        <p class="mut">"Todavía no" significa que el SII aún no te autorizó ese tipo de documento: se consigue certificándose (etapa 5 de la guía). "Bloqueado" es el freno del SII por folios pedidos y no usados; se destraba usándolos o pidiendo al SII que anule los que no vas a usar.</p>`;
+    } catch (e) { $("f_tabla").innerHTML = `<div class="banner rojo">${esc(explicarSII(e.message || e))}</div>`; }
+    ver.disabled = false;
+  };
+};
+window.quitarCertificado = async (id) => {
+  const ok = await dialogo({ titulo: "Quitar el certificado", cuerpo: `<p class="mut">Se borra de este computador. Tus documentos ya emitidos no cambian; para volver a emitir tendrás que guardarlo otra vez.</p>`, botones: [{ texto: "Volver", clase: "sec", valor: false }, { texto: "Quitar", clase: "peligro", valor: true }] });
+  if (!ok) return;
+  try { await api("DELETE", `/api/v1/keystore/certificados/${id}`); aviso("Certificado quitado."); render(); } catch (e) { aviso(e.message, 6000); }
+};
+window.quitarNegocio = async (id) => {
+  const ok = await dialogo({ titulo: "Quitar la empresa", cuerpo: `<p class="mut">Deja de aparecer en el selector. Sus documentos ya emitidos no se borran.</p>`, botones: [{ texto: "Volver", clase: "sec", valor: false }, { texto: "Quitar", clase: "peligro", valor: true }] });
+  if (!ok) return;
+  try { await api("DELETE", `/api/v1/keystore/negocios/${id}`); aviso("Empresa quitada."); render(); } catch (e) { aviso(e.message, 6000); }
+};
+window.pedirFolios = async (negocioId, tipo, nombre) => {
+  const ok = await dialogo({ titulo: `Pedir 5 folios de ${nombre}`, cuerpo: `<p class="mut">La app entra al SII con tu certificado, pide un rango de 5 números y lo guarda aquí. Desde ese momento puedes emitir 5 documentos de este tipo.</p><div class="banner">Pide solo lo que vayas a usar: el SII frena a quien acumula folios sin emitirlos.</div>`,
+    botones: [{ texto: "Volver", clase: "sec", valor: false }, { texto: "Pedir los folios", valor: true }] });
+  if (!ok) return;
+  aviso("Pidiendo folios al SII… puede tardar medio minuto.", 8000);
+  try {
+    const r = JSON.parse(await window.go.main.App.PedirFolios(negocioId, tipo, 5));
+    if (r.caf_id) { $("f_aviso").innerHTML = `<div class="banner verde"><b>Listo.</b> El SII entregó los folios <b>${r.folio_desde}</b> al <b>${r.folio_hasta}</b> de ${esc(nombre)}. Ya puedes emitir con ellos.</div>`; }
+    else { $("f_aviso").innerHTML = `<div class="banner rojo"><b>El SII no entregó folios.</b> ${esc(r.mensaje || r.error || (r.bloqueado ? "Este tipo está bloqueado por folios sin usar." : "Sin detalle."))}</div>`; }
+  } catch (e) { $("f_aviso").innerHTML = `<div class="banner rojo">${esc(explicarSII(e.message || e))}</div>`; }
 };
 
 // ---------- tu IA (clientes MCP del computador) ----------
