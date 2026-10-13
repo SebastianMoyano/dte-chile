@@ -234,7 +234,10 @@ input.pin { -webkit-text-security:disc; letter-spacing:.12em; } input.pin.ver { 
 .semaf.amarillo { background:var(--warn-soft); color:var(--warn); } .semaf.rojo { background:var(--no-soft); color:var(--no); }
 .chk { display:flex; gap:8px; align-items:center; font-weight:500; margin-top:12px; } .chk input { width:auto; accent-color:var(--inv-bg); }
 .modal { position:fixed; inset:0; background:var(--velo); display:flex; align-items:center; justify-content:center; z-index:20; backdrop-filter:blur(6px); }
-.modal .card { background:var(--panel); box-shadow:var(--sh-2); animation:sube .18s ease-out; }
+/* los diálogos ya están centrados por el flex del velo: su entrada es solo vertical (la animación "sube" lleva un
+   translateX(-50%) que es del aviso flotante; usarla aquí corría la tarjeta media pantalla y luego la soltaba) */
+.modal .card { background:var(--panel); box-shadow:var(--sh-2); animation:sube-centro .18s ease-out; }
+@keyframes sube-centro { from { opacity:0; transform:translateY(8px);} to { opacity:1; transform:none;} }
 .modal .row { justify-content:flex-end; } .modal .row > button { flex:none; }
 .vacio { text-align:center; padding:28px 12px; color:var(--mut); }
 .rev { display:flex; justify-content:space-between; gap:16px; padding:9px 0; border-bottom:1px solid var(--bd); font-size:.95rem; }
