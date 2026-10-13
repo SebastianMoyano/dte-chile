@@ -25,7 +25,7 @@ cargo tauri build --bundles app    # target/release/bundle/macos/Faro.app  (carg
 | `src/app.rs` | los comandos: `estado`, `api`, `guardar`, `bytes`, `emitir_nucleo`, `abrir_url`, `abrir_panel`, `conectores`, `conectar_ia`, `sii_engine_*`; el evento `motor` | `app/app.go`, `app/ia.go` |
 | `src/siiengine.rs` | sincronizar, factura exenta y nota de crédito por el SII engine (dry-run sin folio; emitir solo con la cadena verificada) | `app/siiengine.go` |
 | `src/ia.rs` | la app como servidor MCP; conectar/quitar en los clientes de IA | `app/ia.go` |
-| `tauri.conf.json`, `capabilities/default.json`, `icons/` | ventana 1120×780, CSP abierta para la interfaz sin framework, diálogo de guardar y abrir enlaces; íconos desde `app/build/appicon.png` | `app/wails.json`, `app/build/` |
+| `tauri.conf.json`, `capabilities/default.json`, `icons/` | ventana 1120×780, CSP abierta para la interfaz sin framework, diálogo de guardar y abrir enlaces; íconos: el faro ilustrado `icons/faro.svg` (fuente), y de ahí `icon.png`/`.icns`/`.ico` con `cargo tauri icon`; `app/build/appicon.png` es el mismo PNG para Wails | `app/wails.json`, `app/build/` |
 
 Modos como en la Wails: normal (repo o carpeta de datos), `DTE_API_URL` + `DTE_API_KEY` (motor
 externo, nada se arranca). `DTE_MOTOR=python` no existe aquí: no hay sidecar Python.

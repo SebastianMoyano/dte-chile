@@ -159,14 +159,21 @@ h2 { font-size:1.15rem; margin:24px 0 8px; } h3 { font-size:1rem; margin:0 0 6px
 .accion:hover { transform:translateY(-3px); background:var(--vidrio-2); border-color:var(--bd-2); }
 .accion h3 { margin:0 0 4px; font-size:1.05rem; } .accion p { margin:0; color:var(--mut); font-size:.9rem; }
 .accion .ico, .vacio .ico { margin-bottom:12px; }
-.ico { width:54px; height:54px; display:grid; place-items:center; border-radius:17px; font-size:1.65rem; background:linear-gradient(135deg,#a78bfa,#6366f1);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.35), 0 10px 22px -12px rgba(0,0,0,.7); }
-.grid .card:nth-child(3n+2) .ico { background:linear-gradient(135deg,#5eead4,#0ea5e9); }
-.grid .card:nth-child(3n) .ico { background:linear-gradient(135deg,#fbbf24,#f97316); }
-.ico svg, .dock a i svg { width:26px; height:26px; fill:none; stroke:#fff; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
-.dock a i svg { width:24px; height:24px; stroke:currentColor; }
+/* Íconos ilustrados: baldosa con degradado y brillo (como los de umbrelOS) y glifo en capas
+   (.s sombra, .f forma, .a acento). En el dock el glifo toma el color del texto. */
+.ico { --tono-1:#a78bfa; --tono-2:#6366f1; width:56px; height:56px; display:grid; place-items:center; border-radius:18px; font-size:1.65rem;
+  background:radial-gradient(120% 120% at 30% 18%, rgba(255,255,255,.42), rgba(255,255,255,0) 52%), linear-gradient(135deg,var(--tono-1),var(--tono-2));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.45), 0 14px 26px -14px rgba(0,0,0,.65); }
+.grid .card:nth-child(3n+2) .ico { --tono-1:#5eead4; --tono-2:#0ea5e9; }
+.grid .card:nth-child(3n) .ico { --tono-1:#fbbf24; --tono-2:#f97316; }
+.grid .card:nth-child(4) .ico { --tono-1:#f9a8d4; --tono-2:#e11d48; }
+.ico svg { width:32px; height:32px; filter:drop-shadow(0 2px 2px rgba(0,0,0,.22)); }
+.ico svg .s { fill:rgba(0,0,0,.16); } .ico svg .f { fill:#fff; } .ico svg .a { fill:rgba(0,0,0,.22); }
+.dock a i svg { width:26px; height:26px; }
+.dock a i svg .s { fill:none; } .dock a i svg .f { fill:currentColor; } .dock a i svg .a { fill:var(--bg-glifo, rgba(127,127,160,.45)); }
 .vacio .ico { width:auto; height:auto; background:none; box-shadow:none; margin:0 auto 10px; }
-.vacio .ico svg { width:40px; height:40px; stroke:var(--mut-2); stroke-width:1.6; }
+.vacio .ico svg { width:44px; height:44px; filter:none; }
+.vacio .ico svg .f { fill:var(--mut-2); } .vacio .ico svg .a { fill:var(--mut); } .vacio .ico svg .s { fill:none; }
 label { display:block; font-weight:600; font-size:.84rem; color:var(--fg); margin:14px 0 6px; }
 input,select,textarea { width:100%; padding:11px 13px; border:1px solid var(--bd-2); border-radius:var(--r-sm); background:var(--campo); color:var(--fg); font-size:1rem; font-family:inherit;
   transition:border-color .12s, box-shadow .12s, background .12s; }

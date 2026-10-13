@@ -222,8 +222,12 @@ translúcido (`backdrop-filter`), **dock** fijo abajo con los cuatro ítems y Aj
 punto blanco bajo el activo), íconos en baldosas con gradiente (`.ico`), botón primario blanco en
 píldora, diálogos y tarjetas del tour más opacos (`--panel`) para leer bien. Las clases son las
 mismas, así que `app.js` y `tour.js` no dependen del tema; `index.html` cambió a cabecera +
-contenido + dock (ya no hay barra lateral). Los íconos son SVG de trazo propios (`ICONOS` en
-`app.js`, inline en el dock), iguales en todos los sistemas; el selector de empresa aparece
+contenido + dock (ya no hay barra lateral). Los íconos son **ilustrados** al estilo de los de
+umbrelOS (2026-10-13): SVG propios de relleno en tres capas (`.s` sombra, `.f` forma, `.a`
+acento; `ICONOS` en `app.js`, inline en el dock) sobre baldosas con degradado y brillo (`.ico`,
+tonos por `--tono-1/--tono-2`); en el dock el glifo toma el color del texto. El ícono de la app
+es un faro de noche con su haz (`app-rs/icons/faro.svg`; de ahí salen `icon.png`, `.icns`,
+`.ico` con `cargo tauri icon`, y `app/build/appicon.png` para Wails). Iguales en todos los sistemas; el selector de empresa aparece
 recién con la primera empresa real; las etapas 4 y 5 del camino se llaman "Emitir con el SII" y
 "Tu propio sistema" (en `docs/aprender/00-plan.md` conservan sus títulos largos).
 

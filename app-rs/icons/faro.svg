@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="cielo" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b1a5e"/><stop offset=".55" stop-color="#4a3db5"/><stop offset="1" stop-color="#7c5cf0"/></linearGradient>
+    <linearGradient id="mar" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3f7cf6"/><stop offset="1" stop-color="#1c3fb0"/></linearGradient>
+    <linearGradient id="haz" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ffe59a" stop-opacity=".95"/><stop offset="1" stop-color="#ffe59a" stop-opacity="0"/></linearGradient>
+    <linearGradient id="torre" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#d9d6f2"/></linearGradient>
+    <radialGradient id="luz" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff7c2"/><stop offset=".5" stop-color="#ffe59a" stop-opacity=".8"/><stop offset="1" stop-color="#ffe59a" stop-opacity="0"/></radialGradient>
+    <radialGradient id="brillo" cx=".3" cy=".15" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/></radialGradient>
+    <clipPath id="marco"><rect x="0" y="0" width="1024" height="1024" rx="230"/></clipPath>
+  </defs>
+  <g clip-path="url(#marco)">
+    <rect width="1024" height="1024" fill="url(#cielo)"/>
+    <g fill="#fff" opacity=".9"><circle cx="140" cy="150" r="5"/><circle cx="300" cy="90" r="4"/><circle cx="820" cy="120" r="5"/><circle cx="930" cy="250" r="4"/><circle cx="700" cy="60" r="3.5"/><circle cx="90" cy="330" r="3.5"/><circle cx="960" cy="420" r="3"/></g>
+    <circle cx="790" cy="230" r="78" fill="#f6f3ff"/><circle cx="820" cy="205" r="66" fill="url(#cielo)" opacity=".92"/>
+    <!-- haz hacia la derecha -->
+    <path d="M512 352 L1150 180 L1150 560 Z" fill="url(#haz)"/>
+    <circle cx="512" cy="352" r="120" fill="url(#luz)"/>
+    <!-- mar y olas -->
+    <path d="M-50 640 Q80 610 210 640 T470 640 T730 640 T990 640 T1250 640 V1100 H-50Z" fill="url(#mar)"/>
+    <path d="M-50 720 Q90 690 230 720 T510 720 T790 720 T1070 720 V1100 H-50Z" fill="#1e46c4" opacity=".55"/>
+    <path d="M-50 820 Q100 790 250 820 T550 820 T850 820 T1150 820 V1100 H-50Z" fill="#162f8e" opacity=".55"/>
+    <!-- roca -->
+    <path d="M330 700 Q400 620 512 640 T700 700 L740 760 H300 Z" fill="#2a2666"/>
+    <path d="M370 700 Q440 650 512 662 T660 700 L680 735 H350 Z" fill="#3b3585"/>
+    <!-- torre -->
+    <path d="M452 660 L472 400 H552 L572 660 Z" fill="url(#torre)"/>
+    <path d="M465 490 H559 L562 536 H462 Z" fill="#ef4444"/>
+    <path d="M459 578 H565 L568 624 H456 Z" fill="#ef4444"/>
+    <rect x="436" y="652" width="152" height="24" rx="8" fill="#2a2666"/>
+    <!-- linterna -->
+    <rect x="456" y="378" width="112" height="22" rx="8" fill="#2a2666"/>
+    <rect x="470" y="318" width="84" height="62" fill="#ffe59a"/>
+    <rect x="470" y="318" width="84" height="62" fill="none" stroke="#2a2666" stroke-width="10"/>
+    <rect x="458" y="300" width="108" height="20" rx="8" fill="#2a2666"/>
+    <path d="M474 300 Q512 250 550 300 Z" fill="#2a2666"/>
+    <rect x="506" y="234" width="12" height="26" rx="6" fill="#2a2666"/>
+    <!-- puerta y ventana -->
+    <rect x="498" y="600" width="28" height="48" rx="12" fill="#2a2666"/>
+    <rect x="500" y="440" width="24" height="30" rx="8" fill="#2a2666" opacity=".8"/>
+    <rect width="1024" height="1024" fill="url(#brillo)"/>
+  </g>
+</svg>

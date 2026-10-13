@@ -54,19 +54,21 @@ const mesLargo = (ym) => { const m = /^(\d{4})-(\d{2})/.exec(ym || ""); return m
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const TIPOS = { 33: "Factura", 34: "Factura exenta", 39: "Boleta", 41: "Boleta exenta", 52: "Guía de despacho", 56: "Nota de débito", 61: "Nota de crédito" };
 const IVA = 0.19;
-// Íconos propios (trazo, 24×24): los mismos en Mac, Windows y Linux. En index.html el dock lleva los suyos inline.
+// Íconos propios ilustrados (24×24, relleno en capas: .s sombra, .f forma, .a acento): los mismos en
+// Mac, Windows y Linux. En index.html el dock lleva los suyos inline; el color lo pone app.css.
 const ICONOS = {
-  inicio: '<path d="M3 11l9-8 9 8v9a2 2 0 0 1-2 2h-4v-6H9v6H5a2 2 0 0 1-2-2z"/>',
-  cobrar: '<path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h4"/>',
-  documentos: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/>',
-  aprender: '<path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11.5v4.5c0 1.5 3 3 6 3s6-1.5 6-3v-4.5"/><path d="M22 9v5"/>',
-  ajustes: '<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3"/><path d="M1 14h6M9 8h6M17 16h6"/>',
-  mes: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
-  ia: '<rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M1 9h3M1 15h3M20 9h3M20 15h3"/>',
-  valores: '<path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/>',
-  panel: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
-  sincronizar: '<path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>',
-  vacio: '<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+  inicio: '<path class="s" d="M4.5 12.5 12 6l7.5 6.5V20a1 1 0 0 1-1 1H5.5a1 1 0 0 1-1-1z"/><path class="f" d="M3.5 11.5 12 4.5l8.5 7V19a1 1 0 0 1-1 1h-5v-5h-5v5h-5a1 1 0 0 1-1-1z"/><path class="a" d="M10 15h4v5h-4z"/><path class="a" d="M3 12.2 12 4.5l9 7.7-1.2 1.2L12 7 4.2 13.4z"/>',
+  cobrar: '<path class="s" d="M7 4h11v17l-1.8-1.4L14.4 21l-1.8-1.4L10.8 21 9 19.6 7.2 21z"/><path class="f" d="M6 3h11v17l-1.8-1.4L13.4 20l-1.8-1.4L9.8 20 8 18.6 6.2 20z"/><path class="a" d="M8.5 7h6v1.6h-6zM8.5 10.5h6v1.6h-6zM8.5 14h3.5v1.6H8.5z"/>',
+  documentos: '<path class="s" d="M7.5 4H15l4.5 4.5V21a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1z"/><path class="f" d="M6 3h8l5 5v12a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path class="a" d="M14 3v5h5zM8 12h8v1.6H8zM8 15.5h8v1.6H8z"/>',
+  aprender: '<path class="s" d="M3.5 7.5 12 4l8.5 3.5L12 11z"/><path class="f" d="M2.5 8.5 12 4l9.5 4.5L12 13z"/><path class="f" d="M6.5 11.3v4.2c0 1.6 2.6 2.9 5.5 2.9s5.5-1.3 5.5-2.9v-4.2L12 14z"/><path class="a" d="M12 13 2.5 8.5v1.2L12 14.2l9.5-4.5V8.5zM20.3 9.4h1.4v5.2h-1.4z"/>',
+  ajustes: '<path class="s" d="M5 4h2v17H5zM11 4h2v17h-2zM17 4h2v17h-2z"/><path class="f" d="M5.2 3h1.6v18H5.2zM11.2 3h1.6v18h-1.6zM17.2 3h1.6v18h-1.6z"/><circle class="f" cx="6" cy="14" r="2.6"/><circle class="f" cx="12" cy="8" r="2.6"/><circle class="f" cx="18" cy="16" r="2.6"/><circle class="a" cx="6" cy="14" r="1.1"/><circle class="a" cx="12" cy="8" r="1.1"/><circle class="a" cx="18" cy="16" r="1.1"/>',
+  mes: '<rect class="s" x="4.5" y="5.5" width="16" height="16" rx="2.5"/><rect class="f" x="3.5" y="4.5" width="16" height="16" rx="2.5"/><path class="a" d="M3.5 9h16v1.6h-16zM7 2.5h1.8v4H7zM14.2 2.5H16v4h-1.8z"/><rect class="a" x="6.5" y="12.5" width="3.2" height="3.2" rx=".8"/><rect class="a" x="10.4" y="12.5" width="3.2" height="3.2" rx=".8" opacity=".5"/>',
+  ia: '<rect class="s" x="5.5" y="5.5" width="14" height="14" rx="3"/><rect class="f" x="4.5" y="4.5" width="14" height="14" rx="3"/><path class="a" d="M11.5 7.5l1.1 2.9 2.9 1.1-2.9 1.1-1.1 2.9-1.1-2.9-2.9-1.1 2.9-1.1z"/><path class="a" d="M8 2h1.6v2.5H8zM13.4 2H15v2.5h-1.6zM8 18.5h1.6V21H8zM13.4 18.5H15V21h-1.6zM2 8h2.5v1.6H2zM2 13.4h2.5V15H2zM18.5 8H21v1.6h-2.5zM18.5 13.4H21V15h-2.5z"/>',
+  valores: '<path class="s" d="M5 19h2.6v-5H5zM10 19h2.6v-9H10zM15 19h2.6v-13H15z"/><path class="f" d="M4 18h2.6v-5H4zM9 18h2.6v-9H9zM14 18h2.6V5H14z"/><path class="a" d="M3 20h18v1.6H3zM19.5 3l2 3.6h-1.3v3.4h-1.4V6.6h-1.3z"/>',
+  panel: '<path class="s" d="M5 11.5h15V21H5z"/><path class="f" d="M4 11h15v9.5H4z"/><path class="f" d="M3 5h17l1.5 4.2c0 1.4-1.2 2.3-2.5 2.3S16.5 10.6 16.5 9.2c0 1.4-1.2 2.3-2.5 2.3S11.5 10.6 11.5 9.2c0 1.4-1.2 2.3-2.5 2.3S6.5 10.6 6.5 9.2c0 1.4-1.2 2.3-2.5 2.3S1.5 10.6 1.5 9.2z"/><path class="a" d="M6.5 9.2V5h5v4.2zM16.5 9.2V5h3.5l1.5 4.2z"/><path class="a" d="M8.5 14h3v6.5h-3zM13.5 14h3.5v3h-3.5z"/>',
+  empresa: '<path class="s" d="M5 11.5h15V21H5z"/><path class="f" d="M4 11h15v9.5H4z"/><path class="f" d="M3 5h17l1.5 4.2c0 1.4-1.2 2.3-2.5 2.3S16.5 10.6 16.5 9.2c0 1.4-1.2 2.3-2.5 2.3S11.5 10.6 11.5 9.2c0 1.4-1.2 2.3-2.5 2.3S6.5 10.6 6.5 9.2c0 1.4-1.2 2.3-2.5 2.3S1.5 10.6 1.5 9.2z"/><path class="a" d="M6.5 9.2V5h5v4.2zM16.5 9.2V5h3.5l1.5 4.2z"/><path class="a" d="M8.5 14h3v6.5h-3zM13.5 14h3.5v3h-3.5z"/>',
+  sincronizar: '<path class="s" d="M13 5.5a7 7 0 0 1 6.2 3.8l1.4-.8 .3 4.4-4-1.9 1.3-.7A5 5 0 0 0 13 7.5z"/><path class="f" d="M12 4a8 8 0 0 1 7.1 4.3l1.9-1 .3 5.3-4.8-2.3 1.6-.9A6 6 0 0 0 12 6zM12 20a8 8 0 0 1-7.1-4.3l-1.9 1-.3-5.3 4.8 2.3-1.6.9A6 6 0 0 0 12 18z"/>',
+  vacio: '<path class="f" d="M3 9h18l-1.5 11H4.5z" opacity=".55"/><path class="a" d="M5 4h14l2 5H3z"/><path class="a" d="M9 12h6v1.6H9z"/>',
 };
 const icono = (k) => `<div class="ico"><svg viewBox="0 0 24 24" aria-hidden="true">${ICONOS[k]}</svg></div>`;
 const RUT_DEMO = "77777777-7";
