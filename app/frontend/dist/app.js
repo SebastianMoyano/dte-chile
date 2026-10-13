@@ -681,6 +681,18 @@ vistas.documentos = async (el) => {
     <p class="mut">Un documento emitido no se borra. Si salió mal, pulsa <b>anular</b> en su fila: una nota de crédito por el total lo deja en cero. Si cobraste de menos, <b>cobrar más</b> emite una nota de débito que suma la diferencia. Y una nota de crédito que salió mal se deja <b>sin efecto</b> con una nota de débito.${e.demo ? "" : " Los documentos del sistema gratuito del SII se anulan con el propio SII (la app te muestra la nota antes); los del motor propio, con tus folios."}</p>`;
 };
 
+// Elegir si la empresa se usa para practicar con el SII o para trabajar de verdad.
+// Explicado como a un alumno: dos tarjetas, un título y una frase cada una.
+function opcionesAmbiente() {
+  return `
+        <label>¿Para qué vas a usar esta empresa?</label>
+        <div class="radio tarjetas">
+          <label><input type="radio" name="e_amb" value="certificacion" checked><div><span><b>Para practicar con el SII</b> <span class="semaf amarillo">amarillo</span></span><small>Los documentos sí llegan al SII y él los revisa, pero no valen: son de ensayo. Nadie paga impuestos por ellos.</small></div></label>
+          <label><input type="radio" name="e_amb" value="produccion"><div><span><b>Para trabajar de verdad</b> <span class="semaf rojo">rojo</span></span><small>Cada documento vale como una boleta o factura real. Queda registrado en el SII y se pagan impuestos por él.</small></div></label>
+        </div>
+        <p class="mut">¿No estás seguro? Elige practicar. Cambiar a "de verdad" se hace más adelante, cuando la empresa ya aprobó sus pruebas con el SII.</p>`;
+}
+
 function tabla(docs) {
   if (!docs.length) return `<div class="vacio">${icono("vacio")}No hay documentos todavía.<br><span class="lnk" onclick="ir('cobrar')">Emitir el primero</span></div>`;
   const est = (e) => { e = e || ""; const c = e.includes("acept") || e.includes("emitido") || e === "simulado" ? "p-ok" : e.includes("rechaz") || e.includes("anulado") ? "p-no" : e.includes("envi") ? "p-warn" : "p-mut";
@@ -849,16 +861,14 @@ vistas.empresa = async (el) => {
       $("e_empresas").innerHTML += `
         <ul class="lista-check">${emps.map((x) => `<li><label style="margin:0;display:flex;gap:10px;align-items:center;flex:1"><input type="radio" name="e_rut" value="${esc(x.rut)}"> <span><b>${esc(x.razon_social || "")}</b> · ${esc(x.rut)}</span></label></li>`).join("")}</ul>
         <label>O escribe el RUT de la empresa</label><input id="e_rut_manual" placeholder="76111111-6">
-        <label>¿Dónde la agregamos?</label>
-        <div class="radio"><label><input type="radio" name="e_amb" value="certificacion" checked> Pruebas del SII (amarillo): el SII responde, pero nada cuenta</label><label><input type="radio" name="e_amb" value="produccion"> Real (rojo): cada documento cuenta</label></div>
-        <p class="mut">Empieza en pruebas. Pasar a real es un paso aparte, cuando ya certificaste o cuando emites por el sistema gratuito del SII.</p>
+        ${opcionesAmbiente()}
         <button id="e_agregar">Agregar empresa</button>`;
       $("e_agregar").onclick = async () => {
         const sel = document.querySelector('input[name="e_rut"]:checked');
         const rut = (sel ? sel.value : $("e_rut_manual").value).trim();
         if (!rut) return aviso("Elige una empresa o escribe su RUT.");
         const amb = document.querySelector('input[name="e_amb"]:checked').value;
-        if (amb === "produccion" && !(await dialogo({ titulo: "Agregar en real", cuerpo: `<div class="banner rojo"><b>Esto es real.</b> Lo que emitas por ${esc(rut)} contará ante el SII.</div>`, botones: [{ texto: "Volver", clase: "sec", valor: false }, { texto: "Sí, en real", clase: "peligro", valor: true }] }))) return;
+        if (amb === "produccion" && !(await dialogo({ titulo: "Trabajar de verdad", cuerpo: `<div class="banner rojo"><b>Esto no es práctica.</b> Cada boleta o factura que hagas con ${esc(rut)} quedará registrada en el SII y se pagarán impuestos por ella.</div>`, botones: [{ texto: "Volver", clase: "sec", valor: false }, { texto: "Sí, de verdad", clase: "peligro", valor: true }] }))) return;
         $("e_agregar").disabled = true;
         try {
           const r = await window.go.main.App.Formulario("/api/v1/keystore/negocios", JSON.stringify({ rut, cert_id: String(cert.id), ambiente: amb }), "");
@@ -868,7 +878,7 @@ vistas.empresa = async (el) => {
       };
     } catch (e) { $("e_empresas").innerHTML = `<div class="banner rojo">${esc(explicarSII(e.message || e))}</div><p class="mut">Si eres persona natural con inicio de actividades o ya sabes el RUT de tu empresa, puedes escribirlo igual:</p>
         <label>RUT de la empresa</label><input id="e_rut_manual" placeholder="76111111-6">
-        <div class="radio"><label><input type="radio" name="e_amb" value="certificacion" checked> Pruebas del SII (amarillo)</label><label><input type="radio" name="e_amb" value="produccion"> Real (rojo)</label></div>
+        ${opcionesAmbiente()}
         <button id="e_agregar">Agregar empresa</button>`; buscar.disabled = false;
       $("e_agregar").onclick = async () => {
         const rut = $("e_rut_manual").value.trim(); if (!rut) return aviso("Escribe el RUT de la empresa.");

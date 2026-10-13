@@ -225,6 +225,12 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
   background:var(--vidrio); transition:border-color .12s, background .12s; }
 .radio label:has(input:checked) { border-color:var(--campo-foco); background:var(--vidrio-3); }
 .radio input { width:auto; margin:0; accent-color:var(--inv-bg); }
+.radio.tarjetas label { align-items:flex-start; min-width:220px; padding:12px 14px; }
+.radio.tarjetas input { margin-top:3px; }
+.radio.tarjetas div { display:flex; flex-direction:column; align-items:flex-start; gap:4px; }
+.radio.tarjetas small { font-weight:400; color:var(--mut); line-height:1.4; }
+.semaf { display:inline-block; font-size:11px; font-weight:600; padding:1px 7px; border-radius:999px; vertical-align:middle; margin-left:4px; }
+.semaf.amarillo { background:var(--warn-soft); color:var(--warn); } .semaf.rojo { background:var(--no-soft); color:var(--no); }
 .chk { display:flex; gap:8px; align-items:center; font-weight:500; margin-top:12px; } .chk input { width:auto; accent-color:var(--inv-bg); }
 .modal { position:fixed; inset:0; background:var(--velo); display:flex; align-items:center; justify-content:center; z-index:20; backdrop-filter:blur(6px); }
 .modal .card { background:var(--panel); box-shadow:var(--sh-2); animation:sube .18s ease-out; }
