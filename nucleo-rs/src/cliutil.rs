@@ -201,7 +201,29 @@ pub fn carpeta_datos() -> Result<PathBuf, String> {
     for sub in ["", "logs", "storage"] {
         std::fs::create_dir_all(d.join(sub)).map_err(|e| e.to_string())?;
     }
+    proteger_carpeta_datos(&d);
     Ok(d)
+}
+
+/// `ProtegerCarpetaDatos`: la carpeta de datos guarda la clave maestra (`.env`) y la base con el
+/// certificado y las claves cifradas. En Unix se deja solo para el usuario: 700 la carpeta y 600
+/// el `.env` y la base (con su -wal y -shm). Silencioso si algo no existe o no se puede cambiar.
+pub fn proteger_carpeta_datos(dir: &Path) {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let _ = std::fs::set_permissions(dir, std::fs::Permissions::from_mode(0o700));
+        for f in [".env", "dte_database.db", "dte_database.db-wal", "dte_database.db-shm"] {
+            let r = dir.join(f);
+            if r.is_file() {
+                let _ = std::fs::set_permissions(&r, std::fs::Permissions::from_mode(0o600));
+            }
+        }
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = dir;
+    }
 }
 
 /// `AsegurarEnv`: crea el `.env` de la carpeta de datos la primera vez, con secretos generados
@@ -228,6 +250,7 @@ pub fn asegurar_env(dir: &Path) -> Result<String, String> {
         contenido.push_str(&format!("{k}={v}\n"));
     }
     std::fs::write(&ruta, contenido).map_err(|e| e.to_string())?;
+    proteger_carpeta_datos(dir);
     Ok(admin)
 }
 

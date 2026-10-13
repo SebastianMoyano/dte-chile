@@ -172,6 +172,12 @@ IDENTIDAD="Developer ID Application: …" ./firmar-mac.sh   # firma y notarizaci
 - La primera vez, el cascarón crea el `.env` con secretos generados ahí mismo (`JWT_SECRET_KEY`,
   `DTE_MASTER_KEY` del keystore) y una `ADMIN_PASSWORD` para el panel web, que Inicio muestra.
   Si el `.env` ya existe no se toca: es la configuración del usuario.
+- Esa carpeta queda **solo para el usuario** (2026-10-13, `cliutil::proteger_carpeta_datos`): 700 la
+  carpeta y 600 el `.env` y la base con su `-wal`/`-shm`, al crearla y en cada arranque empaquetado.
+  Motivo: el `.env` tiene la clave maestra y la base el certificado y las claves cifradas con ella;
+  juntos abren todo, así que otra cuenta del mismo computador no debe poder leerlos. Lo que ya está
+  cifrado en la base lo verifica `estado_claves_sii` sin devolver valores; el log del motor solo
+  registra método, ruta y estado, nunca cuerpos.
 - Con repo al lado (desarrollo), la app usa el `.env`, la base y el storage del repo.
 - Para Windows y Linux basta `wails build` de esa plataforma: el motor va en el mismo binario.
 - Verificado 2026-10-05: la app empaquetada arrancó desde una carpeta de datos vacía, creó

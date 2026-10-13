@@ -141,6 +141,10 @@ impl Motor {
             self.url, cfg.database_path
         ));
         let s = Servidor::nuevo(cfg).map_err(|e| format!("no pude arrancar el motor: {e}"))?;
+        if self.empaquetado {
+            // La base ya existe: dejarla solo para este usuario (igual que el .env).
+            cliutil::proteger_carpeta_datos(&raiz);
+        }
         if !s.clave_admin_generada.is_empty() && self.clave_admin.is_empty() {
             self.clave_admin = s.clave_admin_generada.clone();
         }

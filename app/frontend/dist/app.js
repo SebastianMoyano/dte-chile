@@ -895,7 +895,11 @@ vistas.empresa = async (el) => {
     const id = $("f_neg").value; ver.disabled = true; $("f_tabla").innerHTML = `<p class="mut">Preguntando al SII qué documentos tiene autorizados esta empresa…</p>`;
     try {
       const t = await api("GET", `/api/v1/keystore/negocios/${id}/timbraje`);
-      $("f_tabla").innerHTML = `<div class="tablewrap"><table><tr><th>Documento</th><th>¿Autorizado por el SII?</th><th></th></tr>
+      const negF = negocios.find((x) => String(x.id) === String(id)) || {};
+      const notaMundo = negF.ambiente === "produccion"
+        ? `<div class="banner rojo"><b>Esta empresa está en "de verdad".</b> Los folios que pidas aquí son números reales del SII: cada uno sirve para un documento que vale.</div>`
+        : `<div class="banner"><b>Esta empresa está en "practicar con el SII" (amarillo).</b> Lo que ves es lo que el SII de pruebas le autoriza, y los folios que pidas son de ensayo: sirven para practicar y para la certificación, no para documentos de verdad. Igual pide solo los que vayas a usar: el SII de pruebas también bloquea a quien pide y no usa.</div>`;
+      $("f_tabla").innerHTML = `${notaMundo}<div class="tablewrap"><table><tr><th>Documento</th><th>¿Autorizado por el SII?</th><th></th></tr>
         ${t.documentos.map((d) => `<tr><td>${esc(TIPOS_FOLIO[d.tipo] || d.nombre)}</td><td>${d.autorizado ? '<span class="pill p-ok">sí</span>' : '<span class="pill p-mut">todavía no</span>'}${d.bloqueado ? ' <span class="pill p-no">bloqueado por el SII</span>' : ""}</td>
           <td>${d.autorizado && !d.bloqueado ? `<span class="lnk" onclick="pedirFolios(${id}, ${d.tipo}, '${esc(TIPOS_FOLIO[d.tipo] || d.nombre)}')">pedir 5 folios</span>` : ""}</td></tr>`).join("")}</table></div>
         <p class="mut">"Todavía no" significa que el SII aún no te autorizó ese tipo de documento: se consigue certificándose (etapa 5 de la guía). "Bloqueado" es el freno del SII por folios pedidos y no usados; se destraba usándolos o pidiendo al SII que anule los que no vas a usar.</p>`;
@@ -957,7 +961,8 @@ window.quitarNegocio = async (id) => {
   try { await api("DELETE", `/api/v1/keystore/negocios/${id}`); aviso("Empresa quitada."); render(); } catch (e) { aviso(e.message, 6000); }
 };
 window.pedirFolios = async (negocioId, tipo, nombre) => {
-  const ok = await dialogo({ titulo: `Pedir 5 folios de ${nombre}`, cuerpo: `<p class="mut">La app entra al SII con tu certificado, pide un rango de 5 números y lo guarda aquí. Desde ese momento puedes emitir 5 documentos de este tipo.</p><div class="banner">Pide solo lo que vayas a usar: el SII frena a quien acumula folios sin emitirlos.</div>`,
+  const negP = negocios.find((x) => String(x.id) === String(negocioId)) || {};
+  const ok = await dialogo({ titulo: `Pedir 5 folios de ${nombre}`, cuerpo: `<p class="mut">La app entra al SII con tu certificado, pide un rango de 5 números y lo guarda aquí. Desde ese momento puedes emitir 5 documentos de este tipo.</p>${negP.ambiente === "produccion" ? "" : `<p class="mut">Como esta empresa está en "practicar con el SII", los folios vienen del SII de pruebas: son de ensayo y no valen para documentos de verdad.</p>`}<div class="banner">Pide solo lo que vayas a usar: el SII frena a quien acumula folios sin emitirlos.</div>`,
     botones: [{ texto: "Volver", clase: "sec", valor: false }, { texto: "Pedir los folios", valor: true }] });
   if (!ok) return;
   aviso("Pidiendo folios al SII… puede tardar medio minuto.", 8000);
