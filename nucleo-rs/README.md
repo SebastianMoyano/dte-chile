@@ -38,7 +38,7 @@ Todo junto, con los gates de Go y Python: `./tools/prueba_final.sh` (gates `rust
 | `portal` | `nucleo/portal` | parsers y onboarding == esperado de Python | hecho 2026-10-12 |
 | `siiengine` | `nucleo/siiengine` | payloads y cuerpo de envío == evidencias reales | hecho 2026-10-12 |
 | `emision` | `nucleo/emision` | contrato dorado (`/dte/emitir`, `/dte/previsualizar`, práctica) | hecho 2026-10-12 |
-| `servidor` + `bin/nucleo-servidor` | `nucleo/servidor` (94 rutas, JWT, passlib `sha256_crypt`, Fernet, RVD, buscador público, `/app`) | esquema dorado 23/23; contrato dorado Python vs Rust 203/203 (`tools/contrato_api.py`) | hecho 2026-10-12 |
+| `servidor` + `bin/nucleo-servidor` | `nucleo/servidor` (las mismas rutas que Go, JWT, passlib `sha256_crypt`, Fernet, RVD, buscador público, `/app`) **más la bóveda con PIN, solo en Rust** (`servidor/boveda.rs`: `GET/POST/PUT /api/v1/boveda`, `POST …/abrir`, `…/bloquear`, `…/reiniciar`; con `boveda.json` en la carpeta de datos el motor arranca bloqueado y todo lo que necesite el certificado o las claves del SII responde 423 `boveda_bloqueada`, también por MCP) | esquema dorado 23/23; contrato dorado Python vs Rust 203/203 (`tools/contrato_api.py`); bóveda con tests propios | hecho 2026-10-12; bóveda 2026-10-13 |
 | `mcp` + `bin/nucleo-mcp` | `nucleo/mcp` | 20 tools; stdio y Streamable HTTP; dos motores sobre la misma base | hecho 2026-10-12 |
 | `conectores`, `valores`, `cliutil` | `nucleo/conectores`, `nucleo/valores`, `nucleo/cliutil` | tests portados de Go | hecho 2026-10-12 |
 | `bin/nucleo-{emitir,cafs,rvd,valores,sii,portal,keystore,certificacion,siiengine}` | `nucleo/cmd/*` | set de certificación Go == Rust byte a byte (16/16) | hecho 2026-10-12 |

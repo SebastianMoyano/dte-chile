@@ -124,7 +124,7 @@ todo el dominio (emitir, folios, estado, diagnóstico) sin que le expliques la A
 ### Recomendaciones (lo justo para operar seguro)
 1. **No expongas la API REST a Internet.** Deja pública solo `/consulta` (ya está). El NAT solo abre 80/443 → reverse proxy; el puerto del motor queda en la LAN.
 2. **Para integraciones/IA: una API key** (UI `/apikeys`) o el **MCP con `MCP_AUTH_TOKEN`**. Ambas son bearer estáticos que no expiran — ideal para agentes. Rota/revoca cuando quieras.
-3. **Mantén el usuario admin** solo para gestión (UI/REST) y **cambia su clave** tras el 1er arranque. Guarda `JWT_SECRET_KEY` y `DTE_MASTER_KEY` (cifra el keystore) fuera del repo.
+3. **Mantén el usuario admin** solo para gestión (UI/REST) y **cambia su clave** tras el 1er arranque. Guarda `JWT_SECRET_KEY` y `DTE_MASTER_KEY` (cifra el keystore) fuera del repo. **En la app de escritorio (motor Rust) con PIN creado, la clave maestra ya no está en el `.env`**: vive cifrada en `boveda.json` y se abre con el PIN; si se olvida el PIN, los certificados y claves guardados no se recuperan (hay que volver a cargarlos). Respaldar solo el `.env` no cubre los certificados en ese caso: respalda la carpeta de datos completa.
 4. **Una key por integración** (nómbralas): revocas una sin afectar las demás y ves el último uso en la UI.
 
 ---
@@ -141,7 +141,7 @@ todo el dominio (emitir, folios, estado, diagnóstico) sin que le expliques la A
 |---|---|
 | `SII_AMBIENTE` | `certificacion` / `produccion` |
 | `DATABASE_URL` | Ruta de la BD (SQLite) |
-| `DTE_MASTER_KEY` | Cifra los certificados del keystore (¡guárdala!) |
+| `DTE_MASTER_KEY` | Cifra los certificados del keystore (¡guárdala!). Con PIN en la app de escritorio (Rust) sale del `.env` y queda envuelta en `boveda.json` |
 | `JWT_SECRET_KEY` | Firma los JWT |
 | `MCP_AUTH_TOKEN` | Token (API key) del servidor MCP para IA/integraciones |
 | `NOTIF_WEBHOOK_URL` | A dónde notificar eventos de folios (tú lo cableas) |

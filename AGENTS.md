@@ -152,7 +152,7 @@ python setup.py  # Recrea tablas y usuario admin
 ## Security Notes
 
 - Certificados .p12 NUNCA se guardan en texto plano (keystore cifrado con Fernet)
-- **`setup.py` genera secretos fuertes** en el `.env` (`JWT_SECRET_KEY`, `DTE_MASTER_KEY`)
+- **`setup.py` genera secretos fuertes** en el `.env` (`JWT_SECRET_KEY`, `DTE_MASTER_KEY`). En el motor Rust con PIN (bóveda, `nucleo-rs/src/servidor/boveda.rs`) la `DTE_MASTER_KEY` sale del `.env` y queda envuelta en `boveda.json`; el motor arranca bloqueado y responde 423 hasta que se escribe el PIN
 - **Arranque fail-closed:** `main.py` chequea `settings.problemas_seguridad()` al iniciar;
   avisa siempre y **aborta en producción** si hay secretos por defecto/inseguros
 - **Admin con password aleatoria** en el primer arranque (o `ADMIN_PASSWORD`), mostrada 1 vez

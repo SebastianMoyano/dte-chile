@@ -51,6 +51,8 @@ varias empresas propias, **self-hosted** (no SaaS). Código y comentarios **en e
 | **Verificar que la salida no cambió / probar un port** (byte a byte, sin SII) | [`DORADO.md`](DORADO.md) → `test_dorado.py`, `tests/dorado/`, `core/reloj.py` |
 | **Practicar sin riesgo** (EMPRESA DEMO SPA: mismo pipeline, CAF y certificado ficticios, sin envío) | [`APP.md`](APP.md) → `core/simulacion.py`, `test_simulacion.py` |
 | **Enseñar a facturar y declarar** (curso por tramos, app para quien no sabe nada, videos) | [`aprender/00-plan.md`](aprender/00-plan.md) |
+| **Editar la mini academia de la app** (23 lecciones por pasos, un visual por lección) | `tools/academia_datos.py` (fuente) → `app/frontend/dist/academia.js`; visuales en `app/frontend/dist/academia-vis.js`; gate `tools/revisar_academia.py` (`--md` genera [`aprender/LECCIONES.md`](aprender/LECCIONES.md), no se edita a mano); fila Aprender de [`APP.md`](APP.md) |
+| **PIN de la app / bóveda y permisos de la carpeta de datos** (solo motor Rust; 423 `boveda_bloqueada`) | `nucleo-rs/src/servidor/boveda.rs` (`/api/v1/boveda`, `abrir`, `bloquear`, `reiniciar`), `nucleo-rs/src/cliutil.rs` (`proteger_carpeta_datos`, 700/600), [`APP.md`](APP.md) sección de la carpeta de datos, gotcha en `CLAUDE.md` |
 
 ## El flujo, en una línea
 

@@ -1,7 +1,8 @@
 # Aprender a facturar y declarar — plan del curso
 
 > Para alguien que no sabe nada de finanzas ni de impuestos. Pensado para la app y para una
-> clase de educación cívica. Cada lección tiene **concepto**, **acción en la app** y **una pregunta**.
+> clase de educación cívica. Cada lección se recorre **por pasos**: adivina antes de leer, ideas
+> con el visual, un ejemplo, una pregunta, una misión opcional en la app y un cierre.
 > Ningún ejemplo usa empresas ni personas reales (ley L14): la empresa del curso es
 > **EMPRESA DEMO SPA, RUT 77.777.777-7**.
 
@@ -107,8 +108,8 @@ lado a lado con el cálculo de la app. Cuando no coinciden, la app explica por q
   mes: UF y UTM, débito y crédito, F29, PPM, renta y F22; tu empresa: persona o empresa, SpA/EIRL/
   Ltda./S.A., regímenes Pro-PYME, inicio de actividades y giro, clave tributaria y certificado;
   las fechas: calendario, honorarios y retención, multas; los documentos: folio y CAF, notas,
-  RCV, gratuito o motor propio). Cada lección: concepto, ejemplo con números, "Hazlo en la app" y
-  una pregunta, y un **visual interactivo** por lección (`academia-vis.js`: el alumno mueve un
+  RCV, gratuito o motor propio). Cada lección trae concepto, ejemplo con números, misión en la app y
+  una pregunta (hoy recorridos por pasos, ver el punto siguiente), y un **visual interactivo** por lección (`academia-vis.js`: el alumno mueve un
   deslizador, toca un mes, emite folios de mentira). El texto completo está en [`LECCIONES.md`](LECCIONES.md), generado desde los
   mismos datos (`tools/academia_datos.py` → `app/frontend/dist/academia.js`;
   `tools/revisar_academia.py --md`).
