@@ -152,8 +152,10 @@ cargo tauri build --bundles app              # target/release/bundle/macos/Faro.
 
 Gates en `tools/prueba_final.sh`: `app_rs_clippy`, `app_rs_test` (y `app_rs_tauri` con `--app`).
 **Esta es la app que se publica como Faro** (2026-10-12): pasó el recorrido guiado completo, la
-boleta de práctica, la anulación y las capturas del README. Pendiente: firma y notarización, y
-"Tu IA" probado desde la app de Claude. Detalle en [`../app-rs/README.md`](../app-rs/README.md).
+boleta de práctica, la anulación y las capturas del README. **Firma (2026-10-14)**: `tools/release.sh` detecta el certificado "Developer ID Application" del
+llavero y Tauri firma con él (`APPLE_SIGNING_IDENTITY`); la notarización corre sola si existe el
+perfil `faro` del llavero (`xcrun notarytool store-credentials faro`, una vez, credencial del
+desarrollador, nunca en el repo). Pendiente: "Tu IA" probado desde la app de Claude. Detalle en [`../app-rs/README.md`](../app-rs/README.md).
 
 ## Empaquetado: la app con el motor adentro
 

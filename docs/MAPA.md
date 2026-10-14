@@ -123,7 +123,7 @@ uvicorn main:app --reload --port 8000         # API (/docs, /redoc)
 | Certificación de boletas | ✅ **completa** — SOFTWARE DEMO SPA (78111111-2) autorizada en producción, emite boletas reales |
 | Canal MIPYME (gratuito por httpx) | ✅ lectura, importación (PDF+XML), firma central y **emisión** verificadas desde el repo (2026-10-08: factura 63 + NC 60 de anulación, `CADENAS_VERIFICADAS` = {34, 61}) · NC de corrección de montos, ND y boletas siguen con `--acepto-riesgo-folio` · **en Go**: `nucleo/siiengine` segmento 1 (sesión, historial, PDF, XML, importar) verificado en vivo 2026-10-08; emisión en Go y Rust con dry-run validado por el SII, a la espera de la primera corrida real que habilite `CadenasVerificadas` |
 | **Port a Go** (`nucleo/`) | ✅ completo 2026-10-11: corpus dorado 15/15, contrato dorado idéntico, un binario, la app Wails lo corre en proceso |
-| **Port a Rust** (`nucleo-rs/`) y app Faro (`app-rs/`) | ✅ completo 2026-10-12: contrato dorado Python vs Rust 203/203, esquema 23/23, certificación 16/16; Faro en Tauri es la app que se publica (beta). Pendientes: firma/notarización y las corridas reales contra el SII desde Go/Rust |
+| **Port a Rust** (`nucleo-rs/`) y app Faro (`app-rs/`) | ✅ completo 2026-10-12: contrato dorado Python vs Rust 203/203, esquema 23/23, certificación 16/16; Faro en Tauri es la app que se publica (beta). Firmada desde 1.1.0 (`tools/release.sh`); pendientes: notarización (perfil `faro` del llavero) y las corridas reales contra el SII desde Go/Rust |
 
 ⚠️ `task.md` (local, ignorado por git) es un **registro histórico** con partes obsoletas. Cuando discrepe con el código,
 **manda el código**.

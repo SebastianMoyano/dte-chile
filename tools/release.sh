@@ -33,14 +33,36 @@ rm -rf "$A" "$X" "$M" "$L" "$W"
 echo "→ .mcpb (app de Claude)"
 ./tools/empaquetar_mcpb.sh >/dev/null && cp nucleo/bin/dte-chile.mcpb "$OUT/dte-chile-$V.mcpb"
 if [ "$(uname)" = Darwin ] && command -v cargo >/dev/null 2>&1 && cargo tauri --version >/dev/null 2>&1; then
+  # Firma: Tauri usa el certificado "Developer ID Application" del llavero si se lo nombramos en
+  # APPLE_SIGNING_IDENTITY. Lo detectamos solo; sin certificado la app sale "ad hoc" (sin firma).
+  if [ -z "${APPLE_SIGNING_IDENTITY:-}" ]; then
+    APPLE_SIGNING_IDENTITY="$(security find-identity -v -p codesigning 2>/dev/null \
+      | sed -n 's/.*"\(Developer ID Application: [^"]*\)".*/\1/p' | head -1)"
+  fi
+  if [ -n "$APPLE_SIGNING_IDENTITY" ]; then export APPLE_SIGNING_IDENTITY; FIRMA="firmada"; else FIRMA="sin firmar"; fi
   if rustup target list --installed 2>/dev/null | grep -q x86_64-apple-darwin; then
-    echo "→ app de escritorio Faro (macOS, universal, sin firmar)"
+    echo "→ app de escritorio Faro (macOS, universal, $FIRMA)"
     (cd app-rs && cargo tauri build --target universal-apple-darwin --bundles app >/dev/null)
     APP="app-rs/target/universal-apple-darwin/release/bundle/macos"
   else
-    echo "→ app de escritorio Faro (macOS, Apple Silicon, sin firmar; instala el target x86_64-apple-darwin para universal)"
+    echo "→ app de escritorio Faro (macOS, Apple Silicon, $FIRMA; instala el target x86_64-apple-darwin para universal)"
     (cd app-rs && cargo tauri build --bundles app >/dev/null)
     APP="app-rs/target/release/bundle/macos"
+  fi
+  if [ -n "$APPLE_SIGNING_IDENTITY" ]; then
+    codesign --verify --deep --strict "$APP/Faro.app"
+    # Notarización: Apple revisa la app y devuelve un "ticket" que se pega adentro (staple). Usa la
+    # credencial guardada una sola vez en el llavero con: xcrun notarytool store-credentials faro
+    PERFIL="${NOTARY_PROFILE:-faro}"
+    if xcrun notarytool history --keychain-profile "$PERFIL" >/dev/null 2>&1; then
+      echo "→ notarizando con Apple (perfil $PERFIL)…"
+      ditto -c -k --keepParent "$APP/Faro.app" "$OUT/.notar.zip"
+      xcrun notarytool submit "$OUT/.notar.zip" --keychain-profile "$PERFIL" --wait
+      rm -f "$OUT/.notar.zip"
+      xcrun stapler staple "$APP/Faro.app" && echo "   notarizada y grapada"
+    else
+      echo "   sin notarizar: guarda la credencial con 'xcrun notarytool store-credentials faro' y vuelve a correr"
+    fi
   fi
   (cd "$APP" && zip -qr "$OLDPWD/$OUT/Faro-$V-macos.zip" "Faro.app")
 fi

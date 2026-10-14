@@ -32,6 +32,7 @@ externo, nada se arranca). `DTE_MOTOR=python` no existe aquí: no hay sidecar Py
 
 **Esta es la app que se publica como Faro** (decidido el 2026-10-12: Rust es el destino del
 port). Pasó el recorrido guiado completo, la boleta de práctica, la anulación y las capturas
-del README (`docs/APP.md`, `docs/PRUEBA-DE-USUARIO.md`). Pendiente: la firma y notarización
-para distribuirla fuera del repo, y "Tu IA" probado desde la app de Claude. La Wails (`app/`)
+del README (`docs/APP.md`, `docs/PRUEBA-DE-USUARIO.md`). La firma la hace `tools/release.sh`
+con el certificado Developer ID del llavero (y notariza si está el perfil `faro` de `notarytool`).
+Pendiente: "Tu IA" probado desde la app de Claude. La Wails (`app/`)
 sigue construyéndose como alternativa con el motor Go mientras dura la transición.
