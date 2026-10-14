@@ -51,4 +51,4 @@ require (
 	software.sslmate.com/src/go-pkcs12 v0.7.3 // indirect
 )
 
-// replace github.com/wailsapp/wails/v2 v2.16.0 => /Users/admin/go/pkg/mod
+// replace github.com/wailsapp/wails/v2 v2.16.0 => ~/go/pkg/mod

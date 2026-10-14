@@ -16,6 +16,8 @@
 #   7. la app: vet + test (el motor Go en proceso sobre una carpeta de datos vacía) [+ wails build]
 #   8. motor Rust (fase 8, si hay cargo): esquema dorado + contrato dorado (Python vs Rust) + MCP por
 #      stdio: el servidor Rust responde lo mismo que Python en las 94 rutas
+#   6c. público: ni RUTs reales, personas, correos, secretos ni rutas (árbol + historia + .gitignore),
+#       y los gates del gate (--autoprueba de auditar_publico y auditar_release)
 #   9. la app Tauri (app-rs, si hay cargo): clippy + test (motor Rust en proceso sobre una carpeta
 #      vacía; la app como MCP) [+ cargo tauri build con --app]
 # Sale 0 solo si TODO pasa. Nada toca la base real: el contrato corre sobre una copia temporal.
@@ -95,8 +97,10 @@ if command -v cargo >/dev/null 2>&1; then
   gate contrato_rust contrato nucleo-rs/target/release/nucleo-servidor
   gate mcp_rust mcp_stdio nucleo-rs/target/release/nucleo-mcp
 fi
-echo "== 6c. público: ni RUTs reales, ni personas, ni secretos (árbol + historia)"
+echo "== 6c. público: ni RUTs reales, ni personas, ni secretos (árbol + historia + .gitignore); y los gates del gate"
 gate publico "$PY" tools/auditar_publico.py
+gate publico_autoprueba "$PY" tools/auditar_publico.py --autoprueba
+gate release_autoprueba "$PY" tools/auditar_release.py --autoprueba
 echo "== 7. la app (motor Go en proceso)"
 gate app_vet bash -c 'cd app && go vet .'; gate app_test bash -c 'cd app && go test -count=1 . && rm -f app'
 if [ "$APP" = 1 ]; then gate app_wails bash -c 'cd app && PATH="$PATH:$HOME/go/bin" wails build -platform darwin/arm64 -s'; fi

@@ -59,3 +59,15 @@ nucleo-rs/target/
 # app Tauri (fase 8, bloque 5): compilados
 app-rs/target/
 app-rs/gen/
+
+# === Más secretos (gate `publico`, 2026-10-14): nada de esto entra, ni por accidente ===
+.env.*
+!.env.example
+boveda.json
+*.p8
+AuthKey_*
+*.mobileprovision
+*.keychain
+*.keychain-db
+*.bundle
+.auditoria-local.txt

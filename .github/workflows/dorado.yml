@@ -17,8 +17,10 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.13", cache: pip }
       - run: pip install -r requirements.txt
-      - name: Público (ni RUTs reales, ni personas, ni secretos; árbol e historia)
+      - name: Público (ni RUTs reales, ni personas, ni secretos; árbol, historia y .gitignore)
         run: python tools/auditar_publico.py
+      - name: Los gates del gate (que los auditores detecten lo que deben)
+        run: python tools/auditar_publico.py --autoprueba && python tools/auditar_release.py --autoprueba
       - name: Python puro == esperado (15 casos)
         run: python test_dorado.py
       - uses: actions/setup-go@v5

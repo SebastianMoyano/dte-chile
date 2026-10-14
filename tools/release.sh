@@ -7,6 +7,7 @@
 #   ./tools/release.sh 1.0.0              # dist/1.0.0/*
 #   gh release create v1.0.0 dist/1.0.0/* --title "Faro 1.0.0" --notes-file …
 set -eu
+PY="${PY:-.venv/bin/python}"; [ -x "$PY" ] || PY=python3
 cd "$(dirname "$0")/.."
 V="${1:?versión, ej. 1.0.0}"
 OUT="dist/$V"; rm -rf "$OUT"; mkdir -p "$OUT"
@@ -40,6 +41,8 @@ if [ "$(uname)" = Darwin ] && command -v cargo >/dev/null 2>&1 && cargo tauri --
       | sed -n 's/.*"\(Developer ID Application: [^"]*\)".*/\1/p' | head -1)"
   fi
   if [ -n "$APPLE_SIGNING_IDENTITY" ]; then export APPLE_SIGNING_IDENTITY; FIRMA="firmada"; else FIRMA="sin firmar"; fi
+  # Sin rutas de este computador dentro del binario (el gate de release las rechaza).
+  export RUSTFLAGS="${RUSTFLAGS:-} --remap-path-prefix=$HOME=/Users/x --remap-path-prefix=$PWD=/Users/x/faro"
   if rustup target list --installed 2>/dev/null | grep -q x86_64-apple-darwin; then
     echo "→ app de escritorio Faro (macOS, universal, $FIRMA)"
     (cd app-rs && cargo tauri build --target universal-apple-darwin --bundles app >/dev/null)
@@ -66,6 +69,8 @@ if [ "$(uname)" = Darwin ] && command -v cargo >/dev/null 2>&1 && cargo tauri --
   fi
   (cd "$APP" && zip -qr "$OLDPWD/$OUT/Faro-$V-macos.zip" "Faro.app")
 fi
+echo "→ auditoría de lo que se publica (nada privado en los paquetes)"
+"$PY" tools/auditar_release.py "$OUT"
 (cd "$OUT" && shasum -a 256 ./* > SHA256SUMS.txt)
 ls -la "$OUT" | awk 'NR>1{printf "   %-40s %6.1f MB\n", $NF, $5/1048576}'
 echo "listo: $OUT"
