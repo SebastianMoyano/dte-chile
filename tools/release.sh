@@ -52,8 +52,8 @@ if [ "$(uname)" = Darwin ] && command -v cargo >/dev/null 2>&1 && cargo tauri --
   if [ -n "$APPLE_SIGNING_IDENTITY" ]; then
     codesign --verify --deep --strict "$APP/Faro.app"
     # Notarización: Apple revisa la app y devuelve un "ticket" que se pega adentro (staple). Usa la
-    # credencial guardada una sola vez en el llavero con: xcrun notarytool store-credentials faro
-    PERFIL="${NOTARY_PROFILE:-faro}"
+    # credencial guardada una sola vez en el llavero con: xcrun notarytool store-credentials <perfil>
+    PERFIL="${NOTARY_PROFILE:-cafe-printerd-notary}"
     if xcrun notarytool history --keychain-profile "$PERFIL" >/dev/null 2>&1; then
       echo "→ notarizando con Apple (perfil $PERFIL)…"
       ditto -c -k --keepParent "$APP/Faro.app" "$OUT/.notar.zip"
@@ -61,7 +61,7 @@ if [ "$(uname)" = Darwin ] && command -v cargo >/dev/null 2>&1 && cargo tauri --
       rm -f "$OUT/.notar.zip"
       xcrun stapler staple "$APP/Faro.app" && echo "   notarizada y grapada"
     else
-      echo "   sin notarizar: guarda la credencial con 'xcrun notarytool store-credentials faro' y vuelve a correr"
+      echo "   sin notarizar: guarda la credencial con 'xcrun notarytool store-credentials <perfil>' (NOTARY_PROFILE) y vuelve a correr"
     fi
   fi
   (cd "$APP" && zip -qr "$OLDPWD/$OUT/Faro-$V-macos.zip" "Faro.app")
