@@ -10,10 +10,12 @@
 
 mod app;
 mod ia;
+mod informe;
 mod motor;
 mod siiengine;
 
 fn main() {
+    informe::capturar_caidas();
     if std::env::args().nth(1).as_deref() == Some("--mcp") {
         if let Err(e) = ia::ejecutar_mcp(std::io::stdin().lock(), std::io::stdout()) {
             eprintln!("Error: {e}");

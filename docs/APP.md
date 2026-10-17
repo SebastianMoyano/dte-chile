@@ -4,7 +4,7 @@
 adentro, en el mismo proceso. Existe también la construcción en **Go + Wails v2** (`app/`) con
 el motor Go (`nucleo/servidor`) adentro, igual de completa, que se mantiene como alternativa
 mientras dura la transición. Las dos usan **la misma interfaz** (`app/frontend/dist`, HTML/CSS/JS
-sin framework) y los mismos 16 bindings. El proyecto va de servidor + panel web a app fácil de
+sin framework) y los mismos 18 bindings. El proyecto va de servidor + panel web a app fácil de
 usar; la versión web (`/app`, servida por cualquier motor) queda para la sala de clases.
 
 La idea de producto está en [`aprender/00-plan.md`](aprender/00-plan.md): una app para quien no
@@ -210,6 +210,32 @@ para qué se usan. Viven en memoria de la app (`clavesSesion`) hasta cerrarla. C
 (ver `docs/MIPYME.md`, sección Claves). Nunca se muestran de vuelta. Desde la fase 6, el que
 entra al SII es el propio cascarón (Go); las claves recordadas las recibe del motor por la
 conexión local, en memoria, y no las escribe en ningún lado.
+
+## Cuando algo falla: informe local, sin Sentry (2026-10-17)
+
+Se evaluó agregar Sentry (o cualquier reportero de errores en la nube) y se decidió que **no**:
+la app promete "nada sale de tu computador", los errores de este dominio llevan RUT, folios y
+montos (los mensajes del SII los traen), el público son colegios y en beta cada falla llega mejor
+por una persona que escribe con su registro. Si algún día hace falta algo automático, será opt-in
+(apagado por defecto) y contra un servidor propio (GlitchTip habla el protocolo de Sentry).
+
+Lo que hay en su lugar, igual en las dos apps (`app-rs/src/informe.rs`, `app/informe.go`):
+
+- **Las caídas quedan en `logs/app-fallas.log`** de la carpeta de datos: un panic de la app Rust
+  (hook instalado al arrancar, con versión, sistema y traza) o del hilo principal de la Wails
+  (`registrarCaida` diferido en `main`). La interfaz también anota ahí sus propios errores
+  (`window.onerror`, promesas rechazadas) a través del binding `RegistrarFalla`, con tope por
+  sesión y sin repetidos.
+- **Ajustes → "¿Algo no funcionó?" → Informar un problema**: el binding `InformeProblema` arma el
+  texto (versión de la app y del motor, sistema, ambiente, últimas 80 líneas de fallas y 120 del
+  registro del motor) **con los RUT tachados** (`76.***.***-6`) y las cadenas largas que parecen
+  claves tapadas. La app lo muestra completo en un diálogo; los botones son Copiar y "Copiar y
+  abrir GitHub" (abre un issue nuevo con el título puesto; la persona pega el informe). Nada se
+  envía solo. En el navegador (sin bindings) el informe es el básico: versión, navegador y las
+  fallas de la sesión.
+- Pruebas: `cargo test informe` (tachado, recorte, informe sin carpeta), `go test -run
+  'TestTachar|TestInformeProblema'`, y la prueba sin ventana del diálogo (tarjeta, botones,
+  captura de un error provocado).
 
 ## Navegador o app: una interfaz, dos envases (2026-10-09)
 

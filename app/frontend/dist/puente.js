@@ -16,7 +16,7 @@
       m.className = "modal";
       m.innerHTML = `<div class="card" style="max-width:420px;width:92%">
         <h2 style="margin-top:0">Entrar al motor</h2>
-        <p class="mut">Estás usando DTE Chile en el navegador. Entra con el usuario y la clave del motor (los mismos del panel web).</p>
+        <p class="mut">Estás usando Faro en el navegador. Entra con el usuario y la clave del motor (los mismos del panel web).</p>
         <label>Usuario</label><input id="l_u" value="admin" autocomplete="username">
         <label>Clave</label><input id="l_p" type="password" autocomplete="current-password">
         <p class="no" id="l_err" style="display:none;margin:8px 0 0"></p>

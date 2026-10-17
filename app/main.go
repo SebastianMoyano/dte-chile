@@ -28,6 +28,7 @@ func main() {
 		return
 	}
 	app := NewApp()
+	defer registrarCaida(func() string { return app.Estado().Raiz })
 	err := wails.Run(&options.App{
 		Title:            "Faro",
 		Width:            1120,

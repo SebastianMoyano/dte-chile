@@ -376,6 +376,9 @@ vistas.ajustes = async (el) => {
         <li><span><b>La IA</b>, si la conectas, no recibe ninguna clave y no puede emitir sola: todo lo que cuenta ante el SII pasa por tu confirmación en esta app.</span></li>
         <li><span><b>No hay servidor de Faro.</b> Lo único que sale de este computador es lo que va al SII.</span></li>
       </ul></div>
+    <div class="card"><h3>¿Algo no funcionó?</h3>
+      <p class="mut">La app anota sus fallas en un registro en este computador y no las manda a ningún lado. Si algo salió mal, arma un informe: lo ves completo, con los RUT tachados, y tú decides dónde pegarlo.</p>
+      <button class="sec" onclick="informarProblema()">Informar un problema</button></div>
     <div class="card"><h3>Apariencia</h3><p class="mut">Si el fondo oscuro te cansa la vista, elige Claro. Automático sigue al sistema.</p>
       <div class="segmento" id="tema_sel">${Object.entries(TEMAS).map(([k, v]) => `<button class="${(localStorage.getItem("tema") || "") === k ? "on" : ""}" onclick="aplicarTema('${k}'); render()">${v}</button>`).join("")}</div></div>
     <details class="tecnico"><summary>Detalles técnicos</summary>
@@ -395,6 +398,35 @@ window.abrirPanel = async (pagina) => {
     try { await navigator.clipboard.writeText(estado.clave_admin); aviso("Clave copiada."); } catch {}
   }
   window.go.main.App.AbrirPanel(pagina);
+};
+// ---------- informar un problema ----------
+// Sin Sentry ni reportero en la nube (decisión 2026-10-17, ver docs/APP.md): la app guarda sus
+// fallas en logs/app-fallas.log de la carpeta de datos, y el informe se muestra entero antes de
+// que la persona lo copie. Nada sale solo.
+const fallasSesion = [];
+function registrarFalla(origen, texto) {
+  const linea = `${new Date().toISOString()} · ${origen} · ${String(texto || "").slice(0, 1500)}`;
+  if (fallasSesion.length >= 20 || fallasSesion.some((x) => x.slice(24) === linea.slice(24))) return;
+  fallasSesion.push(linea);
+  try { window.go?.main?.App?.RegistrarFalla?.(linea); } catch {}
+}
+window.addEventListener("error", (ev) => registrarFalla("interfaz", `${ev.message} (${(ev.filename || "").split("/").pop()}:${ev.lineno})${ev.error?.stack ? "\n" + ev.error.stack : ""}`));
+window.addEventListener("unhandledrejection", (ev) => registrarFalla("interfaz (promesa)", ev.reason?.stack || ev.reason));
+const abrirExterno = (u) => (window.go?.main?.App?.AbrirURL ? window.go.main.App.AbrirURL(u) : window.open(u, "_blank"));
+const informeBasico = () => `Informe de Faro (desde el navegador)\nMotor ${estado.version || "?"} en ${estado.url || "?"} · ambiente ${estado.ambiente || "?"}\nNavegador: ${navigator.userAgent}\nFecha: ${new Date().toISOString()}\n\n== Fallas de esta sesión ==\n${fallasSesion.length ? fallasSesion.join("\n") : "(ninguna)"}\n\nLos registros completos están en la carpeta de datos del motor (logs/).\n`;
+window.informarProblema = async () => {
+  let texto;
+  try { texto = window.go?.main?.App?.InformeProblema ? await window.go.main.App.InformeProblema() : informeBasico(); }
+  catch (e) { texto = informeBasico() + `\n(no pude leer los registros: ${e.message || e})\n`; }
+  const v = await dialogo({ titulo: "Informar un problema", ancho: 680,
+    cuerpo: `<p class="mut">Esto es <b>todo</b> lo que se compartiría: la versión, el sistema y las últimas líneas de los registros, con los RUT y las claves tachados. <b>Nada sale de tu computador solo</b>: tú lo copias y lo pegas donde quieras, por ejemplo en un reporte en GitHub.</p>
+      <textarea class="informe" readonly>${esc(texto)}</textarea>
+      <p class="mut">Agrega qué estabas haciendo cuando pasó: es lo que más ayuda a arreglarlo.</p>`,
+    botones: [{ texto: "Cerrar", clase: "sec", valor: false }, { texto: "Copiar y abrir GitHub", clase: "sec", valor: "github" }, { texto: "Copiar el informe", valor: true }] });
+  if (!v) return;
+  try { await navigator.clipboard.writeText(texto); aviso("Informe copiado. Pégalo donde lo vayas a mandar.", 5000); }
+  catch { aviso("No pude copiar solo: selecciona el texto del informe y cópialo tú.", 6000); }
+  if (v === "github") abrirExterno(`https://github.com/SebastianMoyano/faro-dte/issues/new?title=${encodeURIComponent(`Problema en Faro ${estado.version || ""}`.trim())}&body=${encodeURIComponent("Qué estaba haciendo:\n\n\nInforme de la app (pega aquí lo copiado):\n\n")}`);
 };
 // UF, UTM y dólar del día (los trae el núcleo Go a la base; Python los lee).
 async function pintarValores() {

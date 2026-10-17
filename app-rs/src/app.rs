@@ -1,5 +1,5 @@
-//! Los comandos que la interfaz llama (los 12 bindings de `app/app.go`, `ia.go` y
-//! `siiengine.go`, con los mismos nombres en `app/frontend/dist/tauri.js`): estado del motor,
+//! Los comandos que la interfaz llama (los bindings de `app/app.go`, `ia.go`, `siiengine.go` e
+//! `informe.go`, con los mismos nombres en `app/frontend/dist/tauri.js`): estado del motor,
 //! llamadas firmadas a la API, guardar y leer archivos del motor, emitir con el núcleo, abrir el
 //! panel, conectar la IA y operar el SII engine. Nunca devuelven la clave de la app.
 
@@ -189,6 +189,7 @@ fn arrancar(app: AppHandle, c: Arc<Compartido>) {
             ..Default::default()
         }
     };
+    crate::informe::fijar_raiz(&e.raiz);
     match r {
         Err(err) => e.error = err,
         Ok(()) => {
@@ -459,6 +460,21 @@ fn dibujar_pdf(
     Ok(rel)
 }
 
+/// `InformeProblema`: el texto de "Informar un problema" (versión, sistema, registros tachados).
+/// Nunca se envía solo: la interfaz lo muestra y la persona lo copia. Sin Sentry (`informe.rs`).
+#[tauri::command]
+async fn informe_problema(c: State<'_, Estado_>) -> Result<String, String> {
+    let e = c.estado.read().unwrap_or_else(|e| e.into_inner()).clone();
+    Ok(crate::informe::informe(&e.raiz, &e.version, e.externo, &e.ambiente))
+}
+
+/// `RegistrarFalla`: un error de la interfaz queda en logs/app-fallas.log.
+#[tauri::command]
+async fn registrar_falla(texto: String) -> Result<(), String> {
+    crate::informe::registrar("interfaz", &texto);
+    Ok(())
+}
+
 #[tauri::command]
 async fn abrir_url(u: String) -> Result<(), String> {
     tauri_plugin_opener::open_url(u, None::<&str>).map_err(|e| e.to_string())
@@ -623,7 +639,9 @@ pub fn correr() {
             sii_engine_nota_debito,
             elegir_archivo,
             formulario,
-            pedir_folios
+            pedir_folios,
+            informe_problema,
+            registrar_falla
         ])
         .run(tauri::generate_context!())
         .expect("la app no pudo arrancar");

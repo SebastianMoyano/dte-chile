@@ -13,6 +13,8 @@
     Bytes: (ruta) => inv("bytes", { ruta }),
     EmitirNucleo: (negocioId, docJson) => inv("emitir_nucleo", { negocioId: Number(negocioId), docJson }),
     AbrirURL: (u) => { inv("abrir_url", { u }); },
+    InformeProblema: () => inv("informe_problema"),
+    RegistrarFalla: (texto) => { inv("registrar_falla", { texto: s(texto) }); },
     AbrirPanel: (pagina) => { inv("abrir_panel", { pagina: s(pagina) }); },
     Conectores: () => inv("conectores"),
     ConectarIA: (id, quitar) => inv("conectar_ia", { id, quitar: !!quitar }),
